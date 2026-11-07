@@ -1,0 +1,7 @@
+# Merge into plugins/GriefPreventionData/config.yml BEFORE the first family login with GriefPrevention.
+# Its defaults would kick a family sharing a home connection, and bounce anyone coming back through a
+# fargate within a minute of leaving.
+GriefPrevention:
+  MaxPlayersPerIpAddress: 100
+  Spam:
+    LoginCooldownSeconds: 0

@@ -1,0 +1,202 @@
+# Waystation. Worlds get gates on their own, so this file can stay as it is.
+# Text uses MiniMessage: https://docs.advntr.dev/minimessage/format.html
+# Apply changes with /gate reload. A file with a YAML error is rejected and the old settings stay.
+# Gate positions live in gates.yml, which is also plain YAML you can edit.
+
+# Make two small example worlds, example_survival and example_creative, the first time the station is
+# built. To turn this on, before the plugin has ever started, create plugins/Waystation/config.yml holding
+# only this line, set to true. It does nothing once gates.yml exists, and never removes a world.
+example-worlds: false
+
+# Gate proportions. Shapes and colours come from the generator, below. frame is only a fallback,
+# used if a world gives no blocks to build from.
+looks:
+  default:
+    width: 3            # blocks wide inside the frame; odd numbers sit neatly on a block
+    height: 4           # blocks tall inside the frame
+    frame: polished_andesite
+    fill: light_blue_stained_glass
+    label-scale: 1.4
+  fargate:              # the design itself is fixed: hazard stripes around red bars
+    width: 3
+    height: 5
+    frame: yellow_concrete
+    fill: red_stained_glass
+    label-scale: 1.6
+
+# Waygates out in the worlds always share a slim frame, a lattice and a floating lantern, so anyone
+# can recognise one. varied also changes the outline from world to world. standard keeps it the same.
+world-gates: varied
+
+# Every Multiverse world gets a linked pair automatically: a gate on its world group's
+# platform, and a return gate near the world's spawn. A new world joins its platform and
+# the station lays itself out again. A deleted world's gate goes dark ("dies") and stays
+# until an admin runs /gate remove. Nether and End worlds never get gates, unless listed below.
+auto-worlds: true
+exclude-worlds: [TARDIS_*]   # * matches anything
+
+# enter-command: enter by running this command as the player, for a world whose own plugin decides where
+# they go, as OneBlock does. Such a world gets no return gate.
+# Optional, per world: a nicer label, a look, enabled: false to close the way in, or arrival: gate
+# or last. By default you arrive at the gate in survival worlds, and at your last spot elsewhere.
+# Closing a world keeps its return gate working, so nobody is trapped. A world listed
+# here always gets a gate, even if exclude-worlds would skip it.
+# price: makes a world's gate show as locked for people without access, until they use
+# /buygate <world>. Any mix of xp-levels, items and money (money needs Vault and an economy plugin).
+#   example:          {price: {xp-levels: 30, money: 500, items: {diamond: 5}}}
+worlds: {}
+# worlds:
+#   lobby:    {label: "<white>Lobby"}
+#   oneblock: {label: "<aqua>OneBlock", enter-command: "ob join"}
+
+# The station room is a train station. Each Multiverse-Inventories world group gets its own
+# platform: its gates side by side, a sign, and a floor in a mix of themed materials.
+# Platforms sit in two rows facing each other across an aisle. Everything decorative is a
+# display entity, so no block in the lobby changes, and nothing here can be broken.
+# A platform is hidden from anyone who can't enter any of its worlds.
+station:
+  world: waystation
+  auto-create: true      # make it, flat and empty, through Multiverse if it doesn't exist
+  border: 300            # world border size, so nobody wanders off
+  return-label: "<gold>Central Station"   # "" for no label out in the worlds
+  station-label: "<white><bold>Central Station</bold>"
+  dead-label: "<dark_gray><name> <gray>(line closed)"   # <name> is the world's name
+  dead-frame: cracked_deepslate_bricks
+  # The seed decides this station's floor plan, platform order, gate designs and themes, so no
+  # two servers match. 0 picks one at random the first time, then keeps it in gates.yml.
+  # /gate reseed rolls a whole new station. Its blocks don't change: only display entities move.
+  seed: 0
+  tile-depth: 5          # how far each platform floor reaches out from the gates
+  tile-size: 2           # blocks per floor tile. Bigger means fewer entities
+  # Optional, per world group. theme: a fixed theme, not one dealt by the seed. design: a fixed
+  # shape: doorway, arch, ring, obelisk, temple, gothic, lozenge, towers, monolith or toy.
+  # frame-blocks: "theme" builds frames from the theme, not from blocks found in the world beyond.
+  platforms: {}
+  # platforms:
+  #   Survival: {label: "Survival Line"}
+  #   Kids:     {label: "Kids Line", design: toy, theme: toybox, frame-blocks: theme}
+  # Floors and accents come from these, a block at random for each piece.
+  themes:
+    toybox:   [red_wool, yellow_wool, blue_wool, lime_wool, orange_wool]
+    candy:    [pink_concrete, light_blue_concrete, yellow_concrete, magenta_concrete, lime_concrete]
+    forest:   [moss_block, mossy_cobblestone, oak_planks, spruce_planks, mossy_stone_bricks]
+    cherry:   [cherry_planks, pink_terracotta, pink_concrete, stripped_cherry_wood, white_terracotta]
+    desert:   [sandstone, smooth_sandstone, cut_sandstone, orange_terracotta, terracotta]
+    deepsea:  [prismarine, dark_prismarine, prismarine_bricks, sea_lantern, cyan_terracotta]
+    ice:      [packed_ice, blue_ice, snow_block, light_blue_concrete, calcite]
+    ember:    [nether_bricks, red_nether_bricks, blackstone, crimson_planks, red_terracotta]
+    amethyst: [amethyst_block, blue_terracotta, purple_terracotta, deepslate_tiles, smooth_quartz]
+    copper:   [cut_copper, weathered_cut_copper, oxidized_cut_copper, waxed_copper_block, tuff_bricks]
+  center: {x: 0, z: 0}   # leave out to centre on the world's spawn
+  y: -60                 # floor level to search around
+  spacing: 7             # least blocks between gates in a row
+  aisle: 14              # least blocks across a walkway
+  # To place each gate yourself, list slots here. They override the floor plan.
+  # slots:
+  #   - {x: 10, y: -60, z: 5, facing: north}
+  slots: []
+
+# Nobody can change blocks in the station or around a world's gate: no player, no
+# permission, no operator. Explosions, fire, liquid, pistons and growth are stopped too.
+# To rebuild the room itself, set enabled: false here and run /gate reload.
+protection:
+  enabled: true
+  # World-editing commands refused for players anywhere in the station's world, and
+  # anywhere else if their coordinates touch a gate. The console isn't limited.
+  guarded-commands: [fill, setblock, clone, place, fillbiome]
+
+# What /buygate runs, as the console, once the player has paid. If the player doesn't have
+# multiverse.access.<world> two seconds later, they get their payment back.
+buy:
+  grant-commands:
+    - "lp user <player> permission set multiverse.access.<world> true"
+
+# BlueMap can't draw display entities, so gates appear as map markers instead. The map
+# is for anyone with the link: it shows every gate, whoever may or may not use it.
+bluemap:
+  enabled: true
+  set-label: Waygates
+  hide-groups: []   # world groups that never appear on the map
+
+# Fargates lead to another server, and look nothing like waygates: see looks.fargate
+# and the label below. Place one with /gate fargate <id> <destination>. It's hidden, and does
+# nothing at all, unless the player has its permission (waystation.fargate.<name> unless set
+# below) and their client version is listed in protocols. 774 is Minecraft 1.21.11.
+# Both servers need accepts-transfers=true in server.properties. If this one doesn't have it,
+# its fargates stay hidden, since nobody could come back.
+fargate-label: "<red><bold>Leaving this server</bold></red>\n<white><name></white>"
+# fargate-destinations:
+#   example:
+#     label: "Example Server"
+#     host: play.example.com
+#     port: 25565
+#     protocols: [774]
+
+# OneBlock gives each player their own island, so each island with someone on it gets a glowing post
+# beside its block. Click it twice to go to the station. It's display entities, so it places no blocks.
+island-posts:
+  enabled: true
+  label: "<gold>To the station"
+
+# Walking through a gate.
+travel:
+  cooldown-ticks: 40     # after arriving, a gate won't fire again for this long
+
+# Moving a waygate. Beside each waygate in these worlds is a tribute chest. It asks for hearts, or
+# if you can't spare them, one piece you're wearing that isn't named or enchanted. Pay, and the gate
+# moves to the chunk of your bed in this world, or as near as it can. No promises on the exact spot.
+# It tries to avoid builds, but settles for any safe open ground. Nothing is taken unless the move can
+# happen. Hearts can never kill you.
+move:
+  enabled: true
+  permission: waystation.move
+  hearts: 6
+  gentle-hearts: 3       # for the worlds listed in gentle-worlds
+  gentle-worlds: []
+  rest-seconds: 86400    # how long a gate stays put after moving
+  search-chunks: 2       # how many chunks out from your bed it may look
+  allowed-worlds: []      # empty means no tribute chests or moving anywhere
+
+# A way out for anyone stuck. Set enabled: false to remove the command entirely.
+# The console can always use: mvtp <player> w:waystation
+escape:
+  enabled: true
+  command: station
+  aliases: [hub]
+  permission: waystation.escape
+  cooldown-seconds: 0
+
+messages:
+  no-vehicle: "<yellow>Hop off your ride to use a waygate."
+  travel-failed: "<red>The waygate fizzled: <reason>. Nothing happened to you or your things."
+  destination-closed: "<red>That world isn't open right now."
+  nearest: "<aqua>Nearest waygate: <white><name></white> at <white><x> <y> <z></white>, <distance> blocks <direction>."
+  nearest-none: "<yellow>There's no waygate you can use in this world."
+  nearest-none-escape: "<yellow>There's no waygate you can use in this world. <white><command></white> will take you to Central Station."
+  fargate-leaving: "<red><bold>Leaving this server</bold></red> <gray>for <white><name></white>. See you back here."
+  move-disabled: "<red>Waygates can't be moved in this world."
+  move-no-permission: "<red>You can't move waygates."
+  move-resting: "<yellow>This waygate moved recently, and won't move again for <time>."
+  move-no-bed: "<yellow>Sleep somewhere in this world first. The waygate moves to your bed. Nothing was taken."
+  move-claimed: "<red>Your bed is on someone else's claim, and they haven't trusted you. Nothing was taken."
+  move-no-spot: "<red>There's no safe open ground near your bed. Nothing was taken."
+  move-busy: "<yellow>The waygate is still considering your last request."
+  move-open: "<light_purple>The waygate asks for a tribute. <gray>Pay, and it moves near your bed, with no promises on the exact spot. Close the chest to keep everything."
+  move-cant-pay: "<yellow>The waygate asks for <hearts> hearts, or one piece you're wearing that isn't named or enchanted. Heal up, or wear something plain. Nothing was taken."
+  move-paid-too-late: "<red>That's no longer yours to give. Nothing was taken."
+  move-spot-gone: "<red>The spot near your bed is no longer safe. Nothing was taken."
+  move-answered: "<green>Your tribute is accepted. The waygate moved to <white><x> <y> <z></white>."
+  move-announce: "<light_purple>The waygate has moved. Nobody is saying where."
+  station-blocked: "<gold>Waystation:</gold> <red>no safe floor for <white><gates></white>.</red> <gray>Choose: <white>/gate enlarge</white> keeps this station with more room, <white>/gate reseed</white> rolls a new one.</gray>"
+  island-post-confirm: "<gold>Click the post again to go to the station."
+  gate-locked: "<yellow>This line costs <white><cost></white>. Buy it with <white>/buygate <world></white>."
+  buy-none: "<gray>There's nothing for sale right now."
+  buy-list: "<gray>For sale: <white><list></white>"
+  buy-not-for-sale: "<red><world> isn't for sale."
+  buy-owned: "<yellow>You already have <world>."
+  buy-cost: "<red><world> costs <cost>, and you don't have enough. Nothing was charged."
+  buy-done: "<green>The line to <world> is open for you. Spent: <white><cost></white>."
+  buy-failed: "<red>That didn't work, so you've been paid back. Please tell an admin."
+  gate-dead: "<gray>This line has closed. The world it led to is gone."
+  protected: "<red>Nothing can be changed here."
+  escape-cooldown: "<yellow>You can do that again in <seconds>s."

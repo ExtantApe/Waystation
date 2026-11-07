@@ -1,0 +1,53 @@
+name: Waystation
+version: ${version}
+main: com.extantape.waystation.WaystationPlugin
+api-version: '1.21'
+description: Walkable display-entity gates between Multiverse world groups.
+depend: [Multiverse-Core]
+softdepend: [Multiverse-Inventories, LuckPerms, GriefPrevention, Vault, BlueMap, ViaVersion]
+commands:
+  gate:
+    description: Create, move, link, list, remove and test gates.
+    usage: /gate help
+  waygate:
+    description: Shows the coordinates of the closest gate you can use.
+    usage: /waygate
+    aliases: [nearestgate, findgate]
+    permission: waystation.find
+  buygate:
+    description: Buy access to a world's gate.
+    usage: /buygate [world]
+    permission: waystation.buy
+permissions:
+  # default: false everywhere an admin is concerned: operators get nothing for free.
+  waystation.admin:
+    description: All of /gate. For a narrower role, grant waystation.admin.<subcommand> instead.
+    default: false
+  waystation.admin.help: {default: false}
+  waystation.admin.list: {default: false}
+  waystation.admin.create: {default: false}
+  waystation.admin.fargate: {default: false}
+  waystation.admin.move: {default: false}
+  waystation.admin.link: {default: false}
+  waystation.admin.remove: {default: false}
+  waystation.admin.test: {default: false}
+  waystation.admin.addworld: {default: false}
+  waystation.admin.relayout: {default: false}
+  waystation.admin.reseed: {default: false}
+  waystation.admin.enlarge: {default: false}
+  waystation.admin.reload: {default: false}
+  waystation.admin.seedead:
+    description: See dead gates even without access to the world they led to.
+    default: false
+  waystation.buy:
+    description: Use /buygate.
+    default: true
+  waystation.find:
+    description: Use /waygate.
+    default: true
+  waystation.move:
+    description: Offer a tribute at a waygate's chest. The node name is configurable in config.yml.
+    default: true
+  waystation.escape:
+    description: Use the escape command. The node name is configurable in config.yml.
+    default: true

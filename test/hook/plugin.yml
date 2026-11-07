@@ -1,0 +1,7 @@
+name: DenyHook
+version: 1
+main: hook.DenyHook
+api-version: "1.21"
+depend: [Waystation, Vault]
+commands:
+  fakebalance: {}

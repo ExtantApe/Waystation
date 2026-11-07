@@ -1,0 +1,42 @@
+// The default config, as a new server gets it, and the example-worlds flag.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { Server, freshCopy, installJar, sleep, check, summary, DIR } from './harness.mjs'
+const s = new Server()
+const cfg = DIR + '/plugins/Waystation/config.yml'
+const gates = async () => (await s.ask('gate list', 1000)).join('\n')
+
+console.log('\n# Default config')
+freshCopy(); installJar({ testConfig: false }); await s.start(); await sleep(12000)
+let text = readFileSync(cfg, 'utf8'), list = await gates()
+check('the default config lists no worlds or groups', /^worlds: \{\}/m.test(text) && /^  platforms: \{\}/m.test(text))
+check('the example worlds are off', /^example-worlds: false/m.test(text))
+check('every world still gets a gate', /station-survival:/.test(list) && /station-lobby:/.test(list) && /return-survival:/.test(list), list.slice(0, 160))
+check('no example world without the flag', !existsSync(DIR + '/example_survival') && !/example_/.test(list))
+check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+writeFileSync(cfg, text.replace('example-worlds: false', 'example-worlds: true'))
+await s.stop(); await sleep(1500); await s.start(); await sleep(8000)
+check('the flag does nothing once gates exist', !existsSync(DIR + '/example_survival'))
+check('and says so', s.log.some(l => /example-worlds only works before the first start/.test(l)))
+await s.stop(); await sleep(1500)
+
+console.log('\n# The flag, before the first start')
+freshCopy(); installJar({ testConfig: false })
+mkdirSync(DIR + '/plugins/Waystation', { recursive: true }); writeFileSync(cfg, 'example-worlds: true\n')
+await s.start(); await sleep(15000)
+text = readFileSync(cfg, 'utf8'); list = await gates()
+check('the one-line file becomes the full config', /^looks:/m.test(text) && /^messages:/m.test(text))
+check('the flag stays on', /^example-worlds: true/m.test(text))
+const loaded = (await s.ask('mv list', 1200)).join(' ')
+check('both example worlds are made and loaded', /example_survival/.test(loaded) && /example_creative/.test(loaded) && existsSync(DIR + '/example_survival') && existsSync(DIR + '/example_creative'), loaded.slice(0, 160))
+check('they get gates like any world', /station-example_survival:/.test(list) && /station-example_creative:/.test(list) && /return-example_creative:/.test(list), list.slice(0, 160))
+check('existing worlds still get theirs', /station-survival:/.test(list))
+await s.stop(); await sleep(1500); await s.start(); await sleep(8000)
+check('they are saved to disk', existsSync(DIR + '/example_survival/level.dat') && existsSync(DIR + '/example_creative/level.dat'))
+const after = (await s.ask('mv list', 1200)).join(' ')
+check('they load again after a restart', /example_survival/.test(after) && /example_creative/.test(after), after.slice(0, 160))
+const made = s.log.filter(l => /Created an example world/.test(l)).length
+check('a restart makes nothing again', made === 2, `created ${made} times`)
+check('the worlds and gates are still there', /station-example_survival:/.test(await gates()))
+check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+await s.stop()
+summary()

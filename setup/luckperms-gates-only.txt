@@ -1,0 +1,112 @@
+# Paste into the server console, line by line. It takes /mvtp away from everyone but admins, while
+# waygates keep working. The console keeps it too, as the emergency route.
+# To undo it: lp group default parent remove gates-only
+#
+# The world names below are examples. List your own: one line per world, nether and End included, in
+# both the gates-only and admin-mvtp blocks. Group names (family, kids, admin-family) are examples too.
+#
+# Why each part is here:
+# - weight 100 puts this group ahead of family, kids and the rest, which all sit at weight 0.
+# - a., e. and pl. are what the pure-creative group grants in creative worlds. Left alone, /mvtp e:
+#   would still cross worlds from there. Vanilla /tp is a different permission and isn't touched.
+# - every world gets an exact false, since an exact true on family, kids etc. would beat a wildcard.
+# - multiverse.access.* stays as it is: gates need it. So do nether portals and TARDIS.
+lp creategroup gates-only
+lp group gates-only setweight 100
+lp group gates-only permission set multiverse.teleport.self.w false
+lp group gates-only permission set multiverse.teleport.self.w.* false
+lp group gates-only permission set multiverse.teleport.self.a false
+lp group gates-only permission set multiverse.teleport.self.a.* false
+lp group gates-only permission set multiverse.teleport.self.e false
+lp group gates-only permission set multiverse.teleport.self.e.* false
+lp group gates-only permission set multiverse.teleport.self.pl false
+lp group gates-only permission set multiverse.teleport.self.pl.* false
+lp group gates-only permission set multiverse.teleport.self.ll false
+lp group gates-only permission set multiverse.teleport.self.ll.* false
+lp group gates-only permission set multiverse.teleport.self.ca false
+lp group gates-only permission set multiverse.teleport.self.ca.* false
+lp group gates-only permission set multiverse.teleport.self.b false
+lp group gates-only permission set multiverse.teleport.self.b.* false
+lp group gates-only permission set multiverse.teleport.self.w.friends_flatlands false
+lp group gates-only permission set multiverse.teleport.self.w.friends_survival false
+lp group gates-only permission set multiverse.teleport.self.w.friends_survival_nether false
+lp group gates-only permission set multiverse.teleport.self.w.friends_survival_the_end false
+lp group gates-only permission set multiverse.teleport.self.w.creative false
+lp group gates-only permission set multiverse.teleport.self.w.meadow false
+lp group gates-only permission set multiverse.teleport.self.w.meadow_nether false
+lp group gates-only permission set multiverse.teleport.self.w.meadow_the_end false
+lp group gates-only permission set multiverse.teleport.self.w.flatlands false
+lp group gates-only permission set multiverse.teleport.self.w.legacy false
+lp group gates-only permission set multiverse.teleport.self.w.legacy_nether false
+lp group gates-only permission set multiverse.teleport.self.w.legacy_the_end false
+lp group gates-only permission set multiverse.teleport.self.w.lobby false
+lp group gates-only permission set multiverse.teleport.self.w.kids_flatlands false
+lp group gates-only permission set multiverse.teleport.self.w.kids_survival false
+lp group gates-only permission set multiverse.teleport.self.w.kids_survival_nether false
+lp group gates-only permission set multiverse.teleport.self.w.kids_survival_the_end false
+lp group gates-only permission set multiverse.teleport.self.w.oneblock false
+lp group gates-only permission set multiverse.teleport.self.w.waystation false
+lp group gates-only permission set multiverse.teleport.self.w.survival false
+lp group gates-only permission set multiverse.teleport.self.w.survival_nether false
+lp group gates-only permission set multiverse.teleport.self.w.survival_the_end false
+lp group gates-only permission set multiverse.teleport.other.w false
+lp group gates-only permission set multiverse.teleport.other.w.* false
+lp group gates-only permission set multiverse.teleport.other.a false
+lp group gates-only permission set multiverse.teleport.other.e false
+lp group gates-only permission set multiverse.teleport.other.pl false
+lp group default parent add gates-only
+#
+# Give admins the /gate command (LuckPerms, since there are no vanilla operators):
+lp group admin-family permission set waystation.admin true
+#
+# Everyone needs to be allowed into the station:
+lp group default permission set multiverse.access.waystation true
+#
+# Admins keep /mvtp: a group that outranks gates-only, with the same nodes turned back on.
+lp creategroup admin-mvtp
+lp group admin-mvtp setweight 200
+lp group admin-mvtp permission set multiverse.teleport.self.w true
+lp group admin-mvtp permission set multiverse.teleport.self.w.* true
+lp group admin-mvtp permission set multiverse.teleport.self.a true
+lp group admin-mvtp permission set multiverse.teleport.self.a.* true
+lp group admin-mvtp permission set multiverse.teleport.self.e true
+lp group admin-mvtp permission set multiverse.teleport.self.e.* true
+lp group admin-mvtp permission set multiverse.teleport.self.pl true
+lp group admin-mvtp permission set multiverse.teleport.self.pl.* true
+lp group admin-mvtp permission set multiverse.teleport.self.ll true
+lp group admin-mvtp permission set multiverse.teleport.self.ll.* true
+lp group admin-mvtp permission set multiverse.teleport.self.ca true
+lp group admin-mvtp permission set multiverse.teleport.self.ca.* true
+lp group admin-mvtp permission set multiverse.teleport.self.b true
+lp group admin-mvtp permission set multiverse.teleport.self.b.* true
+lp group admin-mvtp permission set multiverse.teleport.self.w.friends_flatlands true
+lp group admin-mvtp permission set multiverse.teleport.self.w.friends_survival true
+lp group admin-mvtp permission set multiverse.teleport.self.w.friends_survival_nether true
+lp group admin-mvtp permission set multiverse.teleport.self.w.friends_survival_the_end true
+lp group admin-mvtp permission set multiverse.teleport.self.w.creative true
+lp group admin-mvtp permission set multiverse.teleport.self.w.meadow true
+lp group admin-mvtp permission set multiverse.teleport.self.w.meadow_nether true
+lp group admin-mvtp permission set multiverse.teleport.self.w.meadow_the_end true
+lp group admin-mvtp permission set multiverse.teleport.self.w.flatlands true
+lp group admin-mvtp permission set multiverse.teleport.self.w.legacy true
+lp group admin-mvtp permission set multiverse.teleport.self.w.legacy_nether true
+lp group admin-mvtp permission set multiverse.teleport.self.w.legacy_the_end true
+lp group admin-mvtp permission set multiverse.teleport.self.w.lobby true
+lp group admin-mvtp permission set multiverse.teleport.self.w.kids_flatlands true
+lp group admin-mvtp permission set multiverse.teleport.self.w.kids_survival true
+lp group admin-mvtp permission set multiverse.teleport.self.w.kids_survival_nether true
+lp group admin-mvtp permission set multiverse.teleport.self.w.kids_survival_the_end true
+lp group admin-mvtp permission set multiverse.teleport.self.w.oneblock true
+lp group admin-mvtp permission set multiverse.teleport.self.w.waystation true
+lp group admin-mvtp permission set multiverse.teleport.self.w.survival true
+lp group admin-mvtp permission set multiverse.teleport.self.w.survival_nether true
+lp group admin-mvtp permission set multiverse.teleport.self.w.survival_the_end true
+lp group admin-mvtp permission set multiverse.teleport.other.w true
+lp group admin-mvtp permission set multiverse.teleport.other.w.* true
+lp group admin-mvtp permission set multiverse.teleport.other.a true
+lp group admin-mvtp permission set multiverse.teleport.other.e true
+lp group admin-mvtp permission set multiverse.teleport.other.pl true
+lp group admin-family parent add admin-mvtp
+# Admins must be read before the default group, which carries gates-only.
+lp group admin-family setweight 150
+lp group admin setweight 150
