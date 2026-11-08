@@ -1,5 +1,6 @@
 // The generator: every floor plan must be walkable and non-overlapping, seeds must repeat exactly,
 // and the room must not cost the server anything noticeable.
+import { readFileSync, writeFileSync } from 'node:fs'
 import { Server, freshCopy, installJar, sleep, bot, walkTo, check, summary, DIR } from './harness.mjs'
 const s = new Server()
 const dir = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }
@@ -86,6 +87,26 @@ check('/gate reseed also solves it', blockedAgain && !reseeded, `blocked with th
 await water('grass_block'); await s.ask(`execute in waystation run fill ${spot.x - 3} -60 ${spot.z - 3} ${spot.x + 3} -60 ${spot.z + 3} air`, 800)
 await s.ask(`execute in waystation run forceload remove ${spot.x} ${spot.z}`, 300)
 chief.end()
+
+console.log('\n# Readable labels')
+// Every floating label gets a shadow and a dark plate (75% black, 0xBF000000) unless the config says otherwise.
+const PLATE = -1090519040 // 0xBF000000 as Minecraft stores it, a signed int
+const labels = async nbt => Number((await s.ask(`execute in waystation if entity @e[type=text_display,tag=waystation${nbt}]`, 500)).join(' ').match(/Count: (\d+)/)?.[1] ?? 0)
+await s.ask('execute in waystation run tp walker 0.5 -60 0.5', 1000); await sleep(3000)
+const allLabels = await labels(''), plated = await labels(`,nbt={shadow:1b,background:${PLATE}}`)
+check('every label has a shadow and the dark plate', allLabels > 0 && plated === allLabels, `${plated} of ${allLabels}`)
+const cfgFile = DIR + '/plugins/Waystation/config.yml', cfgText = readFileSync(cfgFile, 'utf8')
+writeFileSync(cfgFile, cfgText.replace(/^label-backing:.*$/m, '') + '\nlabel-backing: 0\n'); await s.ask('gate reload', 2500); await sleep(2000)
+const labelsOff = await labels(''), platedOff = await labels(`,nbt={background:${PLATE}}`)
+const unshadowed = [await labels(',nbt=!{shadow:1b}')]; await sleep(2000); unshadowed.push(await labels(',nbt=!{shadow:1b}'))
+if (unshadowed.some(n => n > 0)) console.log('  a label without a shadow: ' + (await s.ask('execute in waystation run data get entity @e[type=text_display,tag=waystation,nbt=!{shadow:1b},limit=1]', 1500)).join(' ').slice(0, 900))
+check('positive control: label-backing 0 keeps Minecraft\'s own background, and the shadow', labelsOff > 0 && platedOff === 0 && unshadowed.every(n => n === 0), `${labelsOff} labels, ${platedOff} plated, unshadowed ${unshadowed.join(' then ')}`)
+// Labels are drawn once and left alone. One redrawn every second would churn entities for nothing.
+await s.ask('execute in waystation run tag @e[type=text_display,tag=waystation] add stayput', 800)
+const marked = await labels(',tag=stayput'); await sleep(3000)
+const stillMarked = await labels(',tag=stayput'), nowLabels = await labels('')
+check('labels stay put between passes (none redrawn every second)', marked > 0 && stillMarked === marked && nowLabels === marked, `${marked} marked, ${stillMarked} still there 3 s later, ${nowLabels} labels now`)
+writeFileSync(cfgFile, cfgText); await s.ask('gate reload', 2500); await sleep(2000)
 
 console.log('\n# Seeds')
 await s.ask('gate reseed 7777', 3500); const one = JSON.stringify((await read()).gates)

@@ -49,6 +49,11 @@ worlds: {}
 #   lobby:    {label: "<white>Lobby"}
 #   oneblock: {label: "<aqua>OneBlock", enter-command: "ob join"}
 
+# Floating labels get a text shadow and a dark plate behind them, so they read over snow, sky or
+# a dark cave. This is how dark the plate is, in percent: 0 keeps Minecraft's own faint one.
+# Where a label marks a state, it says it in words, so colour is never the only clue.
+label-backing: 75
+
 # The station room is a train station. Each Multiverse-Inventories world group gets its own
 # platform: its gates side by side, a sign, and a floor in a mix of themed materials.
 # Platforms sit in two rows facing each other across an aisle. Everything decorative is a
@@ -60,7 +65,7 @@ station:
   border: 300            # world border size, so nobody wanders off
   return-label: "<gold>Central Station"   # "" for no label out in the worlds
   station-label: "<white><bold>Central Station</bold>"
-  dead-label: "<dark_gray><name> <gray>(line closed)"   # <name> is the world's name
+  dead-label: "<white><name></white> <gray>(line closed)"   # <name> is the world's name
   dead-frame: cracked_deepslate_bricks
   # The seed decides this station's floor plan, platform order, gate designs and themes, so no
   # two servers match. 0 picks one at random the first time, then keeps it in gates.yml.
@@ -224,8 +229,8 @@ messages:
   escape-no-permission: "<red>You can't use <command>. Walk through a waygate, or ask an admin."
   # The return command. <destination> is the destination's label, <seconds> the seconds left, <command> the command.
   return-starting: "<gray>Going to <destination><gray> in <seconds> seconds. Stand still, and don't take any damage."
-  return-countdown: "<gray>Going to <destination><gray> in <white><bold><seconds></bold></white>…"
-  return-checking: "<gray>Checking <destination><gray> is up…"
+  return-countdown: "<white>Going to <destination><white> in <bold><seconds></bold>…"
+  return-checking: "<white>Checking <destination><white> is up…"
   return-sending: "<gray>Sending you to <destination><gray>. See you back here."
   return-already: "<gray>You're already on your way. Stand still until it's done."
   return-cancelled-moved: "<red>Cancelled: you moved.</red> <gray>Stand still and run <white><command></white> again."

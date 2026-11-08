@@ -5,6 +5,9 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 
 | Date | Decision |
 | --- | --- |
+| 2026-11-08 | The real-client walkthrough runs on a throwaway copy on Paper 26.2, with the owner's own account as LuckPerms admin on that copy only. The account name is given at setup and never written into this repo. |
+| 2026-11-08 | The lobby welcome text stops teaching `/mvtp` and teaches walking through a gate and `/station`. Its exact wording is the server's, kept with the server's notes, not here. |
+| 2026-11-08 | Review gate colours and label text for colour-blind players and contrast. Colour never carries meaning alone: a word or shape goes with it. Fixes ship in a 0.3.x with tests where they can be made. Findings in `docs/readability.md`. |
 | 2026-11-08 | The return command is named `/return`, and `waystation.return` is granted to nobody by default, operators included. A server gives it out on purpose. |
 | 2026-11-08 | Skip 0.2.0 and release one version, 0.3.0, with the move to 26.x, the fix for older configs showing message keys, and the return command. Walking on 26.3 is released untested with bots, marked so in the README and release notes, and waits for a real 26.3 client. |
 | 2026-11-07 | ReturnGate is folded into Waystation: a configurable return command sends the player to a fargate destination after a countdown that damage cancels. Multiverse-Core becomes optional, so a single-world server can run Waystation for fargates and the return command alone. |

@@ -77,7 +77,7 @@ final class Renderer implements Listener {
             if (entry != null && !entry.price().free()) {
                 Location tag = new Location(world, p.x + 0.5, p.y + 1.5, p.z + 0.5);
                 scenes.put("price:" + p.id, new Scene("price:" + p.id, tag, player -> plugin.isForSale(player, p.destination) && plugin.canSee(player, p),
-                    list -> list.add(spawnText(tag, "<yellow>Locked: " + plugin.payments().text(entry.price()) + "\n<white>/buygate " + p.destination, 1f, Display.Billboard.CENTER))));
+                    list -> list.add(spawnText(tag, Labels.price(plugin.payments().text(entry.price()), p.destination), 1f, Display.Billboard.CENTER))));
             }
             Location anchor = new Location(world, p.x + 0.5, p.y, p.z + 0.5);
             scenes.put("gate:" + p.id, new Scene("gate:" + p.id, anchor, player -> plugin.canSee(player, p), list -> spawnGate(p, platform, list)));
@@ -289,7 +289,7 @@ final class Renderer implements Listener {
             e.setBrightness(new Display.Brightness(15, 15));
             e.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.9f, 0.9f, 0.9f), new AxisAngle4f()));
         }));
-        out.add(spawnText(at.clone().add(0, 1.1, 0), "<light_purple>Tribute", 0.8f, Display.Billboard.CENTER));
+        out.add(spawnText(at.clone().add(0, 1.1, 0), Labels.TRIBUTE, 0.8f, Display.Billboard.CENTER));
         out.add(at.getWorld().spawn(at, Interaction.class, e -> {
             prepareAny(e);
             e.setInteractionWidth(1f);
@@ -317,7 +317,7 @@ final class Renderer implements Listener {
         int sign = middle.facing == BlockFace.SOUTH || middle.facing == BlockFace.EAST ? 1 : -1;
         Location text = at.clone().add(middle.alongX() ? 0 : sign * 0.14, top - 1.25, middle.alongX() ? sign * 0.14 : 0);
         text.setDirection(middle.facing.getDirection());
-        String label = "<yellow>Platform " + platform.number() + "</yellow>\n<white>" + platform.label() + "</white>";
+        String label = Labels.platform(platform.number(), platform.label());
         out.add(spawnText(text, label, 1.6f, Display.Billboard.FIXED));
     }
 
@@ -370,6 +370,7 @@ final class Renderer implements Listener {
             e.setAlignment(TextDisplay.TextAlignment.CENTER);
             e.setBillboard(billboard);
             e.setBrightness(new Display.Brightness(15, 15));
+            Labels.style(e, plugin.settings().labelBacking);
             e.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(),
                 new Vector3f(scale, scale, scale), new AxisAngle4f()));
         });

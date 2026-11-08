@@ -107,6 +107,7 @@ final class IslandMarkers implements Listener {
             e.text(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(plugin.settings().islandPostLabel));
             e.setBillboard(Display.Billboard.CENTER);
             e.setBrightness(new Display.Brightness(15, 15));
+            Labels.style(e, plugin.settings().labelBacking);
         }));
         out.add(world.spawn(at, Interaction.class, e -> {
             e.setPersistent(false);

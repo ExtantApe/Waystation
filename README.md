@@ -37,8 +37,11 @@ GriefPrevention, Vault with an economy plugin, BlueMap.
 - **New world:** it gets a pair by itself, within 30 seconds, and the station re-lays itself out. If a gate has nowhere
   safe to stand, admins are asked: `/gate enlarge` keeps the station with more room, `/gate reseed` rolls a new one.
 - **Every station is different.** A seed picks the floor plan, platform order, gate designs and themes.
-- **Deleted world:** the gate goes dark and stays until `/gate remove <id>`. If the world is only
-  unloaded, the gate lights up again when it's back.
+- **Deleted world:** the gate goes dark and stays until `/gate remove <id>`: a cracked grey frame with nothing inside,
+  labelled "(line closed)". If the world is only unloaded, the gate lights up again when it's back.
+- **Labels read over anything.** Floating labels have a text shadow and a dark plate behind them, so they show over
+  snow, sky or a dark cave. `label-backing` sets how dark, 0 for Minecraft's own faint one. A gate's state is always
+  in words as well as colour: "Locked", "(line closed)", "Leaving this server".
 - **Nobody can edit** the station's world or the ground at a world's gate: no permission and no operator
   gets past this. To change it, set `protection.enabled: false` and `/gate reload`.
   The console can still run `/fill`: Minecraft reports no block events for it, so gates survive but the
@@ -98,7 +101,7 @@ Other plugins can veto a gate by cancelling `com.extantape.waystation.Waystation
 ./gradlew build
 ```
 
-The jar is `build/libs/Waystation-0.3.0.jar`. Java 25.
+The jar is `build/libs/Waystation-0.3.1.jar`. Java 25.
 
 ## Install
 
@@ -144,7 +147,7 @@ for creative worlds and explosions also apply on top of everything here.
 
 ### Fargates (optional)
 
-Fargates lead to another server, look different (obsidian and red glass, labelled "Leaving this server"), and
+Fargates lead to another server, look different (a yellow and black striped frame around red glass, labelled "Leaving this server"), and
 sit on no platform. Define the server under `fargate-destinations` in `config.yml`, then
 `/gate fargate <id> <destination>` where you want it. Grant `waystation.fargate.<name>` in LuckPerms.
 A player without it, or on a client version not in `protocols`, can't see the gate, and walking into it does

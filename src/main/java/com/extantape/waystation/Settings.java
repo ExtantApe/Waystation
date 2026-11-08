@@ -85,6 +85,8 @@ final class Settings {
     final long stationSeed;
     final boolean standardWorldGates, islandPosts;
     final String islandPostLabel;
+    /** How dark the plate behind floating labels is, in percent. 0 keeps Minecraft's own. */
+    final int labelBacking;
     final int moveHearts, gentleHearts;
     final Set<String> gentleWorlds, hiddenMarkerGroups;
     final int moveSearchChunks;
@@ -132,7 +134,7 @@ final class Settings {
         stationWorld = c.getString("station.world", "waystation");
         returnLabel = c.getString("station.return-label", "<gold>Station");
         stationLabel = c.getString("station.station-label", "");
-        deadLabel = c.getString("station.dead-label", "<dark_gray><name> <gray>(line closed)");
+        deadLabel = c.getString("station.dead-label", "<white><name></white> <gray>(line closed)");
         deadFrame = Bukkit.createBlockData(c.getString("station.dead-frame", "cracked_deepslate_bricks"));
         bluemapEnabled = c.getBoolean("bluemap.enabled", true);
         bluemapSetLabel = c.getString("bluemap.set-label", "Gates");
@@ -200,6 +202,7 @@ final class Settings {
         tileSize = Math.max(1, c.getInt("station.tile-size", 2));
         stationSeed = c.getLong("station.seed", 0);
         islandPosts = c.getBoolean("island-posts.enabled", true);
+        labelBacking = Math.max(0, Math.min(100, c.getInt("label-backing", Labels.DEFAULT_BACKING)));
         islandPostLabel = c.getString("island-posts.label", "<gold>To the station");
         gentleWorlds = Set.copyOf(c.getStringList("move.gentle-worlds"));
         hiddenMarkerGroups = Set.copyOf(c.getStringList("bluemap.hide-groups"));
