@@ -70,6 +70,10 @@ and ViaBackwards 5.12.3 snapshots. EssentialsX 2.22.0 stood in for a real econom
 | hop | 12/12 | 12/12 | 0/1 |
 | economy | 8/8 | 8/8 | 3/8 |
 
+The return command's suite, `return`, runs on fresh servers without Multiverse: 52/52 on 26.1.2, 52/52 on 26.2,
+49/49 on 26.3 and 50/50 for a real hop from 26.3 to 26.2. On 26.3 the bots stood still and a piston moved them, so
+the checks for head turns, jumping and walking off were left out there.
+
 - **26.1.2:** the bots are 26.1 clients and join directly, with nothing translating.
 - **26.2:** the same bots join through ViaVersion and ViaBackwards.
 - **26.3:** the bots can only join through ViaVersion, and Paper 26.3 disconnects them for "invalid player movement" as
@@ -77,4 +81,6 @@ and ViaBackwards 5.12.3 snapshots. EssentialsX 2.22.0 stood in for a real econom
   passed: the station's layouts and borders, admin messages, `/gate enlarge`, the default config and the example
   worlds. Whether a real 26.3 client walks through gates is untested.
 - **Not tested anywhere:** a real game client. Hops used bots that reconnect the way a client does after a transfer.
+  The README's "Needs a real client" list is what one has to confirm, starting with walking through gates on 26.3.
+  Released that way in 0.3.0, by the owner's decision of 2026-11-08.
 

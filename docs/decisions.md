@@ -5,6 +5,8 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 
 | Date | Decision |
 | --- | --- |
+| 2026-11-08 | The return command is named `/return`, and `waystation.return` is granted to nobody by default, operators included. A server gives it out on purpose. |
+| 2026-11-08 | Skip 0.2.0 and release one version, 0.3.0, with the move to 26.x, the fix for older configs showing message keys, and the return command. Walking on 26.3 is released untested with bots, marked so in the README and release notes, and waits for a real 26.3 client. |
 | 2026-11-07 | ReturnGate is folded into Waystation: a configurable return command sends the player to a fargate destination after a countdown that damage cancels. Multiverse-Core becomes optional, so a single-world server can run Waystation for fargates and the return command alone. |
 | 2026-11-07 | Release as soon as it's good, as 0.x versions on GitHub Releases only. Modrinth, Hangar and Spigot wait for the owner's own code review. |
 | 2026-11-07 | Paper only: `paper-api` and `paper-plugin.yml`, not Spigot. |

@@ -10,6 +10,12 @@ yet, because Paper 26.3 disconnects clients that come through ViaVersion when th
 Server hops were tested between two throwaway servers, with bots that reconnect the way a client does after a transfer.
 Money prices were tested with EssentialsX.
 
+Needs a real client, still untested:
+
+- Walking through gates on 26.3, and anything that follows from it: station travel, fargates, buying a gate.
+- How gates, signs and the return countdown look in game.
+- What a client shows while it's transferred to another server and back.
+
 Paper 26.1 or later, Java 25. 1.21.11 isn't supported since 0.3.0; use 0.1.0 there.
 Multiverse-Core 5 runs the station and the automatic waygates. Without it, Waystation still does fargates, gates you
 place yourself and the return command, for a server with one world. Optional: Multiverse-Inventories, LuckPerms,
