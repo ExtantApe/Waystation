@@ -25,6 +25,20 @@ final class Settings {
     record Slot(int x, Integer y, int z, BlockFace facing) {}
     /** Another server a fargate leads to, and the client versions it can take. */
     record FargateTarget(String name, String label, String host, int port, Set<Integer> protocols, String permission) {}
+    /**
+     * The return command: off unless it names a fargate destination. checkHost and checkPort are where this server pings
+     * to see the destination is up, which can differ from the address players connect to.
+     */
+    record Return(boolean enabled, String destination, String command, List<String> aliases, String permission, int countdownSeconds,
+                  boolean sounds, String checkHost, int checkPort, int checkTimeoutMs) {
+        /** Null when it can be used, otherwise why not, in words an admin can act on. */
+        String problem(Map<String, FargateTarget> fargates) {
+            if (!enabled) return "return.enabled is false";
+            if (destination.isEmpty()) return "return.destination is empty";
+            if (!fargates.containsKey(destination)) return "return.destination \"" + destination + "\" isn't under fargate-destinations";
+            return null;
+        }
+    }
     /** A price: any mix of XP levels, items and money. Money needs Vault and an economy plugin. */
     record Cost(int xpLevels, Map<Material, Integer> items, double money) {
         static Cost read(ConfigurationSection c, String path) {
@@ -81,6 +95,7 @@ final class Settings {
     final boolean escapeEnabled;
     final String escapeCommand, escapePermission;
     final List<String> escapeAliases;
+    final Return returnCommand;
     final long escapeCooldownSeconds;
 
     private final Map<String, String> messages = new LinkedHashMap<>();
@@ -197,11 +212,19 @@ final class Settings {
         escapeEnabled = c.getBoolean("escape.enabled", true);
         escapeCommand = c.getString("escape.command", "station").toLowerCase(Locale.ROOT);
         escapeAliases = c.getStringList("escape.aliases");
+        returnCommand = new Return(c.getBoolean("return.enabled", false), c.getString("return.destination", "").trim(),
+            commandName(c.getString("return.command", "return"), "return"),
+            c.getStringList("return.aliases").stream().map(a -> commandName(a, "")).filter(a -> !a.isEmpty()).distinct().toList(),
+            c.getString("return.permission", "waystation.return"), positive(c.getInt("return.countdown-seconds", 5), "return.countdown-seconds"),
+            c.getBoolean("return.sounds", true), c.getString("return.check-host", "").trim(), c.getInt("return.check-port", 0),
+            Math.max(250, c.getInt("return.check-timeout-ms", 3000)));
         escapePermission = c.getString("escape.permission", "waystation.escape");
         escapeCooldownSeconds = Math.max(0, c.getLong("escape.cooldown-seconds", 0));
 
-        ConfigurationSection text = c.getConfigurationSection("messages");
-        if (text != null) {
+        // The jar's own messages first, so a config.yml from an older version still gets the newer ones, then the server's.
+        ConfigurationSection shipped = c.getDefaults() == null ? null : c.getDefaults().getConfigurationSection("messages");
+        for (ConfigurationSection text : new ConfigurationSection[] {shipped, c.getConfigurationSection("messages")}) {
+            if (text == null) continue;
             for (String key : text.getKeys(false)) messages.put(key, text.getString(key, ""));
         }
     }
@@ -238,9 +261,14 @@ final class Settings {
 
     /** Renders a message. Pairs are placeholder name, value. A blank message renders to null. */
     Component message(String key, String... pairs) {
+        return message(key, TagResolver.empty(), pairs);
+    }
+
+    /** As above, with extra tags, such as a label that's MiniMessage itself. */
+    Component message(String key, TagResolver extra, String... pairs) {
         String template = messages.getOrDefault(key, key);
         if (template.isBlank()) return null;
-        TagResolver.Builder tags = TagResolver.builder();
+        TagResolver.Builder tags = TagResolver.builder().resolver(extra);
         for (int i = 0; i + 1 < pairs.length; i += 2) tags.resolver(Placeholder.unparsed(pairs[i], pairs[i + 1]));
         return MiniMessage.miniMessage().deserialize(template, tags.build());
     }
@@ -251,6 +279,13 @@ final class Settings {
             throw new IllegalArgumentException("facing must be north, south, east or west: " + name);
         }
         return face;
+    }
+
+    /** A command name as typed in config: lowercase, without a slash. */
+    private static String commandName(String raw, String fallback) {
+        String name = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        if (name.startsWith("/")) name = name.substring(1);
+        return name.isEmpty() ? fallback : name;
     }
 
     private static int positive(int value, String path) {

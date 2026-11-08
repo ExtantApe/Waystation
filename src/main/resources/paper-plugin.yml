@@ -8,7 +8,8 @@ has-open-classloader: true
 # Commands are registered in code, with Paper's registerCommand.
 dependencies:
   server:
-    Multiverse-Core: {load: BEFORE, required: true, join-classpath: true}
+    # Optional: without it there's no station, but fargates, placed gates and the return command work.
+    Multiverse-Core: {load: BEFORE, required: false, join-classpath: true}
     BlueMap: {load: BEFORE, required: false, join-classpath: true}
     # Reached through their own classloaders when present, so no classpath access is needed.
     Multiverse-Inventories: {load: BEFORE, required: false, join-classpath: false}
@@ -46,6 +47,9 @@ permissions:
   waystation.move:
     description: Offer a tribute at a waygate's chest. The node name is configurable in config.yml.
     default: true
+  waystation.return:
+    description: Use the return command. The node name is configurable in config.yml.
+    default: false
   waystation.escape:
     description: Use the escape command. The node name is configurable in config.yml.
     default: true

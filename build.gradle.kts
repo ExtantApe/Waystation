@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.extantape"
-version = "0.2.0"
+version = "0.3.0"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
@@ -33,6 +33,11 @@ dependencies {
     compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.8.2")
     compileOnly("de.bluecolored:bluemap-api:2.7.7")
 
+    testImplementation(paperApi)
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
     "hookCompileOnly"(paperApi)
     "hookCompileOnly"(sourceSets.main.get().output)
     "hookCompileOnly"("com.github.MilkBowl:VaultAPI:1.7.1") { isTransitive = false }
@@ -42,6 +47,10 @@ tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.release.set(25)
     options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:removal"))
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.processResources {

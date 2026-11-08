@@ -20,8 +20,6 @@ import org.bukkit.GameMode;
 import org.bukkit.GameRules;
 import org.bukkit.Material;
 import org.bukkit.WorldType;
-import org.mvplugins.multiverse.core.world.WorldManager;
-import org.mvplugins.multiverse.core.world.options.CreateWorldOptions;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
@@ -35,8 +33,6 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.mvplugins.multiverse.core.MultiverseCoreApi;
-import org.mvplugins.multiverse.core.world.MultiverseWorld;
 
 /** The station: which world group each world is in, its platforms, and generating linked pairs. */
 final class Station implements Listener {
@@ -65,24 +61,17 @@ final class Station implements Listener {
      */
     void ensureWorld() {
         Settings s = plugin.settings();
-        WorldManager worlds = MultiverseCoreApi.get().getWorldManager();
+        if (!plugin.worlds().managesWorlds()) {
+            plugin.getLogger().info("Multiverse-Core isn't installed, so there's no station and no automatic waygates. "
+                + "Fargates, gates made with /gate create and the return command still work.");
+            return;
+        }
         if (!known(s.stationWorld)) {
             if (!s.stationAutoCreate) {
                 plugin.getLogger().warning("The station's world doesn't exist, and station.auto-create is off: " + s.stationWorld);
                 return;
             }
-            worlds.createWorld(CreateWorldOptions.worldName(s.stationWorld).environment(World.Environment.NORMAL)
-                    .worldType(WorldType.FLAT).generateStructures(false))
-                .onSuccess(created -> {
-                    created.setGameMode(GameMode.ADVENTURE);
-                    created.setDifficulty(Difficulty.PEACEFUL);
-                    created.setHunger(false);
-                    created.setPvp(false);
-                    created.setBedRespawn(false);
-                    created.setSpawnLocation(new Location(created.getBukkitWorld().getOrNull(), 0.5, s.stationY, 0.5));
-                    plugin.getLogger().info("Created the station's world: " + s.stationWorld);
-                })
-                .onFailure(failure -> plugin.getLogger().severe("Couldn't create the station's world: " + failure.getFailureMessage()));
+            plugin.worlds().createStationWorld(s.stationWorld, s.stationY, () -> {});
         }
         World world = Bukkit.getWorld(s.stationWorld);
         if (world == null) return;
@@ -124,20 +113,19 @@ final class Station implements Listener {
         return group != null ? group : "world:" + world;
     }
 
-    private static boolean known(String world) {
-        return MultiverseCoreApi.get().getWorldManager().getWorld(world).isDefined();
+    private boolean known(String world) {
+        return plugin.worlds().known(world);
     }
 
     /** Worlds that should have gates now: listed ones first, then what Multiverse knows about. */
     List<String> liveWorlds() {
         Settings s = plugin.settings();
         Set<String> found = new LinkedHashSet<>();
+        if (!plugin.worlds().managesWorlds()) return new ArrayList<>(); // no station, so no automatic waygates
         for (String world : s.worlds.keySet()) if (known(world)) found.add(world);
         if (s.autoWorlds) {
             Set<String> discovered = new TreeSet<>();
-            for (MultiverseWorld w : MultiverseCoreApi.get().getWorldManager().getWorlds()) {
-                if (w.getEnvironment() == World.Environment.NORMAL && !s.excluded(w.getName())) discovered.add(w.getName());
-            }
+            for (String w : plugin.worlds().normalWorlds()) if (!s.excluded(w)) discovered.add(w);
             found.addAll(discovered);
         }
         found.remove(s.stationWorld);

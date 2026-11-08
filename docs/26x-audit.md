@@ -1,6 +1,6 @@
 # Paper 26.x audit
 
-Waystation 0.2.0 targets Paper 26.1 and later, on Java 25. 1.21.11 isn't supported any more. This note says what changed for
+Waystation 0.3.0 targets Paper 26.1 and later, on Java 25. 1.21.11 isn't supported any more. This note says what changed for
 that, what was looked at and left alone, and why. It was checked against Paper's developer docs and the 26.1.2 API jar on
 2026-11-07, not from memory.
 

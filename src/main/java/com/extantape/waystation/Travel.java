@@ -26,7 +26,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
-import org.mvplugins.multiverse.core.MultiverseCoreApi;
 
 /**
  * Walking through gates, and remembering where people were.
@@ -257,20 +256,20 @@ final class Travel implements Listener {
                     leavingFrom.remove(id);
                     return;
                 }
-                MultiverseCoreApi.get().getSafetyTeleporter().to(target).by(player).checkSafety(true).teleportSingle(player) // riders are refused before this, so it's only ever the player
-                    .onSuccess(() -> onMain(() -> {
+                plugin.worlds().teleport(player, target,
+                    () -> onMain(() -> {
                         inFlight.remove(id);
                         leavingFrom.remove(id);
                         readyAt.put(id, System.currentTimeMillis() + plugin.settings().travelCooldownTicks * 50L);
-                    }))
-                    .onFailureCount(failures -> onMain(() -> {
+                    }),
+                    reason -> onMain(() -> {
                         if (fallback != null && player.isOnline()) {
                             go(player, fallback, null);
                             return;
                         }
                         inFlight.remove(id);
                         leavingFrom.remove(id);
-                        player.sendMessage(plugin.settings().message("travel-failed", "reason", failures.keySet().stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(", "))));
+                        player.sendMessage(plugin.settings().message("travel-failed", "reason", reason));
                     }));
             }));
     }

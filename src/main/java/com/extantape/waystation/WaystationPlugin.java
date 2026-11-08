@@ -21,10 +21,6 @@ import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.mvplugins.multiverse.core.MultiverseCoreApi;
-import org.mvplugins.multiverse.core.world.LoadedMultiverseWorld;
-import org.mvplugins.multiverse.core.world.WorldManager;
-import org.mvplugins.multiverse.core.world.options.CreateWorldOptions;
 
 /** Wires it all together, and answers the questions several classes share. */
 public final class WaystationPlugin extends JavaPlugin {
@@ -33,6 +29,7 @@ public final class WaystationPlugin extends JavaPlugin {
     private PlayerData data;
     private Claims claims;
     private SafeSpots safeSpots;
+    private Worlds worlds;
     private Station station;
     private Renderer renderer;
     private Protection protection;
@@ -49,6 +46,7 @@ public final class WaystationPlugin extends JavaPlugin {
         saveDefaultConfig();
         store = new GateStore(new File(getDataFolder(), "gates.yml"));
         data = new PlayerData(new File(getDataFolder(), "players.yml"), getLogger());
+        worlds = Worlds.detect(this);
         claims = new Claims(getLogger());
         safeSpots = new SafeSpots(claims);
         payments = new Payments(this);
@@ -78,6 +76,7 @@ public final class WaystationPlugin extends JavaPlugin {
             "Only players can ask for the nearest gate.", (player, args) -> nearest(player)));
         registerCommand("buygate", "Buy access to a world's gate.", playerCommand("waystation.buy", "Only players can buy gates.", this::buy));
         registerEscapeCommand(travel);
+        registerReturnCommand();
         this.travel = travel;
         markers = new IslandMarkers(this);
         markers.reload();
@@ -128,26 +127,19 @@ public final class WaystationPlugin extends JavaPlugin {
             getLogger().warning("example-worlds only works before the first start, so no worlds were made.");
             return;
         }
-        WorldManager worlds = MultiverseCoreApi.get().getWorldManager();
-        for (String name : List.of("example_survival", "example_creative")) {
-            if (worlds.getWorld(name).isDefined()) continue;
-            boolean creative = name.endsWith("creative");
-            worlds.createWorld(CreateWorldOptions.worldName(name).environment(World.Environment.NORMAL)
-                    .worldType(creative ? WorldType.FLAT : WorldType.NORMAL))
-                .onSuccess(created -> {
-                    if (creative) created.setGameMode(GameMode.CREATIVE);
-                    getLogger().info("Created an example world: " + name);
-                })
-                .onFailure(failure -> getLogger().severe("Couldn't create " + name + ": " + failure.getFailureMessage()));
-        }
+        worlds.createExampleWorlds(List.of("example_survival", "example_creative"));
     }
 
     private Travel travel;
+    private ReturnCountdown returns;
+    private String returnName; // as registered at startup; null if it was off
+    private List<String> returnAliases = List.of();
     private IslandMarkers markers;
     private BlueMapMarkers bluemap;
 
     @Override
     public void onDisable() {
+        if (returns != null) returns.cancelAll();
         if (mover != null) mover.closeAll();
         if (markers != null) markers.removeAll();
         if (renderer != null) renderer.removeAll();
@@ -215,7 +207,7 @@ public final class WaystationPlugin extends JavaPlugin {
             }
         }
         if (best == null) {
-            player.sendMessage(settings.message(settings.escapeEnabled ? "nearest-none-escape" : "nearest-none", "command", "/" + settings.escapeCommand));
+            player.sendMessage(settings.message(escapeAvailable() ? "nearest-none-escape" : "nearest-none", "command", "/" + settings.escapeCommand));
             return;
         }
         player.sendMessage(settings.message("nearest", "name", plainLabelOf(best),
@@ -249,6 +241,7 @@ public final class WaystationPlugin extends JavaPlugin {
         try {
             YamlConfiguration y = new YamlConfiguration();
             y.load(file);
+            y.setDefaults(getConfig().getDefaults()); // the jar's config.yml, for messages an older file doesn't have
             fresh = new Settings(y);
         } catch (IOException | InvalidConfigurationException | RuntimeException e) {
             return "config.yml has a problem, so nothing changed: " + e.getMessage();
@@ -258,6 +251,7 @@ public final class WaystationPlugin extends JavaPlugin {
         loadStore();
         if (!storeReadable) return "gates.yml has a problem. Settings reloaded, but the gates in memory stay as they were.";
         checkEscapeCommand();
+        checkReturnCommand();
         markers.reload();
         afterGateChange();
         station.sync(true);
@@ -273,9 +267,13 @@ public final class WaystationPlugin extends JavaPlugin {
                 else source.getSender().sendMessage(notPlayer);
             }
 
+            /**
+             * Players need the permission, and don't see the command without it. Anyone else, like the console, may
+             * run it, to be told it's for players: permissions that default to false would hide it from the console too.
+             */
             @Override
-            public String permission() {
-                return permission;
+            public boolean canUse(CommandSender sender) {
+                return !(sender instanceof Player) || sender.hasPermission(permission);
             }
         };
     }
@@ -285,7 +283,7 @@ public final class WaystationPlugin extends JavaPlugin {
      * turning it on applies after a restart. Turning it off applies at once: it then refuses.
      */
     private void registerEscapeCommand(Travel travel) {
-        if (!settings.escapeEnabled) return;
+        if (!escapeAvailable()) return;
         escapeName = settings.escapeCommand;
         escapeAliases = List.copyOf(settings.escapeAliases);
         registerCommand(escapeName, "Go to the station", escapeAliases, new BasicCommand() {
@@ -307,12 +305,44 @@ public final class WaystationPlugin extends JavaPlugin {
 
     /** After a reload: say so if the escape command's name or on/off state needs a restart. */
     private void checkEscapeCommand() {
-        boolean wanted = settings.escapeEnabled;
+        boolean wanted = escapeAvailable();
         if (wanted && escapeName == null) {
             getLogger().warning("escape.enabled is now true. /" + settings.escapeCommand + " appears after a restart.");
         } else if (wanted && (!escapeName.equals(settings.escapeCommand) || !escapeAliases.equals(settings.escapeAliases))) {
             getLogger().warning("The escape command's new name or aliases apply after a restart. Until then it's still /" + escapeName + ".");
         }
+    }
+
+    /**
+     * The return command, under its configured name. Like the escape command, a new name or turning it on applies after
+     * a restart. Its destination and countdown are read when each countdown starts, so a reload changes those at once.
+     */
+    private void registerReturnCommand() {
+        Settings.Return config = settings.returnCommand;
+        if (!config.enabled()) return;
+        returns = new ReturnCountdown(this);
+        getServer().getPluginManager().registerEvents(returns, this);
+        returnName = config.command();
+        returnAliases = config.aliases();
+        String permission = config.permission();
+        registerCommand(returnName, "Go to another server after a short countdown", returnAliases, playerCommand(permission,
+            "Only players can use this.", (player, args) -> returns.request(player)));
+        String problem = config.problem(settings.fargates);
+        if (problem != null) getLogger().warning("The return command isn't ready: " + problem + ". Players are told it isn't set up.");
+    }
+
+    /** After a reload: say so if the return command's name or on/off state needs a restart. */
+    private void checkReturnCommand() {
+        Settings.Return config = settings.returnCommand;
+        if (config.enabled() && returnName == null) {
+            getLogger().warning("return.enabled is now true. /" + config.command() + " appears after a restart.");
+        } else if (!config.enabled() && returnName != null) {
+            getLogger().warning("return.enabled is now false. /" + returnName + " says it isn't set up until a restart removes it.");
+        } else if (returnName != null && (!returnName.equals(config.command()) || !returnAliases.equals(config.aliases()))) {
+            getLogger().warning("The return command's new name or aliases apply after a restart. Until then it's still /" + returnName + ".");
+        }
+        String problem = config.enabled() ? config.problem(settings.fargates) : null;
+        if (problem != null) getLogger().warning("The return command isn't ready: " + problem + ".");
     }
 
     /** Adds a world to config.yml, keeping the rest of the file and its comments. */
@@ -346,8 +376,7 @@ public final class WaystationPlugin extends JavaPlugin {
     }
 
     boolean isSurvivalWorld(World world) {
-        LoadedMultiverseWorld mv = MultiverseCoreApi.get().getWorldManager().getLoadedWorld(world).getOrNull();
-        return mv != null && mv.getGameMode() == GameMode.SURVIVAL;
+        return worlds.isSurvival(world);
     }
 
     /** Why this player can or can't use this gate, in words, for /gate test. */
@@ -422,7 +451,7 @@ public final class WaystationPlugin extends JavaPlugin {
      * by reflection since it's optional. With no ViaVersion, every client matches the server. A failed
      * answer reads as -1, which matches no destination, so an unknown client gets no fargate.
      */
-    private int clientProtocol(Player player) {
+    int clientProtocol(Player player) {
         org.bukkit.plugin.Plugin via = getServer().getPluginManager().getPlugin("ViaVersion");
         if (via == null) return serverProtocol();
         try {
@@ -471,8 +500,14 @@ public final class WaystationPlugin extends JavaPlugin {
     }
 
     Location spawnOf(World world) {
-        LoadedMultiverseWorld mv = MultiverseCoreApi.get().getWorldManager().getLoadedWorld(world).getOrNull();
-        return mv != null && mv.getSpawnLocation() != null ? mv.getSpawnLocation() : world.getSpawnLocation();
+        return worlds.spawnOf(world);
+    }
+
+    Worlds worlds() { return worlds; }
+
+    /** The escape command goes to the station, so it needs one, and so Multiverse-Core. */
+    boolean escapeAvailable() {
+        return settings.escapeEnabled && worlds.managesWorlds();
     }
 
     Travel travel() { return travel; }

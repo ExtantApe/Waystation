@@ -166,6 +166,26 @@ escape:
   permission: waystation.escape
   cooldown-seconds: 0
 
+# The return command: like walking through a fargate, from anywhere. The player stands still for a few seconds, then
+# goes to the destination. Moving, taking damage, a harmful effect or a teleport cancels it, and they're told why.
+# This server checks the destination is up first, so nobody waits for a server that's down.
+# It's off until you turn it on and name one of the fargate-destinations above. Then grant its permission in
+# LuckPerms to whoever should use it: it isn't given to anyone by default.
+# A new command name, or turning it on, takes effect after a restart. Everything else changes with /gate reload.
+return:
+  enabled: false
+  destination: ""        # a name from fargate-destinations
+  command: return        # what players type, without the slash
+  aliases: []
+  permission: waystation.return
+  countdown-seconds: 5
+  sounds: true           # a soft tick each second, a chime on leaving, a low note if it's cancelled
+  # Where this server pings to check the destination is up, if that's not the address players use. Empty means the
+  # destination's own host and port.
+  check-host: ""
+  check-port: 0
+  check-timeout-ms: 3000
+
 messages:
   no-vehicle: "<yellow>Hop off your ride to use a waygate."
   travel-failed: "<red>The waygate fizzled: <reason>. Nothing happened to you or your things."
@@ -202,3 +222,18 @@ messages:
   escape-cooldown: "<yellow>You can do that again in <seconds>s."
   escape-off: "<yellow><command> is turned off on this server. Walk through a waygate, or ask an admin."
   escape-no-permission: "<red>You can't use <command>. Walk through a waygate, or ask an admin."
+  # The return command. <destination> is the destination's label, <seconds> the seconds left, <command> the command.
+  return-starting: "<gray>Going to <destination><gray> in <seconds> seconds. Stand still, and don't take any damage."
+  return-countdown: "<gray>Going to <destination><gray> in <white><bold><seconds></bold></white>…"
+  return-checking: "<gray>Checking <destination><gray> is up…"
+  return-sending: "<gray>Sending you to <destination><gray>. See you back here."
+  return-already: "<gray>You're already on your way. Stand still until it's done."
+  return-cancelled-moved: "<red>Cancelled: you moved.</red> <gray>Stand still and run <white><command></white> again."
+  return-cancelled-damaged: "<red>Cancelled: you took damage.</red> <gray>Stand still and run <white><command></white> again."
+  return-cancelled-effect: "<red>Cancelled: you were hit with a harmful effect.</red> <gray>Stand still and run <white><command></white> again."
+  return-cancelled-teleported: "<red>Cancelled: you were teleported.</red> <gray>Stand still and run <white><command></white> again."
+  return-cancelled-shutdown: "<red>Cancelled: this server is restarting.</red> <gray>Try again once it's back."
+  return-offline: "<red><destination><red> isn't answering right now. You're staying here, and nothing changed.</red> <gray>Try again in a minute."
+  return-wrong-version: "<red>Your game version can't join <destination><red>.</red> <gray>Ask an admin which version to use."
+  return-not-set-up: "<red>This command isn't set up yet.</red> <gray>Let an admin know."
+  return-not-set-up-admin: "<red>The return command isn't set up: <problem>.</red> <gray>Fix it in plugins/Waystation/config.yml, then /gate reload."

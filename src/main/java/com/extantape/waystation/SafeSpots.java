@@ -210,6 +210,11 @@ final class SafeSpots {
         return world.getBlockAt(x, y - 1, z).getType().isSolid();
     }
 
+    /** Solid ground below, room for feet and head, nothing wet or harmful: somewhere to put a player. */
+    static boolean safeToStand(org.bukkit.Location at) {
+        return at.getWorld() != null && standable(at.getWorld(), at.getBlockX(), at.getBlockY(), at.getBlockZ());
+    }
+
     private static boolean standable(World world, int x, int y, int z) {
         Block floor = world.getBlockAt(x, y - 1, z), feet = world.getBlockAt(x, y, z), head = world.getBlockAt(x, y + 1, z);
         return floor.getType().isSolid() && !floor.isPassable() && !BAD_GROUND.contains(floor.getType())

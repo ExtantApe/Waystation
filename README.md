@@ -10,8 +10,9 @@ yet, because Paper 26.3 disconnects clients that come through ViaVersion when th
 Server hops were tested between two throwaway servers, with bots that reconnect the way a client does after a transfer.
 Money prices were tested with EssentialsX.
 
-Paper 26.1 or later, Java 25. 1.21.11 isn't supported since 0.2.0; use 0.1.0 there.
-Requires Multiverse-Core 5. Optional: Multiverse-Inventories, LuckPerms,
+Paper 26.1 or later, Java 25. 1.21.11 isn't supported since 0.3.0; use 0.1.0 there.
+Multiverse-Core 5 runs the station and the automatic waygates. Without it, Waystation still does fargates, gates you
+place yourself and the return command, for a server with one world. Optional: Multiverse-Inventories, LuckPerms,
 GriefPrevention, Vault with an economy plugin, BlueMap.
 
 ## How it behaves
@@ -60,6 +61,7 @@ can't lose anything. Each tribute is written to the server log.
 | `/waygate` | everyone | Coordinates of the closest waygate you can use |
 | `/station`, `/hub` | everyone | Straight to the station. Name and on/off in config |
 | `/buygate [world]` | everyone | Buy access to a priced world |
+| `/return` | with `waystation.return` | To the other server after a countdown, if it's turned on. Name in config |
 | `/gate list, create, fargate, move, link, remove, test, addworld, relayout, reseed, enlarge, reload` | admins | Admin |
 
 ## Permissions
@@ -80,6 +82,7 @@ player or a group, with contexts if you like. Nothing changes until someone sets
 | `waystation.admin.<subcommand>` | false | One `/gate` subcommand, for a narrower role |
 | `waystation.admin.seedead` | false | See dead gates |
 | `waystation.find`, `.move`, `.escape`, `.buy` | true | `/waygate`, `/move`, `/station`, `/buygate` |
+| `waystation.return` | false | The return command. Name in config |
 
 Other plugins can veto a gate by cancelling `com.extantape.waystation.WaystationAccessEvent`.
 
@@ -89,7 +92,7 @@ Other plugins can veto a gate by cancelling `com.extantape.waystation.Waystation
 ./gradlew build
 ```
 
-The jar is `build/libs/Waystation-0.2.0.jar`. Java 25.
+The jar is `build/libs/Waystation-0.3.0.jar`. Java 25.
 
 ## Install
 
@@ -143,6 +146,24 @@ nothing. Both servers need `accepts-transfers=true`, and the other server needs 
 back, the player lands where they walked in from. `protocols` is set by hand, so update it when either
 server upgrades.
 
+### Return command (optional)
+
+A fargate you don't have to walk to. `/return` sends the player to one of your `fargate-destinations` after a
+5-second countdown. Moving, taking damage, a harmful effect or a teleport cancels it, and the player is told why and
+how to try again. The seconds left show above the hotbar, with a soft tick each second, so it can be followed by ear
+too. This server checks the destination answers before sending anyone, so nobody waits out a countdown for a server
+that's down, and a failed try changes nothing about the player. Coming back, they land where they stood.
+
+Turn it on under `return:` in `config.yml`, name the destination, and restart. Then grant `waystation.return` in
+LuckPerms to whoever should use it: nobody has it by default, operators included. The command's name and the
+countdown are in the same section, and every line players see is under `messages:`.
+
+### Without Multiverse-Core
+
+Leave Multiverse-Core out and Waystation runs with Paper alone. There's no station and no automatic waygates, since the
+station needs a world made for it, and so no `/station`. Fargates, gates placed with `/gate create` or `/gate fargate`,
+and the return command all work. The server log says which way it's running at startup.
+
 ## Tests
 
 Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew jar hookJar` and `npm install` in `test/` first, then
@@ -156,13 +177,20 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew jar hookJar` and `npm 
 | `defaults` | the default config and `example-worlds` | |
 | `hop` | two servers, there and back through fargates | |
 | `economy` | buying with a real economy plugin | `WAYSTATION_TEST_ECONOMY_JAR` |
+| `return` | the return command, and running without Multiverse-Core, on a fresh empty server | see below |
 
-All of them need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
+All but `return` need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
 isn't running. `WAYSTATION_TEST_JAVA` is the Java 25 to run it with, if `java` isn't. The bots are 26.1 clients;
 `WAYSTATION_TEST_CLIENT` changes that. A server newer than 26.1 needs ViaVersion and ViaBackwards to let them in.
 `WAYSTATION_TEST_PORT` changes the port from 25599, and must match the copy. The suites use generic world names.
 If your copy's differ, `WAYSTATION_TEST_NAMES` points at a file mapping them, kept out of the repo. See
 `test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.
+
+`return` needs no copy of a server. It makes fresh ones, so it needs `WAYSTATION_TEST_JARS`: a folder with
+`paper-<version>.jar` (and `mojang_<version>.jar`, so Paper needn't download it) and a `plugins/` folder holding
+ViaVersion, ViaBackwards and LuckPerms jars. Starting a server accepts the Minecraft EULA, so it also needs
+`WAYSTATION_TEST_EULA=accept`. `WAYSTATION_RETURN_SOURCE` picks 26.1.2, 26.2 or 26.3, and `WAYSTATION_TWO_SERVERS=1`
+adds a real second server to hop to, on another version. Without that, a stand-in answers the destination's ping.
 
 ## License
 
