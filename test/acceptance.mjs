@@ -738,7 +738,9 @@ console.log('\n# A crash with the tribute chest open')
 const cr = await bot('cracker')
 await s.ask('lp user cracker parent add family', 300); await s.ask('mvtp cracker w:meadow', 2500)
 await s.ask('clear cracker', 200); await s.ask('item replace entity cracker armor.chest with iron_chestplate', 300)
-const crAt = await flat([cx - 11, cz + 3]); await s.ask(`execute in meadow run spawnpoint cracker ${crAt.x} ${crAt.y} ${crAt.z}`, 400); await s.ask('save-all', 2500)
+const crAt = await flat([cx - 11, cz + 3]); await s.ask(`execute in meadow run spawnpoint cracker ${crAt.x} ${crAt.y} ${crAt.z}`, 400)
+// Without a finished save a crash rolls back anything gained since the last one, Waystation or not.
+await s.ask('save-all flush', 4000)
 const rNow = await rdNow(); const [cdx, cdz] = dir[rNow.facing]
 await s.ask(`execute in meadow run tp cracker ${rNow.x + .5 + cdx * 2} ${rNow.y} ${rNow.z + .5 + cdz * 2}`, 1500)
 const crChest = Object.values(cr.entities).find(e => e.name === 'interaction' && Math.hypot(e.position.x - rNow.x, e.position.z - rNow.z) < 5)
