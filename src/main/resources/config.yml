@@ -121,7 +121,7 @@ bluemap:
 # Fargates lead to another server, and look nothing like waygates: see looks.fargate
 # and the label below. Place one with /gate fargate <id> <destination>. It's hidden, and does
 # nothing at all, unless the player has its permission (waystation.fargate.<name> unless set
-# below) and their client version is listed in protocols. 774 is Minecraft 1.21.11.
+# below) and their client version is listed in protocols: 775 is Minecraft 26.1, 776 is 26.2, 777 is 26.3.
 # Both servers need accepts-transfers=true in server.properties. If this one doesn't have it,
 # its fargates stay hidden, since nobody could come back.
 fargate-label: "<red><bold>Leaving this server</bold></red>\n<white><name></white>"
@@ -130,7 +130,7 @@ fargate-label: "<red><bold>Leaving this server</bold></red>\n<white><name></whit
 #     label: "Example Server"
 #     host: play.example.com
 #     port: 25565
-#     protocols: [774]
+#     protocols: [776]
 
 # OneBlock gives each player their own island, so each island with someone on it gets a glowing post
 # beside its block. Click it twice to go to the station. It's display entities, so it places no blocks.
@@ -200,3 +200,5 @@ messages:
   gate-dead: "<gray>This line has closed. The world it led to is gone."
   protected: "<red>Nothing can be changed here."
   escape-cooldown: "<yellow>You can do that again in <seconds>s."
+  escape-off: "<yellow><command> is turned off on this server. Walk through a waygate, or ask an admin."
+  escape-no-permission: "<red>You can't use <command>. Walk through a waygate, or ask an admin."

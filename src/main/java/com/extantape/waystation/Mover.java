@@ -189,10 +189,8 @@ final class Mover implements Listener {
         Settings s = plugin.settings();
         altar.inventory = Bukkit.createInventory(altar, SIZE, Component.text("A tribute to the waygate"));
         if (canSpareHearts(player)) {
-            ItemStack button = new ItemStack(Material.REDSTONE);
-            var meta = button.getItemMeta();
-            meta.displayName(Component.text("Give " + s.heartsFor(player.getWorld().getName()) + " hearts", NamedTextColor.RED));
-            button.setItemMeta(meta);
+            ItemStack button = ItemStack.of(Material.REDSTONE);
+            button.editMeta(meta -> meta.displayName(Component.text("Give " + s.heartsFor(player.getWorld().getName()) + " hearts", NamedTextColor.RED)));
             altar.inventory.setItem(HEARTS_SLOT, button);
         } else {
             int menuSlot = 2;

@@ -257,20 +257,20 @@ final class Travel implements Listener {
                     leavingFrom.remove(id);
                     return;
                 }
-                MultiverseCoreApi.get().getSafetyTeleporter().to(target).by(player).checkSafety(true).teleport(player)
+                MultiverseCoreApi.get().getSafetyTeleporter().to(target).by(player).checkSafety(true).teleportSingle(player) // riders are refused before this, so it's only ever the player
                     .onSuccess(() -> onMain(() -> {
                         inFlight.remove(id);
                         leavingFrom.remove(id);
                         readyAt.put(id, System.currentTimeMillis() + plugin.settings().travelCooldownTicks * 50L);
                     }))
-                    .onFailure(failure -> onMain(() -> {
+                    .onFailureCount(failures -> onMain(() -> {
                         if (fallback != null && player.isOnline()) {
                             go(player, fallback, null);
                             return;
                         }
                         inFlight.remove(id);
                         leavingFrom.remove(id);
-                        player.sendMessage(plugin.settings().message("travel-failed", "reason", String.valueOf(failure.getFailureReason())));
+                        player.sendMessage(plugin.settings().message("travel-failed", "reason", failures.keySet().stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(", "))));
                     }));
             }));
     }

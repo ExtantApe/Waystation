@@ -46,7 +46,7 @@ final class Payments {
     boolean canPay(Player player, Settings.Cost cost) {
         if (player.getLevel() < cost.xpLevels()) return false;
         for (Map.Entry<Material, Integer> item : cost.items().entrySet()) {
-            if (!player.getInventory().containsAtLeast(new ItemStack(item.getKey()), item.getValue())) return false;
+            if (!player.getInventory().containsAtLeast(ItemStack.of(item.getKey()), item.getValue())) return false;
         }
         if (cost.money() > 0) {
             Object economy = economy();
@@ -65,7 +65,7 @@ final class Payments {
     void pay(Player player, Settings.Cost cost) {
         if (cost.xpLevels() > 0) player.giveExpLevels(-cost.xpLevels());
         for (Map.Entry<Material, Integer> item : cost.items().entrySet()) {
-            player.getInventory().removeItem(new ItemStack(item.getKey(), item.getValue()));
+            player.getInventory().removeItem(ItemStack.of(item.getKey(), item.getValue()));
         }
         if (cost.money() > 0) money(player, "withdrawPlayer", cost.money());
     }
@@ -73,7 +73,7 @@ final class Payments {
     void refund(Player player, Settings.Cost cost) {
         if (cost.xpLevels() > 0) player.giveExpLevels(cost.xpLevels());
         for (Map.Entry<Material, Integer> item : cost.items().entrySet()) {
-            player.getInventory().addItem(new ItemStack(item.getKey(), item.getValue()))
+            player.getInventory().addItem(ItemStack.of(item.getKey(), item.getValue()))
                 .values().forEach(left -> player.getWorld().dropItem(player.getLocation(), left));
         }
         if (cost.money() > 0) money(player, "depositPlayer", cost.money());

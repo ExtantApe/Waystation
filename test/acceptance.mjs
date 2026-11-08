@@ -685,7 +685,9 @@ async function markers(map) {
 }
 let md = null; for (let i = 0; i < 30 && !md?.['waystation-gates']; i++) { md = await markers('meadow'); await sleep(1000) }
 check('world gate is a BlueMap marker', !!md?.['waystation-gates']?.markers?.['return-meadow'], JSON.stringify(md?.['waystation-gates']?.markers?.['return-meadow'])?.slice(0, 120))
-const ms = await markers('waystation')
+// BlueMap writes markers on its own schedule, so give the station's map a little time.
+let ms = null; for (let i = 0; i < 20 && Object.keys(ms?.['waystation-gates']?.markers ?? {}).length < 9; i++) { ms = await markers('waystation'); await sleep(1000) }
+console.log('  station map markers:', Object.keys(ms?.['waystation-gates']?.markers ?? {}).join(', ') || 'none')
 check('Quiet never appears on the map', !Object.keys(ms?.['waystation-gates']?.markers ?? {}).some(k => /quiet/.test(k)))
 check('the station world has its own map with its gates', Object.keys(ms?.['waystation-gates']?.markers ?? {}).length >= 9, `${Object.keys(ms?.['waystation-gates']?.markers ?? {}).length} markers`)
 await confirmDelete('elsewhere'); await sleep(2000)

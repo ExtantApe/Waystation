@@ -1,6 +1,6 @@
 // Fargates. Bots can't follow a real transfer, so this checks what the server sends and what it
 // does when the player comes back. Hopping between two servers needs a real client.
-import { Server, freshCopy, installJar, sleep, bot, near, walkTo, check, summary, DIR, PORT } from './harness.mjs'
+import { Server, freshCopy, installJar, sleep, bot, near, walkTo, check, summary, DIR, PORT, CLIENT_PROTOCOL } from './harness.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
 import mineflayer from 'mineflayer'
 
@@ -19,7 +19,7 @@ const has = (b, re) => b.chat_log.some(m => re.test(m))
 freshCopy(); installJar(); setTransfers(true)
 await s.start(); await sleep(12000)
 const cfg = DIR + '/plugins/Waystation/config.yml'
-writeFileSync(cfg, readFileSync(cfg, 'utf8') + '\nfargate-destinations:\n  testserver:\n    label: "Test Server"\n    host: 127.0.0.1\n    port: 25600\n    protocols: [774]\n')
+writeFileSync(cfg, readFileSync(cfg, 'utf8') + `\nfargate-destinations:\n  testserver:\n    label: "Test Server"\n    host: 127.0.0.1\n    port: 25600\n    protocols: [${CLIENT_PROTOCOL}]\n`)
 await s.ask('gate reload', 1500)
 console.log((await s.ask(`gate fargate tg testserver waystation ${g.x} ${g.y} ${g.z} south`, 1000)).join(' '))
 await s.ask('lp group default permission set multiverse.access.waystation true', 300)
@@ -90,8 +90,8 @@ check('/waygate gives a waygate, not the fargate', has(back, /Nearest waygate/) 
 
 console.log('\n# A broken destination is refused')
 const good = readFileSync(cfg, 'utf8')
-const at = good.lastIndexOf('    protocols: [774]\n') // the last one: the default config has a commented example too
-writeFileSync(cfg, good.slice(0, at) + good.slice(at + '    protocols: [774]\n'.length))
+const at = good.lastIndexOf(`    protocols: [${CLIENT_PROTOCOL}]\n`) // the last one: the default config has a commented example too
+writeFileSync(cfg, good.slice(0, at) + good.slice(at + `    protocols: [${CLIENT_PROTOCOL}]\n`.length))
 const refused = (await s.ask('gate reload', 1500)).join(' ')
 check('no protocols: config refused', refused.includes('needs protocols'), refused.slice(0, 140))
 writeFileSync(cfg, good); await s.ask('gate reload', 1000)

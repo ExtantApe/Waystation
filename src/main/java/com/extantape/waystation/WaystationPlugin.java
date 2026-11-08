@@ -1,5 +1,7 @@
 package com.extantape.waystation;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,10 +16,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldType;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -39,7 +38,8 @@ public final class WaystationPlugin extends JavaPlugin {
     private Protection protection;
     private Payments payments;
     private Mover mover;
-    private Command escapeCommand;
+    private String escapeName; // as registered at startup; null if it was off
+    private List<String> escapeAliases = List.of();
     private boolean storeReadable = true;
 
     @Override
@@ -73,21 +73,11 @@ public final class WaystationPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(protection, this);
         getServer().getPluginManager().registerEvents(station, this);
 
-        AdminCommand admin = new AdminCommand(this);
-        PluginCommand gate = getCommand("gate");
-        gate.setExecutor(admin);
-        gate.setTabCompleter(admin);
-        getCommand("waygate").setExecutor((sender, command, label, args) -> {
-            if (sender instanceof Player player) nearest(player);
-            else sender.sendMessage("Only players can ask for the nearest gate.");
-            return true;
-        });
-        getCommand("buygate").setExecutor((sender, command, label, args) -> {
-            if (sender instanceof Player player) buy(player, args);
-            else sender.sendMessage("Only players can buy gates.");
-            return true;
-        });
-        syncEscapeCommand(travel);
+        registerCommand("gate", "Create, move, link, list, remove and test gates.", new AdminCommand(this));
+        registerCommand("waygate", "Shows the coordinates of the closest gate you can use.", List.of("nearestgate", "findgate"), playerCommand("waystation.find",
+            "Only players can ask for the nearest gate.", (player, args) -> nearest(player)));
+        registerCommand("buygate", "Buy access to a world's gate.", playerCommand("waystation.buy", "Only players can buy gates.", this::buy));
+        registerEscapeCommand(travel);
         this.travel = travel;
         markers = new IslandMarkers(this);
         markers.reload();
@@ -267,43 +257,62 @@ public final class WaystationPlugin extends JavaPlugin {
         settings = fresh;
         loadStore();
         if (!storeReadable) return "gates.yml has a problem. Settings reloaded, but the gates in memory stay as they were.";
-        syncEscapeCommand(travel);
+        checkEscapeCommand();
         markers.reload();
         afterGateChange();
         station.sync(true);
         return "Waystation reloaded.";
     }
 
-    /** Registers the configured escape command, or removes it if it's turned off. */
-    private void syncEscapeCommand(Travel travel) {
-        CommandMap map = Bukkit.getCommandMap();
-        if (escapeCommand != null) {
-            escapeCommand.unregister(map);
-            map.getKnownCommands().values().removeIf(c -> c == escapeCommand);
-            escapeCommand = null;
-        }
-        if (settings.escapeEnabled) {
-            String permission = settings.escapePermission;
-            Command command = new Command(settings.escapeCommand, "Go to the station", "/" + settings.escapeCommand, settings.escapeAliases) {
-                @Override
-                public boolean execute(CommandSender sender, String label, String[] args) {
-                    if (!(sender instanceof Player player)) {
-                        sender.sendMessage("Only players can use this. From the console: mvtp <player> w:" + settings.stationWorld);
-                    } else if (player.hasPermission(permission)) {
-                        travel.escape(player);
-                    } else {
-                        player.sendMessage(net.kyori.adventure.text.Component.text("You can't use that."));
-                    }
-                    return true;
-                }
-            };
-            map.register("waystation", command);
-            if (map.getCommand(settings.escapeCommand) != command) {
-                getLogger().warning("Another plugin owns /" + settings.escapeCommand + ". Use /waystation:" + settings.escapeCommand + " or pick another name.");
+    /** A command only players can use, with a permission node that also hides it from those without. */
+    private static BasicCommand playerCommand(String permission, String notPlayer, java.util.function.BiConsumer<Player, String[]> run) {
+        return new BasicCommand() {
+            @Override
+            public void execute(CommandSourceStack source, String[] args) {
+                if (source.getSender() instanceof Player player) run.accept(player, args);
+                else source.getSender().sendMessage(notPlayer);
             }
-            escapeCommand = command;
+
+            @Override
+            public String permission() {
+                return permission;
+            }
+        };
+    }
+
+    /**
+     * The escape command, under its configured name. Paper registers commands once, at startup, so a new name or
+     * turning it on applies after a restart. Turning it off applies at once: it then refuses.
+     */
+    private void registerEscapeCommand(Travel travel) {
+        if (!settings.escapeEnabled) return;
+        escapeName = settings.escapeCommand;
+        escapeAliases = List.copyOf(settings.escapeAliases);
+        registerCommand(escapeName, "Go to the station", escapeAliases, new BasicCommand() {
+            @Override
+            public void execute(CommandSourceStack source, String[] args) {
+                CommandSender sender = source.getSender();
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("Only players can use this. From the console: mvtp <player> w:" + settings.stationWorld);
+                } else if (!settings.escapeEnabled) {
+                    player.sendMessage(settings.message("escape-off", "command", "/" + escapeName));
+                } else if (player.hasPermission(settings.escapePermission)) {
+                    travel.escape(player);
+                } else {
+                    player.sendMessage(settings.message("escape-no-permission", "command", "/" + escapeName));
+                }
+            }
+        });
+    }
+
+    /** After a reload: say so if the escape command's name or on/off state needs a restart. */
+    private void checkEscapeCommand() {
+        boolean wanted = settings.escapeEnabled;
+        if (wanted && escapeName == null) {
+            getLogger().warning("escape.enabled is now true. /" + settings.escapeCommand + " appears after a restart.");
+        } else if (wanted && (!escapeName.equals(settings.escapeCommand) || !escapeAliases.equals(settings.escapeAliases))) {
+            getLogger().warning("The escape command's new name or aliases apply after a restart. Until then it's still /" + escapeName + ".");
         }
-        Bukkit.getOnlinePlayers().forEach(Player::updateCommands);
     }
 
     /** Adds a world to config.yml, keeping the rest of the file and its comments. */
@@ -415,7 +424,7 @@ public final class WaystationPlugin extends JavaPlugin {
      */
     private int clientProtocol(Player player) {
         org.bukkit.plugin.Plugin via = getServer().getPluginManager().getPlugin("ViaVersion");
-        if (via == null) return Bukkit.getUnsafe().getProtocolVersion();
+        if (via == null) return serverProtocol();
         try {
             Object api = Class.forName("com.viaversion.viaversion.api.Via", true, via.getClass().getClassLoader()).getMethod("getAPI").invoke(null);
             Class<?> type = Class.forName("com.viaversion.viaversion.api.ViaAPI", true, via.getClass().getClassLoader());
@@ -424,6 +433,12 @@ public final class WaystationPlugin extends JavaPlugin {
             getLogger().warning("Couldn't ask ViaVersion for a client version: " + e);
             return -1;
         }
+    }
+
+    /** Paper 26.1 has no other way to read the server's protocol number. Deprecated since 1.7.2, not marked for removal. */
+    @SuppressWarnings("deprecation")
+    private static int serverProtocol() {
+        return Bukkit.getUnsafe().getProtocolVersion();
     }
 
     boolean explicitlyDenied(Player player, String node) {

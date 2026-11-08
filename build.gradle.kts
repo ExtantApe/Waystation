@@ -3,10 +3,10 @@ plugins {
 }
 
 group = "com.extantape"
-version = "0.1.0"
+version = "0.2.0"
 
 java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 }
 
 repositories {
@@ -19,7 +19,8 @@ repositories {
     }
 }
 
-val paperApi = "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
+// 26.1 is the oldest Paper this supports. From 26.1 on, Paper versions its API as <mc version>.build.<n>.
+val paperApi = "io.papermc.paper:paper-api:26.1.2.build.+"
 
 // The test-only plugin the bot suites install: vetoes a gate and stands in for an economy.
 val hook = sourceSets.create("hook") {
@@ -29,7 +30,7 @@ val hook = sourceSets.create("hook") {
 
 dependencies {
     compileOnly(paperApi)
-    compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.6.2")
+    compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.8.2")
     compileOnly("de.bluecolored:bluemap-api:2.7.7")
 
     "hookCompileOnly"(paperApi)
@@ -39,13 +40,14 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.release.set(21)
+    options.release.set(25)
+    options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:removal"))
 }
 
 tasks.processResources {
     val props = mapOf("version" to project.version)
     inputs.properties(props)
-    filesMatching("plugin.yml") { expand(props) }
+    filesMatching("paper-plugin.yml") { expand(props) }
 }
 
 tasks.jar {

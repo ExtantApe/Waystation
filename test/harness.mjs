@@ -4,6 +4,7 @@ import { spawn, execSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, writeFileSync, copyFileSync, mkdirSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import mineflayer from 'mineflayer'
+import minecraftData from 'minecraft-data'
 
 export const BASE = process.env.WAYSTATION_TEST_BASE
 if (!BASE || !existsSync(path.join(BASE, 'server/server.properties'))) {
@@ -12,6 +13,10 @@ if (!BASE || !existsSync(path.join(BASE, 'server/server.properties'))) {
 export const RUN = path.join(BASE, 'run')
 export const DIR = path.join(RUN, 'server')
 export const PORT = Number(process.env.WAYSTATION_TEST_PORT ?? 25599) // must match the prepared copy
+/** The bots' game version. 26.1 joins a 26.1 server directly; newer servers need ViaVersion and ViaBackwards. */
+export const CLIENT = process.env.WAYSTATION_TEST_CLIENT ?? '26.1'
+export const CLIENT_PROTOCOL = minecraftData(CLIENT).version.version
+const JAVA = process.env.WAYSTATION_TEST_JAVA ?? 'java' // Paper 26.x needs Java 25
 // test/run.mjs runs a generated copy of the suites, in test/.run.
 const ROOT = new URL(path.basename(path.dirname(new URL(import.meta.url).pathname)) === '.run' ? '../../' : '../', import.meta.url).pathname
 const LIBS = path.join(ROOT, 'build/libs/')
@@ -32,6 +37,12 @@ export function freshCopy() {
   rmSync(RUN, { recursive: true, force: true, maxRetries: 10, retryDelay: 1000 })
   mkdirSync(RUN, { recursive: true })
   execSync(`cp -cR "${path.join(BASE, 'server')}" "${DIR}"`)
+}
+
+/** A world's folder. Paper 26.x keeps every world under <level-name>/dimensions/minecraft/<world>. */
+export function worldDir(name, dir = DIR) {
+  const level = readFileSync(path.join(dir, 'server.properties'), 'utf8').match(/^level-name=(.*)$/m)?.[1] || 'world'
+  return path.join(dir, level, 'dimensions', 'minecraft', name)
 }
 
 /**
@@ -97,7 +108,7 @@ export function installJar({ testConfig = true } = {}) {
 export class Server {
   log = []
   /** dir and java default to the main copy; a second, smaller server passes its own. */
-  constructor({ dir = DIR, java = 'java', memory = '3G' } = {}) { Object.assign(this, { dir, java, memory }) }
+  constructor({ dir = DIR, java = JAVA, memory = '3G' } = {}) { Object.assign(this, { dir, java, memory }) }
   async start() {
     const from = this.log.length
     this.proc = spawn(this.java, [`-Xms${this.memory}`, `-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false', '-Dwaystation.test.deny=meadow', '-jar', 'paper.jar', 'nogui'],
@@ -146,13 +157,13 @@ export class Server {
 
 /** A bot that keeps score of chat and of which tagged display entities it was sent. */
 export async function bot(username, { port = PORT, transferred = false } = {}) {
-  const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: '1.21.11', auth: 'offline', viewDistance: 'normal' })
+  const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: CLIENT, auth: 'offline', viewDistance: 'normal' })
   if (transferred) { // connect the way a client does after a transfer: handshake intent 3, not 2
     const write = b._client.write.bind(b._client)
     b._client.write = (name, data) => write(name, name === 'set_protocol' ? { ...data, nextState: 3 } : data)
   }
   b.chat_log = []
-  b.on('messagestr', m => b.chat_log.push(m))
+  b.on('messagestr', (m, position) => { if (position !== 'game_info') b.chat_log.push(m) }) // chat, not the action bar other plugins fill
   b.on('error', e => console.log(`  [${username}] error: ${e.message}`))
   b.on('kicked', r => console.log(`  [${username}] kicked: ${JSON.stringify(r)}`))
   await new Promise((resolve, reject) => {

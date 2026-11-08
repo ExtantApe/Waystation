@@ -17,7 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.Material;
 import org.bukkit.WorldType;
 import org.mvplugins.multiverse.core.world.WorldManager;
@@ -86,9 +86,9 @@ final class Station implements Listener {
         }
         World world = Bukkit.getWorld(s.stationWorld);
         if (world == null) return;
-        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
-        world.setGameRule(GameRule.DO_FIRE_TICK, false);
-        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        world.setGameRule(GameRules.SPAWN_MOBS, false);
+        world.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0); // no fire spreads
+        world.setGameRule(GameRules.ADVANCE_TIME, false);
         int[] center = center(world);
         world.getWorldBorder().setCenter(center[0] + 0.5, center[1] + 0.5);
         world.getWorldBorder().setSize(s.stationBorder);

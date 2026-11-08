@@ -3,12 +3,15 @@
 Walkable gates between Multiverse world groups on a Paper server. Every world gets a gate on a platform
 at a train station in its own flat world, and a return gate near its own spawn. No client mods.
 
-**Status:** passes its bot test suites on throwaway servers. It hasn't been seen in a real game client yet.
-Server hops were tested between two throwaway servers, with bots that reconnect the way a client does after a
-transfer. On Paper 26.3 it was only checked from the console, because the bots stop at 26.1: it loads, builds the
-station, and keeps every gate through the upgrade that moves world folders. Money prices were tested with EssentialsX.
+**Status:** passes its bot test suites on throwaway servers running Paper 26.1.2 and 26.2. It hasn't been seen in a
+real game client yet. On 26.1.2 the bots join as 26.1 clients directly. On 26.2 they go through ViaVersion and ViaBackwards.
+On 26.3 it loads, builds the station and passes every check that doesn't make a bot walk. Walking can't be tested there
+yet, because Paper 26.3 disconnects clients that come through ViaVersion when they move ("invalid player movement").
+Server hops were tested between two throwaway servers, with bots that reconnect the way a client does after a transfer.
+Money prices were tested with EssentialsX.
 
-Paper 1.21.11, Java 21. Requires Multiverse-Core. Optional: Multiverse-Inventories, LuckPerms,
+Paper 26.1 or later, Java 25. 1.21.11 isn't supported since 0.2.0; use 0.1.0 there.
+Requires Multiverse-Core 5. Optional: Multiverse-Inventories, LuckPerms,
 GriefPrevention, Vault with an economy plugin, BlueMap.
 
 ## How it behaves
@@ -86,7 +89,7 @@ Other plugins can veto a gate by cancelling `com.extantape.waystation.Waystation
 ./gradlew build
 ```
 
-The jar is `build/libs/Waystation-0.1.0.jar`. Java 21.
+The jar is `build/libs/Waystation-0.2.0.jar`. Java 25.
 
 ## Install
 
@@ -105,7 +108,10 @@ With the server stopped:
 ### BlueMap (optional)
 
 If BlueMap stops at startup, `plugins/BlueMap/core.conf` has `accept-download: false`. Setting it to true is
-accepting Mojang's EULA, which is yours to do. Then copy `setup/bluemap-waystation.conf` to `plugins/BlueMap/maps/waystation.conf` and run `/bluemap reload`.
+accepting Mojang's EULA, which is yours to do. Then copy `setup/bluemap-waystation.conf` to `plugins/BlueMap/maps/waystation.conf`.
+If your `level-name` in `server.properties` isn't `world`, change `world:` in that file to match: on Paper 26.x every world
+lives inside the main one, and the station is its dimension `minecraft:waystation`. Then run `/bluemap reload`. Maps made
+before 26.x need the same change, or BlueMap shows nothing for them.
 
 Gates show as markers. BlueMap draws blocks only, so the station's map shows flat ground with markers,
 not the platforms. The map also shows every gate to anyone with the link, whoever can use them.
@@ -150,9 +156,10 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew jar hookJar` and `npm 
 | `defaults` | the default config and `example-worlds` | |
 | `hop` | two servers, there and back through fargates | |
 | `economy` | buying with a real economy plugin | `WAYSTATION_TEST_ECONOMY_JAR` |
-| `paper26` | loading on Paper 26.x, and upgrading to it, from the console | `WAYSTATION_TEST_PAPER26`, `WAYSTATION_TEST_JAVA` |
 
-All of them need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh`.
+All of them need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
+isn't running. `WAYSTATION_TEST_JAVA` is the Java 25 to run it with, if `java` isn't. The bots are 26.1 clients;
+`WAYSTATION_TEST_CLIENT` changes that. A server newer than 26.1 needs ViaVersion and ViaBackwards to let them in.
 `WAYSTATION_TEST_PORT` changes the port from 25599, and must match the copy. The suites use generic world names.
 If your copy's differ, `WAYSTATION_TEST_NAMES` points at a file mapping them, kept out of the repo. See
 `test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.

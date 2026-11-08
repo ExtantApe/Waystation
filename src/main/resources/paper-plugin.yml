@@ -1,23 +1,21 @@
 name: Waystation
 version: ${version}
 main: com.extantape.waystation.WaystationPlugin
-api-version: '1.21'
+api-version: '26.1'
 description: Walkable display-entity gates between Multiverse world groups.
-depend: [Multiverse-Core]
-softdepend: [Multiverse-Inventories, LuckPerms, GriefPrevention, Vault, BlueMap, ViaVersion]
-commands:
-  gate:
-    description: Create, move, link, list, remove and test gates.
-    usage: /gate help
-  waygate:
-    description: Shows the coordinates of the closest gate you can use.
-    usage: /waygate
-    aliases: [nearestgate, findgate]
-    permission: waystation.find
-  buygate:
-    description: Buy access to a world's gate.
-    usage: /buygate [world]
-    permission: waystation.buy
+# Lets other plugins see Waystation's classes, so they can listen for WaystationAccessEvent and veto a gate.
+has-open-classloader: true
+# Commands are registered in code, with Paper's registerCommand.
+dependencies:
+  server:
+    Multiverse-Core: {load: BEFORE, required: true, join-classpath: true}
+    BlueMap: {load: BEFORE, required: false, join-classpath: true}
+    # Reached through their own classloaders when present, so no classpath access is needed.
+    Multiverse-Inventories: {load: BEFORE, required: false, join-classpath: false}
+    LuckPerms: {load: BEFORE, required: false, join-classpath: false}
+    GriefPrevention: {load: BEFORE, required: false, join-classpath: false}
+    Vault: {load: BEFORE, required: false, join-classpath: false}
+    ViaVersion: {load: BEFORE, required: false, join-classpath: false}
 permissions:
   # default: false everywhere an admin is concerned: operators get nothing for free.
   waystation.admin:

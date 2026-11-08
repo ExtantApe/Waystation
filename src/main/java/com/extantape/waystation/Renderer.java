@@ -285,7 +285,7 @@ final class Renderer implements Listener {
     private void spawnChest(Location at, Gate p, List<Entity> out) {
         out.add(at.getWorld().spawn(at.clone().add(0, 0.45, 0), ItemDisplay.class, e -> {
             prepare(e);
-            e.setItemStack(new ItemStack(Material.CHEST));
+            e.setItemStack(ItemStack.of(Material.CHEST));
             e.setBrightness(new Display.Brightness(15, 15));
             e.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(0.9f, 0.9f, 0.9f), new AxisAngle4f()));
         }));

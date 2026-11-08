@@ -1,8 +1,8 @@
 // A hop between two throwaway servers through fargates, there and back. The bot reconnects the way a
 // client does after a transfer (handshake intent 3). What a real client shows on the way is still untested.
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
-import { Server, freshCopy, installJar, smallServer, sleep, bot, walkTo, check, summary, DIR, PORT, BASE, JAR } from './harness.mjs'
+import { Server, freshCopy, installJar, smallServer, sleep, bot, walkTo, check, summary, DIR, PORT, BASE, JAR, CLIENT_PROTOCOL } from './harness.mjs'
 
 const B_PORT = PORT + 1
 const g = { x: 30, y: -60, z: 30 }
@@ -12,7 +12,7 @@ const setTransfers = (dir, v) => {
 }
 const addDestination = (dir, name, port) => {
   const p = path.join(dir, 'plugins/Waystation/config.yml')
-  writeFileSync(p, readFileSync(p, 'utf8') + `\nfargate-destinations:\n  ${name}:\n    label: "${name}"\n    host: 127.0.0.1\n    port: ${port}\n    protocols: [774]\n`)
+  writeFileSync(p, readFileSync(p, 'utf8') + `\nfargate-destinations:\n  ${name}:\n    label: "${name}"\n    host: 127.0.0.1\n    port: ${port}\n    protocols: [${CLIENT_PROTOCOL}]\n`)
 }
 const watch = b => { b.transfers = []; b._client.on('transfer', d => b.transfers.push(d)); return b }
 const walkIn = async (server, b) => {
@@ -20,7 +20,14 @@ const walkIn = async (server, b) => {
   await walkTo(b, g.x + .5, g.z + .5, 3000)
   await sleep(1000)
 }
-const plugin = name => path.join(BASE, 'server/plugins', name)
+// A plugin jar from the copy, found by the start of its name, since versions differ between servers.
+const plugin = start => {
+  const dir = path.join(BASE, 'server/plugins'), hit = readdirSync(dir).find(f => f.toLowerCase().startsWith(start.toLowerCase()) && f.endsWith('.jar'))
+  if (!hit) throw new Error(`No ${start}*.jar in ${dir}`)
+  return path.join(dir, hit)
+}
+// The bots are 26.1 clients, so a newer server B needs ViaVersion and ViaBackwards to let them in, as the copy does.
+const via = () => { try { return [plugin('ViaVersion-'), plugin('ViaBackwards-')] } catch { return [] } }
 
 // Server A: the usual copy, accepting transfers.
 freshCopy(); installJar(); setTransfers(DIR, true)
@@ -31,7 +38,7 @@ await a.ask('lp group default permission set multiverse.access.waystation true',
 
 // Server B: a small second server with Waystation, refusing transfers at first.
 const bDir = smallServer('serverb', { port: B_PORT, from: path.join(BASE, 'server'), transfers: false,
-  plugins: [JAR, plugin('multiverse-core-5.6.2.jar'), plugin('LuckPerms-Bukkit-5.5.0.jar')] })
+  plugins: [JAR, plugin('multiverse-core-'), plugin('LuckPerms-Bukkit-'), ...via()] })
 const b = new Server({ dir: bDir, memory: '2G' }); await b.start(); await sleep(12000)
 addDestination(bDir, 'servera', PORT); await b.ask('gate reload', 1500)
 await b.ask(`gate fargate tb servera waystation ${g.x} ${g.y} ${g.z} south`, 1000)

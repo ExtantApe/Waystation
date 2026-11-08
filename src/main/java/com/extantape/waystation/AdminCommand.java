@@ -11,14 +11,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 /** /gate: create, move, link, list, remove, test, addworld, relayout, reload. Works from the console. */
-final class AdminCommand implements CommandExecutor, TabCompleter {
+final class AdminCommand implements BasicCommand {
     private static final List<String> SUBCOMMANDS =
         List.of("help", "list", "create", "fargate", "move", "link", "remove", "test", "addworld", "relayout", "reseed", "enlarge", "reload");
 
@@ -29,13 +28,17 @@ final class AdminCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public void execute(CommandSourceStack source, String[] args) {
+        run(source.getSender(), args);
+    }
+
+    private void run(CommandSender sender, String[] args) {
         // waystation.admin grants every waystation.admin.<subcommand>. Grant them one by one for a narrower role.
         String sub = args.length == 0 ? "help" : args[0].toLowerCase(Locale.ROOT);
         if (!SUBCOMMANDS.contains(sub)) sub = "help";
         if (!allowed(sender, sub)) {
             error(sender, "You don't have permission for that.");
-            return true;
+            return;
         }
         switch (sub) {
             case "list" -> list(sender, args);
@@ -52,7 +55,6 @@ final class AdminCommand implements CommandExecutor, TabCompleter {
             case "reload" -> sender.sendMessage(text(plugin.reload(), NamedTextColor.YELLOW));
             default -> help(sender);
         }
-        return true;
     }
 
     /** These nodes default to false, which would shut the console out too, so it's let in by name. */
@@ -347,7 +349,9 @@ final class AdminCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+    public List<String> suggest(CommandSourceStack source, String[] args) {
+        CommandSender sender = source.getSender();
+        if (args.length == 0) args = new String[] {""};
         Stream<String> options = Stream.of();
         if (args.length == 1) {
             options = SUBCOMMANDS.stream().filter(sub -> allowed(sender, sub));
