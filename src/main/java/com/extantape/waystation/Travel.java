@@ -138,6 +138,21 @@ final class Travel implements Listener {
         }
         World world = Bukkit.getWorld(gate.destination);
         leavingFrom.put(id, outside.clone());
+        if (plugin.settings().handsOver(gate.destination)) { // another plugin takes them in from here
+            readyAt.put(id, System.currentTimeMillis() + plugin.settings().travelCooldownTicks * 50L);
+            player.closeInventory(); // nothing left on the cursor when inventories swap
+            WaystationHandOverEvent event = new WaystationHandOverEvent(player, gate.id, gate.destination);
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isHandled()) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> leavingFrom.remove(id), 60L);
+            } else {
+                leavingFrom.remove(id);
+                plugin.getLogger().warning("Nothing took " + player.getName() + " into " + gate.destination
+                    + ": worlds." + gate.destination + ".hand-over is on, but no plugin handled it.");
+                tell(player, "destination-closed");
+            }
+            return;
+        }
         String command = plugin.settings().enterCommand(gate.destination);
         if (command != null) { // the world's own plugin knows where this player belongs
             readyAt.put(id, System.currentTimeMillis() + plugin.settings().travelCooldownTicks * 50L);
@@ -217,11 +232,26 @@ final class Travel implements Listener {
             go(player, spawn, null);
             return;
         }
-        Location front = new Location(station, gate.x + 0.5 + gate.facing.getModX() * 2, gate.y, gate.z + 0.5 + gate.facing.getModZ() * 2);
-        front.setDirection(gate.facing.getDirection());
+        Location front = frontOf(gate, station);
         arrivalPin.put(id, front);
         Bukkit.getScheduler().runTaskLater(plugin, () -> arrivalPin.remove(id), 100L);
         go(player, front, spawn);
+    }
+
+    /** Two blocks out from a gate, on the side you walk up to, facing away from it: clear of the gate's trigger. */
+    static Location frontOf(Gate gate, World world) {
+        Location front = new Location(world, gate.x + 0.5 + gate.facing.getModX() * 2, gate.y, gate.z + 0.5 + gate.facing.getModZ() * 2);
+        front.setDirection(gate.facing.getDirection());
+        return front;
+    }
+
+    /** For LandingService: in front of the station gate to this world, if it's there and safe to stand on. */
+    java.util.Optional<Location> landing(String world) {
+        World station = Bukkit.getWorld(plugin.settings().stationWorld);
+        Gate gate = plugin.store().get("station-" + world);
+        if (station == null || gate == null || !gate.world.equals(station.getName())) return java.util.Optional.empty();
+        Location front = frontOf(gate, station);
+        return SafeSpots.safeToStand(front) ? java.util.Optional.of(front) : java.util.Optional.empty();
     }
 
     /** The escape command: straight to the station's spawn, off any ride. */

@@ -21,7 +21,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 /** An immutable reading of config.yml. A failed read throws, so /gate reload can keep the old one. */
 final class Settings {
     record Look(int width, int height, BlockData frame, BlockData fill, float labelScale) {}
-    record WorldEntry(String name, boolean enabled, String label, String look, Cost price, String arrival, String enterCommand) {}
+    record WorldEntry(String name, boolean enabled, String label, String look, Cost price, String arrival, String enterCommand, boolean handOver) {}
     record Slot(int x, Integer y, int z, BlockFace facing) {}
     /** Another server a fargate leads to, and the client versions it can take. */
     record FargateTarget(String name, String label, String host, int port, Set<Integer> protocols, String permission) {}
@@ -126,8 +126,12 @@ final class Settings {
                 if (look != null && !looks.containsKey(look)) {
                     throw new IllegalArgumentException("worlds." + name + " names a look that doesn't exist: " + look);
                 }
+                boolean handOver = s.getBoolean("hand-over", false);
+                if (handOver && s.getString("enter-command") != null) {
+                    throw new IllegalArgumentException("worlds." + name + " has both hand-over and enter-command; pick one");
+                }
                 worlds.put(name, new WorldEntry(name, s.getBoolean("enabled", true), s.getString("label", name), look,
-                    Cost.read(s.getConfigurationSection("price"), "worlds." + name + ".price"), s.getString("arrival"), s.getString("enter-command")));
+                    Cost.read(s.getConfigurationSection("price"), "worlds." + name + ".price"), s.getString("arrival"), s.getString("enter-command"), handOver));
             }
         }
 
@@ -236,6 +240,17 @@ final class Settings {
     String enterCommand(String world) {
         WorldEntry entry = worlds.get(world);
         return entry == null ? null : entry.enterCommand();
+    }
+
+    /** A world whose own plugin takes the player in, through WaystationHandOverEvent. It has no return gate. */
+    boolean handsOver(String world) {
+        WorldEntry entry = worlds.get(world);
+        return entry != null && entry.handOver();
+    }
+
+    /** Another plugin brings players in and out of this world, so Waystation gives it no return gate. */
+    boolean hasOwnWayIn(String world) {
+        return enterCommand(world) != null || handsOver(world);
     }
 
     /** The hearts a waygate asks for in this world. */
