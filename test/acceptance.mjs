@@ -182,12 +182,21 @@ console.log('\n# /waygate')
 clearChat(alice); await s.ask('execute in waystation run tp alice 0 -60 0', 800); alice.chat('/waygate'); await sleep(800)
 console.log('  alice:', alice.chat_log.at(-1))
 const am = alice.chat_log.join(' ').match(/at (-?\d+) (-?\d+) (-?\d+), (\d+) blocks (\w+)/)
-const canSeeIds = Object.values(g).filter(x => x.world === 'waystation' && ['lobby', 'meadow', 'survival', 'creative', 'flatlands'].includes(x.dest))
+// Every station gate she can see, OneBlock included: the random layout decides which is nearest.
+const canSeeIds = []
+for (const x of Object.values(g)) if (x?.world === 'waystation' && x.id && await sees(alice, x)) canSeeIds.push(x)
+console.log('  alice sees:', canSeeIds.map(x => x.id).join(', '))
 const expected = canSeeIds.map(x => Math.hypot(x.x + .5 - .5, x.z + .5 - .5)).sort((a, b) => a - b)[0]
 check('waygate gives coordinates of the nearest gate she can use', am && Math.abs(+am[4] - expected) <= 2, `says ${am && am[4]}, nearest ${expected?.toFixed(1)}`)
 clearChat(amy); await s.ask('execute in waystation run tp amy 0 -60 0', 800); amy.chat('/waygate'); await sleep(800)
 console.log('  amy:', amy.chat_log.at(-1))
-check("waygate never reveals a gate you can't use", amy.chat_log.some(m => /Nearest waygate: (Lobby|Friends)/.test(m)))
+// The gate at the coordinates she's given must be one she can use; the random layout decides which.
+const amyAt = amy.chat_log.join(' ').match(/at (-?\d+) (-?\d+) (-?\d+),/)
+const amyGate = amyAt && Object.values(g).find(x => x?.world === 'waystation' && x.x === +amyAt[1] && x.z === +amyAt[3])
+const amyHidden = []
+for (const x of Object.values(g)) if (x?.world === 'waystation' && x.id && !(await sees(amy, x))) amyHidden.push(x.id)
+check('control: some station gates are hidden from amy', amyHidden.length > 0, amyHidden.join(', '))
+check("waygate never reveals a gate you can't use", !!amyGate && await sees(amy, amyGate), amyGate?.id ?? 'no gate at those coordinates')
 await s.ask('mvtp alice w:meadow_nether', 2500); clearChat(alice); alice.chat('/waygate'); await sleep(800)
 check('waygate in a world with no gates says so and offers the way out', has(alice, /no waygate you can use/) && has(alice, /\/station/), alice.chat_log.at(-1))
 await s.ask('mvtp alice w:waystation', 2000)
@@ -238,6 +247,9 @@ await s.ask('mvtp alice w:waystation', 2500); await sleep(800)
 await walkThrough(alice, sc); await sleep(2500)
 const pc = alice.entity.position
 check('creative world: you return to your last spot', Math.hypot(pc.x - farX, pc.z - farZ) < 3, `${Math.hypot(pc.x - farX, pc.z - farZ).toFixed(1)} blocks off`)
+// Leave only once she's landed: a spot in mid-air isn't safe, so it would rightly send her to spawn.
+for (let i = 0; i < 40 && !alice.entity.onGround; i++) await sleep(100)
+await sleep(500)
 await s.ask('mvtp alice w:meadow', 2500)
 await sleep(800)
 

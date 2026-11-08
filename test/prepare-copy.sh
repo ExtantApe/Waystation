@@ -7,7 +7,7 @@ if lsof -nP -iTCP:25565 -sTCP:LISTEN >/dev/null 2>&1; then echo "Something is li
 rm -rf "${BASE:?}/server" "${BASE:?}/run"; mkdir -p "$BASE"
 cp -cR "$SOURCE" "$BASE/server"
 T="$BASE/server"
-sed -i '' -e 's/^server-ip=.*/server-ip=127.0.0.1/' -e 's/^server-port=.*/server-port=25599/' -e 's/^online-mode=.*/online-mode=false/' \
+sed -i '' -e 's/^server-ip=.*/server-ip=127.0.0.1/' -e "s/^server-port=.*/server-port=${WAYSTATION_TEST_PORT:-25599}/" -e 's/^online-mode=.*/online-mode=false/' \
   -e 's/^white-list=.*/white-list=false/' -e 's/^enforce-whitelist=.*/enforce-whitelist=false/' -e 's/^require-resource-pack=.*/require-resource-pack=false/' \
   -e 's/^resource-pack=.*/resource-pack=/' -e 's/^resource-pack-sha1=.*/resource-pack-sha1=/' -e 's/^resource-pack-id=.*/resource-pack-id=/' \
   -e 's/^accepts-transfers=.*/accepts-transfers=true/' "$T/server.properties"

@@ -3,8 +3,10 @@
 Walkable gates between Multiverse world groups on a Paper server. Every world gets a gate on a platform
 at a train station in its own flat world, and a return gate near its own spawn. No client mods.
 
-**Status:** passes its bot test suites on a throwaway server. It hasn't been seen in a real game client yet,
-and a real hop between two servers, Paper 26.x and a real economy plugin haven't been tested.
+**Status:** passes its bot test suites on throwaway servers. It hasn't been seen in a real game client yet.
+Server hops were tested between two throwaway servers, with bots that reconnect the way a client does after a
+transfer. On Paper 26.3 it was only checked from the console, because the bots stop at 26.1: it loads, builds the
+station, and keeps every gate through the upgrade that moves world folders. Money prices were tested with EssentialsX.
 
 Paper 1.21.11, Java 21. Requires Multiverse-Core. Optional: Multiverse-Inventories, LuckPerms,
 GriefPrevention, Vault with an economy plugin, BlueMap.
@@ -137,10 +139,23 @@ server upgrades.
 
 ## Tests
 
-`test/acceptance.mjs`, `test/station.mjs`, `test/fargate.mjs` and `test/defaults.mjs` run bots against a throwaway
-copy made by `test/prepare-copy.sh`, and refuse anything not on 127.0.0.1. Run `./gradlew jar hookJar` and, in
-`test/`, `npm install` first, then `node test/run.mjs <suite>`. The suites use generic world names. If your copy's
-differ, `WAYSTATION_TEST_NAMES` points at a file mapping them, kept out of the repo. See `test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.
+Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew jar hookJar` and `npm install` in `test/` first, then
+`node test/run.mjs <suite>`.
+
+| Suite | What it covers | Needs |
+| --- | --- | --- |
+| `acceptance` | gates, permissions, inventories, protection, tribute, buying, crashes | |
+| `station` | the station generator, and what it costs the server | |
+| `fargate` | who sees a fargate, and coming back | |
+| `defaults` | the default config and `example-worlds` | |
+| `hop` | two servers, there and back through fargates | |
+| `economy` | buying with a real economy plugin | `WAYSTATION_TEST_ECONOMY_JAR` |
+| `paper26` | loading on Paper 26.x, and upgrading to it, from the console | `WAYSTATION_TEST_PAPER26`, `WAYSTATION_TEST_JAVA` |
+
+All of them need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh`.
+`WAYSTATION_TEST_PORT` changes the port from 25599, and must match the copy. The suites use generic world names.
+If your copy's differ, `WAYSTATION_TEST_NAMES` points at a file mapping them, kept out of the repo. See
+`test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.
 
 ## License
 

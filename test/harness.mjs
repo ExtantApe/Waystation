@@ -11,7 +11,7 @@ if (!BASE || !existsSync(path.join(BASE, 'server/server.properties'))) {
 }
 export const RUN = path.join(BASE, 'run')
 export const DIR = path.join(RUN, 'server')
-export const PORT = 25599
+export const PORT = Number(process.env.WAYSTATION_TEST_PORT ?? 25599) // must match the prepared copy
 // test/run.mjs runs a generated copy of the suites, in test/.run.
 const ROOT = new URL(path.basename(path.dirname(new URL(import.meta.url).pathname)) === '.run' ? '../../' : '../', import.meta.url).pathname
 const LIBS = path.join(ROOT, 'build/libs/')
@@ -32,6 +32,23 @@ export function freshCopy() {
   rmSync(RUN, { recursive: true, force: true, maxRetries: 10, retryDelay: 1000 })
   mkdirSync(RUN, { recursive: true })
   execSync(`cp -cR "${path.join(BASE, 'server')}" "${DIR}"`)
+}
+
+/**
+ * A second, small throwaway server in its own folder under RUN: flat world, 127.0.0.1 only. Its Paper
+ * jar and the files Paper would otherwise download are cloned from a server folder you already have.
+ */
+export function smallServer(name, { port, from, plugins = [], transfers = false }) {
+  const dir = path.join(RUN, name)
+  rmSync(dir, { recursive: true, force: true }); mkdirSync(path.join(dir, 'plugins'), { recursive: true })
+  for (const f of ['paper.jar', 'libraries', 'versions', 'cache'].filter(f => existsSync(path.join(from, f)))) execSync(`cp -cR "${path.join(from, f)}" "${path.join(dir, f)}"`)
+  for (const p of plugins) copyFileSync(p, path.join(dir, 'plugins', path.basename(p)))
+  // The EULA is the owner's to accept: use the answer already given in the folder this comes from.
+  if (!/^eula=true$/m.test(readFileSync(path.join(from, 'eula.txt'), 'utf8'))) throw new Error('The EULA isn\'t accepted in ' + from)
+  copyFileSync(path.join(from, 'eula.txt'), path.join(dir, 'eula.txt'))
+  writeFileSync(path.join(dir, 'server.properties'), [`server-ip=127.0.0.1`, `server-port=${port}`, 'online-mode=false',
+    `accepts-transfers=${transfers}`, 'level-type=minecraft\\:flat', 'spawn-protection=0', 'enable-query=false', 'enable-rcon=false'].join('\n') + '\n')
+  return dir
 }
 
 // The suites run on this: the default config with the worlds and groups they expect filled in.
@@ -79,11 +96,14 @@ export function installJar({ testConfig = true } = {}) {
 
 export class Server {
   log = []
+  /** dir and java default to the main copy; a second, smaller server passes its own. */
+  constructor({ dir = DIR, java = 'java', memory = '3G' } = {}) { Object.assign(this, { dir, java, memory }) }
   async start() {
     const from = this.log.length
-    this.proc = spawn('java', ['-Xms3G', '-Xmx3G', '-Dterminal.jline=false', '-Dterminal.ansi=false', '-Dwaystation.test.deny=meadow', '-jar', 'paper.jar', 'nogui'],
-      { cwd: DIR, stdio: ['pipe', 'pipe', 'pipe'] })
+    this.proc = spawn(this.java, [`-Xms${this.memory}`, `-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false', '-Dwaystation.test.deny=meadow', '-jar', 'paper.jar', 'nogui'],
+      { cwd: this.dir, stdio: ['pipe', 'pipe', 'pipe'] })
     this.exited = new Promise(r => this.proc.on('exit', r))
+    const proc = this.proc; process.on('exit', () => { if (proc.exitCode === null) proc.kill('SIGKILL') }) // never leave a server behind
     const add = d => { for (const l of d.toString().split('\n')) if (l.trim()) this.log.push(l) }
     this.proc.stdout.on('data', add)
     this.proc.stderr.on('data', add)
@@ -125,8 +145,12 @@ export class Server {
 }
 
 /** A bot that keeps score of chat and of which tagged display entities it was sent. */
-export async function bot(username) {
-  const b = mineflayer.createBot({ host: '127.0.0.1', port: PORT, username, version: '1.21.11', auth: 'offline', viewDistance: 'normal' })
+export async function bot(username, { port = PORT, transferred = false } = {}) {
+  const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: '1.21.11', auth: 'offline', viewDistance: 'normal' })
+  if (transferred) { // connect the way a client does after a transfer: handshake intent 3, not 2
+    const write = b._client.write.bind(b._client)
+    b._client.write = (name, data) => write(name, name === 'set_protocol' ? { ...data, nextState: 3 } : data)
+  }
   b.chat_log = []
   b.on('messagestr', m => b.chat_log.push(m))
   b.on('error', e => console.log(`  [${username}] error: ${e.message}`))
