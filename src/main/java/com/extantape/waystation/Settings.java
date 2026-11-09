@@ -105,6 +105,10 @@ final class Settings {
                    boolean welcome, int welcomeAfterDays, List<String> welcomeText) {}
     final Arrival arrival;
 
+    /** The Departures Board beside the station's centrepiece. */
+    record Board(boolean enabled, String title, String empty, double distance) {}
+    final Board board;
+
     private final Map<String, String> messages = new LinkedHashMap<>();
 
     Settings(FileConfiguration c) {
@@ -141,6 +145,7 @@ final class Settings {
         }
 
         arrival = readArrival(c);
+        board = readBoard(c);
         stationWorld = c.getString("station.world", "waystation");
         returnLabel = c.getString("station.return-label", "<gold>Station");
         stationLabel = c.getString("station.station-label", "");
@@ -338,5 +343,13 @@ final class Settings {
         return new Arrival(c.getBoolean("arrival.lobby-gate", true), world, spot,
             c.getString("arrival.lobby-label", "<gold><bold>Central Station</bold>"),
             c.getBoolean("arrival.welcome", true), days, List.copyOf(text));
+    }
+
+    static Board readBoard(FileConfiguration c) {
+        double distance = c.getDouble("departures-board.distance", 5);
+        if (distance < 2 || distance > 30) throw new IllegalArgumentException("departures-board.distance must be from 2 to 30 blocks");
+        return new Board(c.getBoolean("departures-board.enabled", true),
+            c.getString("departures-board.title", "<gold><bold>Departures</bold>"),
+            c.getString("departures-board.empty", "No gates are open to you yet."), distance);
     }
 }

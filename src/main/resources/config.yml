@@ -164,6 +164,14 @@ arrival:
     - "<gray>From here you can reach <white><worlds></white> on <white><groups></white>."
     - "<gray>Walk through a lit gate to travel. In any world, <white>/waygate</white> shows the way back."
 
+# The Departures Board stands in front of the station's centrepiece. Each player sees their own: only the worlds
+# they can use, grouped by platform like the gates, and it changes as soon as their access does.
+departures-board:
+  enabled: true
+  title: "<gold><bold>Departures</bold>"
+  empty: "No gates are open to you yet."
+  distance: 5              # blocks from the centrepiece, towards the south
+
 # Walking through a gate.
 travel:
   cooldown-ticks: 40     # after arriving, a gate won't fire again for this long

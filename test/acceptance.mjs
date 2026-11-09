@@ -1,6 +1,6 @@
 // Acceptance tests. Bots on a throwaway clone, 127.0.0.1 only. Each "blocked" result has a positive control.
 import { Server, freshCopy, installJar, sleep, bot, near, displays, walkTo, check, summary, DIR, BASE, HOOK_JAR, PLUGIN_JAR } from './harness.mjs'
-import { readFileSync, writeFileSync, copyFileSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, copyFileSync, rmSync, readdirSync } from 'node:fs'
 import { Vec3 } from 'vec3'
 
 const s = new Server()
@@ -696,45 +696,50 @@ check('dead gates are labelled on the map', /line closed/.test(deadMarkers?.['wa
 
 // ---------- shutdown ----------
 console.log('\n# OneBlock')
-const ob = await gates(); const sob = ob['station-oneblock']
-check('OneBlock has a station gate', !!sob)
-check('and needs no return gate', !ob['return-oneblock'])
-check('and no warning about one', !s.log.some(l => /No good spot.*oneblock/.test(l)))
-const obA = await bot('obann'), obB = await bot('obcal')
-for (const b of [obA, obB]) { await s.ask(`mvtp ${b.username} w:waystation`, 1800); await s.ask(`clear ${b.username}`, 200) }
-await s.ask('give obann diamond 3', 500)
-const inWorldObA = () => isIn(obA, 'oneblock', 1500)
-await walkThrough(obA, sob); await sleep(3000)
-const pa = obA.entity.position
-check('walking through lands you on your own island', await inWorldObA() && pa.y > 80, pa.toString())
-await walkThrough(obB, sob); await sleep(3000)
-const pb = obB.entity.position
-check('a second player gets a different island', await isIn(obB, 'oneblock', 1500) && Math.hypot(pa.x - pb.x, pa.z - pb.z) > 400, pb.toString())
-check('inventories stay separate going in', cnt0(obA, 'diamond') === 0, `diamonds ${cnt0(obA, 'diamond')}`)
-await s.ask('give obann emerald 2', 500)
-await sleep(2500)
-const postOf = b => Object.values(b.entities).find(e => e.name === 'interaction' && Math.hypot(e.position.x - b.entity.position.x, e.position.z - b.entity.position.z) < 8)
-check('each island gets a post', !!postOf(obA) && !!postOf(obB))
-const blockAtIsland = obA.blockAt(pa.offset(2, -1, 0).floored())
-check('the post places no block', !blockAtIsland || blockAtIsland.name === 'air', blockAtIsland?.name)
-clearChat(obA); await obA.activateEntity(postOf(obA)); await sleep(1500)
-check('one click only asks', has(obA, /Click the post again/) && await inWorldObA(), obA.chat_log.at(-1))
-await obA.activateEntity(postOf(obA)); await sleep(3500)
-const back = obA.entity.position
-check('a second click takes you to the station', await isIn(obA, 'waystation', 2000))
-check('beside the OneBlock gate', Math.hypot(back.x - (sob.x + .5), back.z - (sob.z + .5)) < 4, back.toString())
-check('the station inventory is its own', cnt0(obA, 'emerald') === 0 && cnt0(obA, 'diamond') === 3, `emeralds ${cnt0(obA, 'emerald')} diamonds ${cnt0(obA, 'diamond')}`)
-await walkThrough(obA, sob); await sleep(3000)
-check('going back returns you to your own island', Math.hypot(obA.entity.position.x - pa.x, obA.entity.position.z - pa.z) < 5 && cnt0(obA, 'emerald') === 2, `${obA.entity.position} emeralds ${cnt0(obA, 'emerald')}`)
-obA.chat('/oneblock leave'); await sleep(2500)
-check('/oneblock leave still works', await isIn(obA, 'lobby', 1500))
-obB.chat('/station'); await sleep(2500)
-check('/station works from an island', await isIn(obB, 'waystation', 1500))
-await sleep(2000)
-await s.ask('execute in oneblock run forceload add 0 0', 800)
-check('the post is gone once nobody is there', (await s.ask('execute in oneblock if entity @e[tag=waystation-island-post]', 500)).join(' ').includes('failed'))
-await s.ask('execute in oneblock run forceload remove 0 0', 200)
-obA.end(); obB.end(); await sleep(400)
+// The OneBlock checks need a real OneBlock plugin, which the small stand-in (test/prepare-small.mjs) doesn't have.
+const hasOneBlock = readdirSync(DIR + '/plugins').some(f => /oneblock/i.test(f) && f.endsWith('.jar'))
+if (!hasOneBlock) console.log('  skipped: no OneBlock plugin on this copy. These checks need the real copy.')
+else {
+  const ob = await gates(); const sob = ob['station-oneblock']
+  check('OneBlock has a station gate', !!sob)
+  check('and needs no return gate', !ob['return-oneblock'])
+  check('and no warning about one', !s.log.some(l => /No good spot.*oneblock/.test(l)))
+  const obA = await bot('obann'), obB = await bot('obcal')
+  for (const b of [obA, obB]) { await s.ask(`mvtp ${b.username} w:waystation`, 1800); await s.ask(`clear ${b.username}`, 200) }
+  await s.ask('give obann diamond 3', 500)
+  const inWorldObA = () => isIn(obA, 'oneblock', 1500)
+  await walkThrough(obA, sob); await sleep(3000)
+  const pa = obA.entity.position
+  check('walking through lands you on your own island', await inWorldObA() && pa.y > 80, pa.toString())
+  await walkThrough(obB, sob); await sleep(3000)
+  const pb = obB.entity.position
+  check('a second player gets a different island', await isIn(obB, 'oneblock', 1500) && Math.hypot(pa.x - pb.x, pa.z - pb.z) > 400, pb.toString())
+  check('inventories stay separate going in', cnt0(obA, 'diamond') === 0, `diamonds ${cnt0(obA, 'diamond')}`)
+  await s.ask('give obann emerald 2', 500)
+  await sleep(2500)
+  const postOf = b => Object.values(b.entities).find(e => e.name === 'interaction' && Math.hypot(e.position.x - b.entity.position.x, e.position.z - b.entity.position.z) < 8)
+  check('each island gets a post', !!postOf(obA) && !!postOf(obB))
+  const blockAtIsland = obA.blockAt(pa.offset(2, -1, 0).floored())
+  check('the post places no block', !blockAtIsland || blockAtIsland.name === 'air', blockAtIsland?.name)
+  clearChat(obA); await obA.activateEntity(postOf(obA)); await sleep(1500)
+  check('one click only asks', has(obA, /Click the post again/) && await inWorldObA(), obA.chat_log.at(-1))
+  await obA.activateEntity(postOf(obA)); await sleep(3500)
+  const back = obA.entity.position
+  check('a second click takes you to the station', await isIn(obA, 'waystation', 2000))
+  check('beside the OneBlock gate', Math.hypot(back.x - (sob.x + .5), back.z - (sob.z + .5)) < 4, back.toString())
+  check('the station inventory is its own', cnt0(obA, 'emerald') === 0 && cnt0(obA, 'diamond') === 3, `emeralds ${cnt0(obA, 'emerald')} diamonds ${cnt0(obA, 'diamond')}`)
+  await walkThrough(obA, sob); await sleep(3000)
+  check('going back returns you to your own island', Math.hypot(obA.entity.position.x - pa.x, obA.entity.position.z - pa.z) < 5 && cnt0(obA, 'emerald') === 2, `${obA.entity.position} emeralds ${cnt0(obA, 'emerald')}`)
+  obA.chat('/oneblock leave'); await sleep(2500)
+  check('/oneblock leave still works', await isIn(obA, 'lobby', 1500))
+  obB.chat('/station'); await sleep(2500)
+  check('/station works from an island', await isIn(obB, 'waystation', 1500))
+  await sleep(2000)
+  await s.ask('execute in oneblock run forceload add 0 0', 800)
+  check('the post is gone once nobody is there', (await s.ask('execute in oneblock if entity @e[tag=waystation-island-post]', 500)).join(' ').includes('failed'))
+  await s.ask('execute in oneblock run forceload remove 0 0', 200)
+  obA.end(); obB.end(); await sleep(400)
+}
 
 console.log('\n# A crash with the tribute chest open')
 const cr = await bot('cracker')

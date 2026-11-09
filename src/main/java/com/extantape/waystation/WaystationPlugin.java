@@ -39,6 +39,7 @@ public final class WaystationPlugin extends JavaPlugin {
     private List<String> escapeAliases = List.of();
     private boolean storeReadable = true;
     private Arrival arrival;
+    private DeparturesBoard board;
 
     @Override
     public void onEnable() {
@@ -54,6 +55,7 @@ public final class WaystationPlugin extends JavaPlugin {
         station = new Station(this);
         renderer = new Renderer(this);
         arrival = new Arrival(this);
+        board = new DeparturesBoard(this);
 
         try {
             settings = new Settings(getConfig());
@@ -73,6 +75,7 @@ public final class WaystationPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(protection, this);
         getServer().getPluginManager().registerEvents(station, this);
         getServer().getPluginManager().registerEvents(arrival, this);
+        getServer().getPluginManager().registerEvents(board, this);
 
         registerCommand("gate", "Create, move, link, list, remove and test gates.", new AdminCommand(this));
         registerCommand("waygate", "Shows the coordinates of the closest gate you can use.", List.of("nearestgate", "findgate"), playerCommand("waystation.find",
@@ -105,6 +108,7 @@ public final class WaystationPlugin extends JavaPlugin {
             arrival.refresh();
             station.sync(true);
             Bukkit.getScheduler().runTaskTimer(this, renderer::pass, 20L, 20L);
+            Bukkit.getScheduler().runTaskTimer(this, board::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, markers::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, () -> station.sync(false), 600L, 600L);
         });
@@ -149,6 +153,7 @@ public final class WaystationPlugin extends JavaPlugin {
         if (mover != null) mover.closeAll();
         if (markers != null) markers.removeAll();
         if (renderer != null) renderer.removeAll();
+        if (board != null) board.removeAll();
         if (bluemap != null) bluemap.close();
     }
 
