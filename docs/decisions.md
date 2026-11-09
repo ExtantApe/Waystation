@@ -5,6 +5,7 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 
 | Date | Decision |
 | --- | --- |
+| 2026-11-08 | OneBlock moves into the station and is handed to its own add-on, which owns getting in and out. Waystation's part: a `hand-over` gate that fires `WaystationHandOverEvent` and moves nobody (if no plugin takes the player, they stay and are told the world isn't open), and `LandingService`, the spot in front of that world's station gate for the add-on to send players back to. Players won't use OneBlock's own commands. Shipped in 0.4.0. |
 | 2026-11-08 | The real-client walkthrough runs on a throwaway copy on Paper 26.2, with the owner's own account as LuckPerms admin on that copy only. The account name is given at setup and never written into this repo. |
 | 2026-11-08 | The lobby welcome text stops teaching `/mvtp` and teaches walking through a gate and `/station`. Its exact wording is the server's, kept with the server's notes, not here. |
 | 2026-11-08 | Review gate colours and label text for colour-blind players and contrast. Colour never carries meaning alone: a word or shape goes with it. Fixes ship in a 0.3.x with tests where they can be made. Findings in `docs/readability.md`. |

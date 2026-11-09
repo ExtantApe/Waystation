@@ -78,6 +78,7 @@ public final class WaystationPlugin extends JavaPlugin {
         registerEscapeCommand(travel);
         registerReturnCommand();
         this.travel = travel;
+        getServer().getServicesManager().register(LandingService.class, travel::landing, this, org.bukkit.plugin.ServicePriority.Normal);
         markers = new IslandMarkers(this);
         markers.reload();
         getServer().getPluginManager().registerEvents(markers, this);
@@ -139,6 +140,7 @@ public final class WaystationPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        getServer().getServicesManager().unregisterAll(this);
         if (returns != null) returns.cancelAll();
         if (mover != null) mover.closeAll();
         if (markers != null) markers.removeAll();

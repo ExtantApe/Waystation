@@ -49,8 +49,9 @@ GriefPrevention, Vault with an economy plugin, BlueMap.
 
 ## OneBlock
 
-OneBlock gives each player their own island, 500 blocks apart, so one fixed gate can't serve them. The station's
-OneBlock gate runs `/ob join`, which puts you on your own island. Any island with someone on it gets a glowing post
+OneBlock gives each player their own island, 500 blocks apart, so one fixed gate can't serve them. Waystation can
+hand the player at the station's OneBlock gate to a plugin that knows where they belong (`hand-over: true`, see
+"For other plugins"), or run `/ob join` as the player (`enter-command`). Any island with someone on it gets a glowing post
 beside its block, and clicking it twice takes you back to the station. The post is display entities, so it places no
 blocks and is never left behind when OneBlock reuses an island.
 
@@ -101,7 +102,7 @@ Other plugins can veto a gate by cancelling `com.extantape.waystation.Waystation
 ./gradlew build
 ```
 
-The jar is `build/libs/Waystation-0.3.1.jar`. Java 25.
+The jar is `build/libs/Waystation-0.4.0.jar`. Java 25.
 
 ## Install
 
@@ -187,19 +188,54 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew jar hookJar` and `npm 
 | `hop` | two servers, there and back through fargates | |
 | `economy` | buying with a real economy plugin | `WAYSTATION_TEST_ECONOMY_JAR` |
 | `return` | the return command, and running without Multiverse-Core, on a fresh empty server | see below |
+| `handover` | `hand-over`, `LandingService`, and a death that respawns at the landing spot, on a small made-up server | see below |
 
-All but `return` need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
+All but `return` and `handover` need `WAYSTATION_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
 isn't running. `WAYSTATION_TEST_JAVA` is the Java 25 to run it with, if `java` isn't. The bots are 26.1 clients;
 `WAYSTATION_TEST_CLIENT` changes that. A server newer than 26.1 needs ViaVersion and ViaBackwards to let them in.
 `WAYSTATION_TEST_PORT` changes the port from 25599, and must match the copy. The suites use generic world names.
 If your copy's differ, `WAYSTATION_TEST_NAMES` points at a file mapping them, kept out of the repo. See
 `test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.
 
-`return` needs no copy of a server. It makes fresh ones, so it needs `WAYSTATION_TEST_JARS`: a folder with
+`return` and `handover` need no copy of a server. They make fresh ones, so it needs `WAYSTATION_TEST_JARS`: a folder with
 `paper-<version>.jar` (and `mojang_<version>.jar`, so Paper needn't download it) and a `plugins/` folder holding
 ViaVersion, ViaBackwards and LuckPerms jars. Starting a server accepts the Minecraft EULA, so it also needs
 `WAYSTATION_TEST_EULA=accept`. `WAYSTATION_RETURN_SOURCE` picks 26.1.2, 26.2 or 26.3, and `WAYSTATION_TWO_SERVERS=1`
 adds a real second server to hop to, on another version. Without that, a stand-in answers the destination's ping.
+`handover` also needs Multiverse-Core, Multiverse-Inventories and Vault jars in `plugins/`, and
+`WAYSTATION_HANDOVER_VERSION` picks 26.1.2, 26.2 or 26.3. It runs on 127.0.0.1:25651.
+
+## For other plugins
+
+A plugin that runs a world of its own, such as a OneBlock add-on, can take players in at the station's gate and put
+them back in front of it. Waystation never moves them for it.
+
+**Taking players in.** Set `worlds.<name>.hand-over: true`. That world gets a station gate and no return gate. When
+someone walks through, after every access check has passed and with their inventory screen closed, Waystation fires
+`com.extantape.waystation.WaystationHandOverEvent` on the main thread: `getPlayer()`, `getGateId()`,
+`getDestination()` (the world's name), `isHandled()` and `setHandled(boolean)`. Move the player and call
+`setHandled(true)`. If nobody does, the player stays where they are, is told the world isn't open, and the console
+says no plugin handled it.
+
+**Putting players back.** `com.extantape.waystation.LandingService`, from
+`Bukkit.getServicesManager().load(LandingService.class)`, has `Optional<Location> landing(String world)`: two blocks in
+front of the station gate to that world, facing away from it, safe to stand on and clear of the gate. It's empty if
+the station isn't built, has no gate to that world, or the spot isn't safe. Ask each time: the station lays itself out
+again when worlds come and go. The service is null while Waystation isn't running.
+
+In your `paper-plugin.yml`, so you load after Waystation and can see its classes:
+
+```yaml
+dependencies:
+  server:
+    Waystation: {load: BEFORE, required: true, join-classpath: true}
+```
+
+Build against the Waystation jar from its GitHub release as `compileOnly`. `WaystationAccessEvent` lets a plugin say no
+to a gate, and is described in its source.
+
+If the world has its own Multiverse-Inventories group, put the station's world in your lobby's group, so a trip or a
+respawn between them swaps inventories cleanly.
 
 ## License
 

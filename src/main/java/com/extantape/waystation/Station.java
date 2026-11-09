@@ -558,7 +558,7 @@ final class Station implements Listener {
             next.run();
             return;
         }
-        if (plugin.store().get("return-" + name) != null || s.enterCommand(name) != null) {
+        if (plugin.store().get("return-" + name) != null || s.hasOwnWayIn(name)) {
             finishWorld(name, problems);
             next.run();
             return;
@@ -639,7 +639,7 @@ final class Station implements Listener {
     }
 
     private void finishWorld(String name, List<String> unused) {
-        boolean returnNeeded = plugin.settings().enterCommand(name) == null;
+        boolean returnNeeded = !plugin.settings().hasOwnWayIn(name);
         if (plugin.store().get("station-" + name) != null && (!returnNeeded || plugin.store().get("return-" + name) != null)) {
             plugin.store().markGenerated(name);
         }

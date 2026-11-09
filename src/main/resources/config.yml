@@ -35,8 +35,12 @@ world-gates: varied
 auto-worlds: true
 exclude-worlds: [TARDIS_*]   # * matches anything
 
-# enter-command: enter by running this command as the player, for a world whose own plugin decides where
-# they go, as OneBlock does. Such a world gets no return gate.
+# hand-over: true hands the player to that world's own plugin at the gate, for a world like OneBlock
+# where a plugin decides where each player goes. Waystation moves nobody: it fires WaystationHandOverEvent,
+# and if no plugin takes the player, they stay and are told the world isn't open. Such a world gets no
+# return gate; its plugin brings players back, to the spot LandingService gives. See the README.
+# enter-command: older and simpler: enter by running this command as the player. Also no return gate.
+# A world takes one or the other, not both.
 # Optional, per world: a nicer label, a look, enabled: false to close the way in, or arrival: gate
 # or last. By default you arrive at the gate in survival worlds, and at your last spot elsewhere.
 # Closing a world keeps its return gate working, so nobody is trapped. A world listed
@@ -47,7 +51,7 @@ exclude-worlds: [TARDIS_*]   # * matches anything
 worlds: {}
 # worlds:
 #   lobby:    {label: "<white>Lobby"}
-#   oneblock: {label: "<aqua>OneBlock", enter-command: "ob join"}
+#   oneblock: {label: "<aqua>OneBlock", hand-over: true}
 
 # Floating labels get a text shadow and a dark plate behind them, so they read over snow, sky or
 # a dark cave. This is how dark the plate is, in percent: 0 keeps Minecraft's own faint one.
