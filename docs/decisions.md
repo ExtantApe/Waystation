@@ -5,6 +5,8 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 
 | Date | Decision |
 | --- | --- |
+| 2026-11-09 | Arrival flow (Helm, for the owner): the station welcome remembers when each player last walked into the station, as one timestamp on the server's own player file (`waystation:station_seen`). It's never shown to other players and never leaves the server. It's the only per-player data the arrival flow adds. Waystation's other per-player data is unchanged: `players.yml` keeps each player's last spot per world, so travel lands them where they were, and where to put them back after a fargate trip. Neither is shown to other players. |
+| 2026-11-09 | Arrival flow, plan phase 3: a lobby gate into the station and a welcome inside it, built on the proposed lobby defaults while the owner confirms them. Latchkey stays optional and is read by name. |
 | 2026-11-08 | OneBlock moves into the station and is handed to its own add-on, which owns getting in and out. Waystation's part: a `hand-over` gate that fires `WaystationHandOverEvent` and moves nobody (if no plugin takes the player, they stay and are told the world isn't open), and `LandingService`, the spot in front of that world's station gate for the add-on to send players back to. Players won't use OneBlock's own commands. Shipped in 0.4.0. |
 | 2026-11-08 | The real-client walkthrough runs on a throwaway copy on Paper 26.2, with the owner's own account as LuckPerms admin on that copy only. The account name is given at setup and never written into this repo. |
 | 2026-11-08 | The lobby welcome text stops teaching `/mvtp` and teaches walking through a gate and `/station`. Its exact wording is the server's, kept with the server's notes, not here. |
