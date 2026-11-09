@@ -25,7 +25,7 @@ This pass covers only what 0.4.0 added. A full audit of the rest of the repo is 
   into the hand-over world with `/mvtp`, and the death is done by the test plugin (health set to 0, respawned from the
   server side), since `/kill` and the bot's respawn request don't get through. Paper fires the same events either way.
 - **A death without keepInventory.** The suite keeps inventory on death so it can prove the two groups stay apart. Items
-  dropping in the hand-over world is that world's plugin's business, and Voidwell tests it.
+  dropping in the hand-over world is that world's plugin's business, and that plugin tests it.
 - **The older suites** (`acceptance`, `station` and the rest) weren't rerun for 0.4.0. They need a copy of a real
   server, and there wasn't room for one. The paths they cover changed only by a rename (`enter-command` worlds still
   skip the return gate through the same check). The unit tests pass.

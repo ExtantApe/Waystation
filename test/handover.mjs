@@ -1,6 +1,6 @@
 // The hand-over: a world whose own plugin takes players in (worlds.<name>.hand-over: true), and LandingService, which
 // tells that plugin where to put them back. One small made-up server on 127.0.0.1:25651: fresh Paper, Multiverse-Core,
-// Multiverse-Inventories, LuckPerms and the test hook plugin, which stands in for a plugin like Voidwell. No copy of a
+// Multiverse-Inventories, LuckPerms and the test hook plugin, which stands in for a OneBlock add-on. No copy of a
 // real server. Worlds: the main world and the station share a "Lobby" inventory group; "skyblock", made here, is its
 // own group and hands over.
 //

@@ -16,8 +16,8 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 /**
- * Test-only plugin. Proves another plugin can veto a gate through the public event, and stands in for a plugin like
- * Voidwell that takes players into its own world: it can handle the hand-over, ask for a landing spot, and send a
+ * Test-only plugin. Proves another plugin can veto a gate through the public event, and stands in for a OneBlock add-on
+ * that takes players into its own world: it can handle the hand-over, ask for a landing spot, and send a
  * death in its world back to that spot. Everything it does is driven from the console, so each test turns it on.
  */
 public final class DenyHook extends JavaPlugin implements Listener {
