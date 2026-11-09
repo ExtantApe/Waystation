@@ -94,6 +94,24 @@ final class GateForge {
         return g.done("fargate", 6);
     }
 
+    /**
+     * The lobby gate: one fixed design, a broad arch on two lantern posts, so a newcomer standing in the lobby can tell
+     * it's the way in and not an ordinary waygate.
+     */
+    static Blueprint lobby(float w, float h) {
+        GateForge g = new GateForge(w, h);
+        g.opening("lattice", new Random(0));
+        float post = 0.5f;
+        g.add(-w - post, -w, 0, h, -0.4f, 0.4f, Role.FRAME, false);
+        g.add(w, w + post, 0, h, -0.4f, 0.4f, Role.FRAME, false);
+        g.add(-w - post - 0.15f, w + post + 0.15f, h, h + 0.45f, -0.45f, 0.45f, Role.ACCENT, false);
+        g.add(-w * 0.6f, w * 0.6f, h + 0.45f, h + 0.85f, -0.35f, 0.35f, Role.ACCENT, false);
+        g.add(-w - post - 0.05f, -w + 0.05f, h + 0.55f, h + 1.05f, -0.25f, 0.25f, Role.GLOW, true);
+        g.add(w - 0.05f, w + post + 0.05f, h + 0.55f, h + 1.05f, -0.25f, 0.25f, Role.GLOW, true);
+        g.add(-0.3f, 0.3f, h + 1.0f, h + 1.6f, -0.3f, 0.3f, Role.GLOW, true);
+        return g.done("lobby", 4);
+    }
+
     /** The station's centrepiece: a tapering stack with a ring of shards. Its height comes from the seed. */
     static Blueprint monument(long seed) {
         Random r = random(seed);

@@ -205,6 +205,7 @@ final class Renderer implements Listener {
 
         long seed = plugin.station().seed();
         GateForge.Blueprint print = p.isFargate() ? GateForge.fargate(half, h)
+            : plugin.arrival().isLobbyGate(p) ? GateForge.lobby(half, h)
             : platform != null ? GateForge.station(platform.seed(), seed ^ p.id.hashCode(), half, h, platform.design())
             : GateForge.world(seed ^ p.id.hashCode(), half, h, settings.standardWorldGates);
         BlockData glass = Bukkit.createBlockData(GateForge.GLASS[print.glass()] + "_stained_glass");

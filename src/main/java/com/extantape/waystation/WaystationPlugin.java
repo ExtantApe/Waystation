@@ -38,6 +38,7 @@ public final class WaystationPlugin extends JavaPlugin {
     private String escapeName; // as registered at startup; null if it was off
     private List<String> escapeAliases = List.of();
     private boolean storeReadable = true;
+    private Arrival arrival;
 
     @Override
     public void onEnable() {
@@ -52,6 +53,7 @@ public final class WaystationPlugin extends JavaPlugin {
         payments = new Payments(this);
         station = new Station(this);
         renderer = new Renderer(this);
+        arrival = new Arrival(this);
 
         try {
             settings = new Settings(getConfig());
@@ -70,6 +72,7 @@ public final class WaystationPlugin extends JavaPlugin {
         protection = new Protection(this);
         getServer().getPluginManager().registerEvents(protection, this);
         getServer().getPluginManager().registerEvents(station, this);
+        getServer().getPluginManager().registerEvents(arrival, this);
 
         registerCommand("gate", "Create, move, link, list, remove and test gates.", new AdminCommand(this));
         registerCommand("waygate", "Shows the coordinates of the closest gate you can use.", List.of("nearestgate", "findgate"), playerCommand("waystation.find",
@@ -98,7 +101,8 @@ public final class WaystationPlugin extends JavaPlugin {
             if (settings.exampleWorlds) makeExampleWorlds(firstStart);
             station.ensureWorld();
             Bukkit.getWorlds().forEach(renderer::sweep);
-            afterGateChange();
+            arrival.hookLatchkey();
+            arrival.refresh();
             station.sync(true);
             Bukkit.getScheduler().runTaskTimer(this, renderer::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, markers::pass, 20L, 20L);
@@ -255,7 +259,7 @@ public final class WaystationPlugin extends JavaPlugin {
         checkEscapeCommand();
         checkReturnCommand();
         markers.reload();
-        afterGateChange();
+        arrival.refresh();
         station.sync(true);
         return "Waystation reloaded.";
     }
@@ -506,6 +510,8 @@ public final class WaystationPlugin extends JavaPlugin {
     }
 
     Worlds worlds() { return worlds; }
+
+    Arrival arrival() { return arrival; }
 
     /** The escape command goes to the station, so it needs one, and so Multiverse-Core. */
     boolean escapeAvailable() {

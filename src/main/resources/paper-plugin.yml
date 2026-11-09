@@ -17,6 +17,8 @@ dependencies:
     GriefPrevention: {load: BEFORE, required: false, join-classpath: false}
     Vault: {load: BEFORE, required: false, join-classpath: false}
     ViaVersion: {load: BEFORE, required: false, join-classpath: false}
+    # Optional: its lobby places the lobby gate. Read by name, so Waystation builds and runs without it.
+    Latchkey: {load: BEFORE, required: false, join-classpath: false}
 permissions:
   # default: false everywhere an admin is concerned: operators get nothing for free.
   waystation.admin:

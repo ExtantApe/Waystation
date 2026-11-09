@@ -100,6 +100,11 @@ final class Settings {
     final Return returnCommand;
     final long escapeCooldownSeconds;
 
+    /** The arrival flow: the lobby gate into the station, and the welcome inside it. */
+    record Arrival(boolean lobbyGate, String lobbyWorld, double[] lobbySpot, String lobbyLabel,
+                   boolean welcome, int welcomeAfterDays, List<String> welcomeText) {}
+    final Arrival arrival;
+
     private final Map<String, String> messages = new LinkedHashMap<>();
 
     Settings(FileConfiguration c) {
@@ -135,6 +140,7 @@ final class Settings {
             }
         }
 
+        arrival = readArrival(c);
         stationWorld = c.getString("station.world", "waystation");
         returnLabel = c.getString("station.return-label", "<gold>Station");
         stationLabel = c.getString("station.station-label", "");
@@ -314,5 +320,23 @@ final class Settings {
     private static int number(Map<?, ?> map, String key) {
         if (map.get(key) instanceof Number n) return n.intValue();
         throw new IllegalArgumentException("station.slots: each slot needs a number for " + key);
+    }
+
+    static Arrival readArrival(FileConfiguration c) {
+        String world = c.getString("arrival.lobby-world", "").trim();
+        double[] spot = null;
+        if (c.isConfigurationSection("arrival.lobby-spot")) {
+            var s = c.getConfigurationSection("arrival.lobby-spot");
+            if (!s.isSet("x") || !s.isSet("y") || !s.isSet("z"))
+                throw new IllegalArgumentException("arrival.lobby-spot needs x, y and z, or leave it out to use the world's spawn");
+            spot = new double[] {s.getDouble("x"), s.getDouble("y"), s.getDouble("z")};
+        }
+        int days = c.getInt("arrival.welcome-after-days", 30);
+        if (days < 1 || days > 3650) throw new IllegalArgumentException("arrival.welcome-after-days must be from 1 to 3650");
+        List<String> text = c.getStringList("arrival.welcome-text");
+        if (text.size() > 8) throw new IllegalArgumentException("arrival.welcome-text has more than 8 lines; keep the welcome short");
+        return new Arrival(c.getBoolean("arrival.lobby-gate", true), world, spot,
+            c.getString("arrival.lobby-label", "<gold><bold>Central Station</bold>"),
+            c.getBoolean("arrival.welcome", true), days, List.copyOf(text));
     }
 }

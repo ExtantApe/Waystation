@@ -147,6 +147,23 @@ island-posts:
   enabled: true
   label: "<gold>To the station"
 
+# Arriving players. The lobby gate leads from the lobby into the station. It's the lobby world's return
+# gate, placed near the lobby instead of the world's spawn, in its own design so nobody mistakes it for
+# a waygate. With Latchkey's lobby set up, Waystation uses that; otherwise the world named here.
+arrival:
+  lobby-gate: true
+  lobby-world: ""            # only used without Latchkey's lobby. "" for no lobby gate
+  # lobby-spot: {x: 0, y: 65, z: 0}   # where in lobby-world; leave out for its spawn
+  lobby-label: "<gold><bold>Central Station</bold>"
+  # A short rundown when someone walks into the station for the first time, or after this many days away.
+  # <worlds> is how many worlds they can reach and <groups> the platforms, both counted for that player.
+  welcome: true
+  welcome-after-days: 30
+  welcome-text:
+    - "<gold><bold>Welcome to Central Station.</bold>"
+    - "<gray>From here you can reach <white><worlds></white> on <white><groups></white>."
+    - "<gray>Walk through a lit gate to travel. In any world, <white>/waygate</white> shows the way back."
+
 # Walking through a gate.
 travel:
   cooldown-ticks: 40     # after arriving, a gate won't fire again for this long
