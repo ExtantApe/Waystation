@@ -129,7 +129,10 @@ final class DeparturesBoard implements Listener {
 
     void removeAll() { for (UUID id : new ArrayList<>(boards.keySet())) drop(id); }
 
-    @EventHandler public void onQuit(PlayerQuitEvent e) { drop(e.getPlayer().getUniqueId()); }
+    @EventHandler public void onQuit(PlayerQuitEvent e) {
+        drop(e.getPlayer().getUniqueId());
+        plugin.wallMap().forget(e.getPlayer().getUniqueId());
+    }
 
     @EventHandler public void onWorld(PlayerChangedWorldEvent e) { drop(e.getPlayer().getUniqueId()); }
 }

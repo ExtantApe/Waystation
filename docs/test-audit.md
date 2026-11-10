@@ -16,9 +16,12 @@ Covers what the arrival flow adds, and the first run of the older suites since t
 | The Departures Board: one per player in the station, listing only the worlds that player can use, under their platform | `arrival`: two players with different access |
 | A new grant shows on the board within seconds, and leaving the station takes your board away | `arrival`: grant, then a console count of board entities, 2 then 1 |
 | Board text: headings in order, an empty board says so in words, platform names can't inject formatting | `DeparturesBoardTest` |
+| The wall map: each player is sent their own marker only, where they stand, and a picture with only the gates they can see | `arrival`: two players apart with different access, read from the map packets each receives |
+| The wall map's ids are saved, so restarts reuse its maps instead of making new map files | `arrival`: `wallmap.yml` holds 4 ids |
+| The picture: every gate fits, platforms carry their number as well as a colour, unseen gates leave no trace, colours stay distinct | `StationPictureTest` |
 | What per-player data is kept, and that none is shown to other players | `docs/decisions.md`, 2026-11-09 |
 
-`arrival` passes 20/20 on Paper 26.1.2, 26.2 and 26.3, with and without Latchkey 0.3.0. Unit tests: 26.
+`arrival` passes 24/24 on Paper 26.1.2, 26.2 and 26.3, with and without Latchkey 0.3.0. Unit tests: 31. How the board and the wall map look, and whether the marker turns with you, need a real client (tests.md T12).
 
 ### The older suites, on a small made-up copy
 

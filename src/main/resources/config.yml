@@ -172,6 +172,13 @@ departures-board:
   empty: "No gates are open to you yet."
   distance: 5              # blocks from the centrepiece, towards the south
 
+# A top-down map of the station on a wall of maps behind the centrepiece, facing it. Each player sees their own
+# "you are here" marker, and only the gates they can use. The map ids are kept in wallmap.yml so restarts reuse them.
+wall-map:
+  enabled: true
+  tiles: 2                 # maps across and down: 2 makes a 2x2 wall
+  distance: 7              # blocks north of the centrepiece
+
 # Walking through a gate.
 travel:
   cooldown-ticks: 40     # after arriving, a gate won't fire again for this long

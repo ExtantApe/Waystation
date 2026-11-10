@@ -75,12 +75,25 @@ console.log(`Arrival suite on Paper ${V}, port ${PORT}; servers in ${BASE}`)
     const textOf = bb => JSON.stringify(boardOf(bb).map(e => e.metadata))
     const nb = await bot('Newcomer', { port: PORT, physics: false })
     const ob = await bot('Other', { port: PORT, physics: false })
+    // The wall map: every map packet each bot receives, by map id.
+    for (const bb of [nb, ob]) { bb.maps = {}; bb._client.on('map', d => { const m = (bb.maps[d.itemDamage ?? d.mapId] ??= { icons: [], data: null }); m.icons = d.icons ?? []; if (d.data) m.data = Buffer.from(d.data).toString('hex') }) }
     for (const n of ['Newcomer', 'Other']) await s.ask(`mvtp ${n} waystation`, 2000)
     await s.ask('execute in waystation run tp Newcomer 0.5 -60 9.5', 800); await s.ask('execute in waystation run tp Other 1.5 -60 9.5', 800)
     await sleep(3000)
     check('each player sees exactly one board', boardOf(nb).length === 1 && boardOf(ob).length === 1, `${boardOf(nb).length} and ${boardOf(ob).length}`)
     check('it lists the worlds they can use, under their platform', /Departures/.test(textOf(nb)) && /Meadow/.test(textOf(nb)) && /Platform \d/.test(textOf(nb)), textOf(nb).slice(0, 300))
     check('and not worlds they can\'t', /Departures/.test(textOf(ob)) && !/Meadow/.test(textOf(ob)), textOf(ob).slice(0, 300))
+    // Stand them in front of the wall map, apart, and give the maps a moment to be sent.
+    await s.ask('execute in waystation run tp Newcomer -3.5 -60 -3.5 0 0', 600); await s.ask('execute in waystation run tp Other 4.5 -60 -2.5 0 0', 600)
+    await sleep(4000)
+    const ids = path.join(folder, 'plugins/Waystation/wallmap.yml')
+    check('the wall map\'s ids are saved for reuse', existsSync(ids) && (readFileSync(ids, 'utf8').match(/^- \d+$/mg) ?? []).length === 4, existsSync(ids) ? readFileSync(ids, 'utf8') : 'missing')
+    const icons = bb => Object.values(bb.maps).flatMap(m => m.icons)
+    check('each player is sent the wall map, with exactly one marker: their own', icons(nb).length === 1 && icons(ob).length === 1, `${icons(nb).length} and ${icons(ob).length} markers on ${Object.keys(nb.maps).length} maps`)
+    const where = bb => { const i = icons(bb)[0]; return i ? `${i.x},${i.z ?? i.y}` : '' }
+    check('the markers are where each player stands, so they differ', where(nb) && where(ob) && where(nb) !== where(ob), `${where(nb)} vs ${where(ob)}`)
+    const pixels = bb => Object.keys(bb.maps).sort().map(k => bb.maps[k].data).join('|')
+    check('each player\'s picture shows only their own gates, so it differs with access', pixels(nb) && pixels(ob) && pixels(nb) !== pixels(ob))
     await s.ask('lp user Other permission set multiverse.access.meadow true', 3000)
     check('a new grant shows on their board within seconds', /Meadow/.test(textOf(ob)), textOf(ob).slice(0, 200))
     const boards = async () => {

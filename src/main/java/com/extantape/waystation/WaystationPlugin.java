@@ -40,6 +40,9 @@ public final class WaystationPlugin extends JavaPlugin {
     private boolean storeReadable = true;
     private Arrival arrival;
     private DeparturesBoard board;
+    private WallMap wallMap;
+
+    WallMap wallMap() { return wallMap; }
 
     @Override
     public void onEnable() {
@@ -56,6 +59,7 @@ public final class WaystationPlugin extends JavaPlugin {
         renderer = new Renderer(this);
         arrival = new Arrival(this);
         board = new DeparturesBoard(this);
+        wallMap = new WallMap(this);
 
         try {
             settings = new Settings(getConfig());
@@ -109,6 +113,7 @@ public final class WaystationPlugin extends JavaPlugin {
             station.sync(true);
             Bukkit.getScheduler().runTaskTimer(this, renderer::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, board::pass, 20L, 20L);
+            Bukkit.getScheduler().runTaskTimer(this, wallMap::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, markers::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, () -> station.sync(false), 600L, 600L);
         });
@@ -154,6 +159,7 @@ public final class WaystationPlugin extends JavaPlugin {
         if (markers != null) markers.removeAll();
         if (renderer != null) renderer.removeAll();
         if (board != null) board.removeAll();
+        if (wallMap != null) wallMap.removeFrames();
         if (bluemap != null) bluemap.close();
     }
 
