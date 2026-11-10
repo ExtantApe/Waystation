@@ -270,6 +270,7 @@ public final class WaystationPlugin extends JavaPlugin {
         checkEscapeCommand();
         checkReturnCommand();
         markers.reload();
+        board.removeAll(); // redrawn on the next pass, in the new settings (title, label backing)
         arrival.refresh();
         station.sync(true);
         return "Waystation reloaded.";

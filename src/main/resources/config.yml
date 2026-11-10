@@ -179,6 +179,13 @@ wall-map:
   tiles: 2                 # maps across and down: 2 makes a 2x2 wall
   distance: 7              # blocks north of the centrepiece
 
+# Sealed gates. Off: a station gate you can't use isn't there at all, as before. On: you see its frame with the
+# opening walled up in the same stone, no light and no name, so the platform looks whole and the line looks closed on
+# purpose. It still says nothing about where it leads. Platforms listed in hidden-groups always stay hidden.
+sealed-gates:
+  enabled: false
+  hidden-groups: []
+
 # Walking through a gate.
 travel:
   cooldown-ticks: 40     # after arriving, a gate won't fire again for this long

@@ -13,7 +13,8 @@ Money prices were tested with EssentialsX.
 Needs a real client, still untested:
 
 - Walking through gates on 26.3, and anything that follows from it: station travel, fargates, buying a gate.
-- How gates, signs and the return countdown look in game.
+- How gates, signs and the return countdown look in game, and the arrival pieces below: the lobby gate, the welcome
+  lines, the Departures Board, the wall map (and whether its marker turns with you) and a sealed gate.
 - What a client shows while it's transferred to another server and back.
 
 Paper 26.1 or later, Java 25. 1.21.11 isn't supported since 0.3.0; use 0.1.0 there.
@@ -27,7 +28,8 @@ GriefPrevention, Vault with an economy plugin, BlueMap.
   never saved to disk, so a shutdown or a crash can't leave any behind, and a once-a-second pass redraws
   anything missing or moved (`/kill`, for example).
 - **You see a gate only if you can use it.** Otherwise there's nothing there: plain ground, no frame, no floor, no sign,
-  and walking through it does nothing. Access is `multiverse.access.<world>`, read through Bukkit
+  and walking through it does nothing. Servers can turn on `sealed-gates` instead, so the gate shows walled up, with no light and
+  no name; it's off by default, since even a sealed gate tells a player that a line exists. Access is `multiverse.access.<world>`, read through Bukkit
   so LuckPerms contexts apply. It's checked again when you walk in, and Multiverse checks it a third time.
 - **Travel goes through Multiverse's teleporter**, so Multiverse-Inventories swaps inventories normally.
   In survival worlds you arrive at the world's gate, with 5 seconds of protection. Elsewhere you land where you last
@@ -54,6 +56,19 @@ hand the player at the station's OneBlock gate to a plugin that knows where they
 "For other plugins"), or run `/ob join` as the player (`enter-command`). Any island with someone on it gets a glowing post
 beside its block, and clicking it twice takes you back to the station. The post is display entities, so it places no
 blocks and is never left behind when OneBlock reuses an island.
+
+## Arriving players
+
+- **Lobby gate.** The lobby world's gate to the station stands by the lobby, not by the world's spawn, in its own design: a
+  wide arch on two lantern posts. With [Latchkey](https://github.com/ExtantApe/Latchkey) 0.3.0 its lobby is used,
+  read by name, so Latchkey stays optional. Otherwise set `arrival.lobby-world`. Move the lobby and the gate follows.
+- **Welcome.** Walking into the station the first time, or after 30 days away, you get three short lines saying how many
+  worlds and platforms you can reach. The time of your last visit is kept on your player file and shown to nobody else.
+- **Departures Board.** In front of the centrepiece. Each player sees their own: only the worlds they can use, grouped
+  by platform like the gates. It changes within a second when their access does.
+- **Wall map.** A 2x2 wall of maps behind the centrepiece shows the station from above: the platforms in their colours
+  with their numbers, and the gates on them. Each player sees their own marker, and only the gates they can use. The
+  map ids are kept in `wallmap.yml`, so restarts don't make new map files.
 
 ## Moving a waygate
 

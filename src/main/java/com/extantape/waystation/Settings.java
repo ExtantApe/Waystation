@@ -113,6 +113,10 @@ final class Settings {
     record WallMapSettings(boolean enabled, int tiles, int distance) {}
     final WallMapSettings wallMap;
 
+    /** Sealed gates: station gates shown walled up to players they aren't open to, instead of not at all. */
+    record Sealed(boolean enabled, Set<String> hiddenGroups) {}
+    final Sealed sealed;
+
     private final Map<String, String> messages = new LinkedHashMap<>();
 
     Settings(FileConfiguration c) {
@@ -151,6 +155,7 @@ final class Settings {
         arrival = readArrival(c);
         board = readBoard(c);
         wallMap = readWallMap(c);
+        sealed = new Sealed(c.getBoolean("sealed-gates.enabled", false), Set.copyOf(c.getStringList("sealed-gates.hidden-groups")));
         stationWorld = c.getString("station.world", "waystation");
         returnLabel = c.getString("station.return-label", "<gold>Station");
         stationLabel = c.getString("station.station-label", "");

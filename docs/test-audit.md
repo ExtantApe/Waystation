@@ -19,9 +19,13 @@ Covers what the arrival flow adds, and the first run of the older suites since t
 | The wall map: each player is sent their own marker only, where they stand, and a picture with only the gates they can see | `arrival`: two players apart with different access, read from the map packets each receives |
 | The wall map's ids are saved, so restarts reuse its maps instead of making new map files | `arrival`: `wallmap.yml` holds 4 ids |
 | The picture: every gate fits, platforms carry their number as well as a colour, unseen gates leave no trace, colours stay distinct | `StationPictureTest` |
+| Sealed gates, off by default: a gate you can't use, and its name, aren't sent to you at all | `arrival`: a player without access, near the gate |
+| Sealed gates on: the gate is sent walled up, with no name, while players with access still see it open and named | `arrival` |
+| A platform in `sealed-gates.hidden-groups` stays hidden even with sealing on | `arrival` |
+| A reload redraws the board in the new settings (the label backing, for one) | `station`: "label-backing 0 keeps Minecraft's own background". It caught the board keeping its old plate until fixed |
 | What per-player data is kept, and that none is shown to other players | `docs/decisions.md`, 2026-11-09 |
 
-`arrival` passes 24/24 on Paper 26.1.2, 26.2 and 26.3, with and without Latchkey 0.3.0. Unit tests: 31. How the board and the wall map look, and whether the marker turns with you, need a real client (tests.md T12).
+`arrival` passes 29/29 on Paper 26.1.2, 26.2 and 26.3, with and without Latchkey 0.3.0. Unit tests: 31. How the board, the wall map and a sealed gate look, and whether the marker turns with you, need a real client (tests.md T12).
 
 ### The older suites, on a small made-up copy
 
