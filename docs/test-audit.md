@@ -2,6 +2,57 @@
 
 What Waystation promises, and the tests that prove it. Newest first.
 
+## 2026-11-09: the arrival flow (0.5.0, branch arrival-flow)
+
+Covers what the arrival flow adds, and the first run of the older suites since there was no room for a real copy.
+
+| Promise | Proved by |
+| --- | --- |
+| The lobby world's return gate stands by the lobby, not by the world's spawn, with the lobby label, leading to the station | `arrival`, without Latchkey (config lobby) and with Latchkey (its lobby). `ArrivalTest` |
+| Latchkey's lobby wins over Waystation's own setting, and Latchkey stays optional, read by name | `arrival`: "found Latchkey's lobby by name", "gives way to it"; the run without Latchkey |
+| When the lobby moves (config and reload, or Latchkey's lobby and the next arrival), the gate is placed again by the new spot | `arrival`, both runs. `ArrivalTest.whenTheLobbyGateIsPlacedAgain` |
+| A gate placed as an ordinary return gate before the lobby was known is replaced | `ArrivalTest`. This was a real bug: a removed gate was never placed again until its world's "done" mark was cleared |
+| The station welcome comes on a first visit, counts what that player can reach, and doesn't repeat on a quick return or a re-login | `arrival`. The 30-day gap: `ArrivalTest.aWelcomeIsDueOnTheFirstVisitAndAfterTheGap` |
+| The Departures Board: one per player in the station, listing only the worlds that player can use, under their platform | `arrival`: two players with different access |
+| A new grant shows on the board within seconds, and leaving the station takes your board away | `arrival`: grant, then a console count of board entities, 2 then 1 |
+| Board text: headings in order, an empty board says so in words, platform names can't inject formatting | `DeparturesBoardTest` |
+| The wall map: each player is sent their own marker only, where they stand, and a picture with only the gates they can see | `arrival`: two players apart with different access, read from the map packets each receives |
+| The wall map's ids are saved, so restarts reuse its maps instead of making new map files | `arrival`: `wallmap.yml` holds 4 ids |
+| The picture: every gate fits, platforms carry their number as well as a colour, unseen gates leave no trace, colours stay distinct | `StationPictureTest` |
+| Sealed gates, off by default: a gate you can't use, and its name, aren't sent to you at all | `arrival`: a player without access, near the gate |
+| Sealed gates on: the gate is sent walled up, with no name, while players with access still see it open and named | `arrival` |
+| A platform in `sealed-gates.hidden-groups` stays hidden even with sealing on | `arrival` |
+| A reload redraws the board in the new settings (the label backing, for one) | `station`: "label-backing 0 keeps Minecraft's own background". It caught the board keeping its old plate until fixed |
+| What per-player data is kept, and that none is shown to other players | `docs/decisions.md`, 2026-11-09 |
+
+`arrival` passes 29/29 on Paper 26.1.2, 26.2 and 26.3, with and without Latchkey 0.3.0. Unit tests: 31. How the board, the wall map and a sealed gate look, and whether the marker turns with you, need a real client (tests.md T12).
+
+### The older suites, on a small made-up copy
+
+`test/prepare-small.mjs` builds a 290 MB stand-in instead of copying the real server (62 GB). It has the same world,
+inventory-group and LuckPerms group names, all flat and empty. Results on Paper 26.1.2:
+
+- `station`: 51/51.
+- `acceptance`: 147/161, with the OneBlock section skipped.
+
+What still needs the real copy, or something the stand-in can't have:
+
+- **Blocked on Vault (owner step N58):** "Buying a gate", 5 checks (`can't afford`, `buying works`, `charged exactly`,
+  `the gate now lets them through`, `grant fails: full refund`). Also the test hook plugin, which needs Vault, so
+  "plugin event hook vetoes the gate". The `economy` and `handover` suites need Vault too.
+- **Needs a OneBlock plugin:** the whole OneBlock section, 7 checks. It's skipped on the stand-in with a line saying so.
+- **Needs the real server's set-up:**
+  - "creative: vanilla /tp still works" and "nether portals still work" depend on the real server's creative permissions and portal plugins;
+  - "admins keep /mvtp" and "can still send someone else" depend on its admin groups;
+  - "world gate is a BlueMap marker" needs BlueMap's first render, which downloads Minecraft's client files.
+- **Not settled yet:**
+  - "chest opened for the crash test" and "after kill -9: the worn piece is still worn" failed on the stand-in. They come
+    right after the skipped OneBlock section, so they may depend on its state. Rerun them on the real copy before reading
+    anything into them.
+  - "op can't break ground at a world gate" passed in one stand-in run and failed in the next, so it's flaky on flat ground.
+
+Each of these runs on the real copy once there's room and the owner says so. The stand-in is for the everyday runs.
+
 ## 2026-11-09: the hand-over (0.4.0)
 
 This pass covers only what 0.4.0 added. A full audit of the rest of the repo is still due.

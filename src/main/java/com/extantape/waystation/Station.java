@@ -563,7 +563,8 @@ final class Station implements Listener {
             next.run();
             return;
         }
-        Location spawn = plugin.spawnOf(world);
+        // The lobby's return gate stands by the lobby, not by the world's spawn.
+        Location spawn = plugin.arrival().anchorFor(world);
         int scx = spawn.getBlockX() >> 4, scz = spawn.getBlockZ() >> 4;
         List<int[]> around = new ArrayList<>();
         for (int dx = -5; dx <= 5; dx++) for (int dz = -5; dz <= 5; dz++) around.add(new int[] {scx + dx, scz + dz});
@@ -605,7 +606,7 @@ final class Station implements Listener {
                 SafeSpots.Spot spot = plugin.safeSpots().nearLevel(world, x, approach, z, facing, look, plugin.store().inWorld(name));
                 if (spot != null && plugin.safeSpots().firmBothSides(world, spot, facing)) {
                     Gate gate = new Gate("return-" + name, name, spot.x(), spot.y(), spot.z(), facing, s.stationWorld);
-                    gate.label = s.returnLabel;
+                    gate.label = plugin.arrival().isLobbyWorld(name) ? s.arrival.lobbyLabel() : s.returnLabel;
                     gate.link = "station-" + name;
                     gate.palette = samplePalette(world, spawn);
                     Gate partner = plugin.store().get(gate.link);
@@ -615,7 +616,7 @@ final class Station implements Listener {
                 }
             }
         }
-        problems.add("No good spot for a return gate near spawn in " + name + " (spawn " + spawn.getBlockX() + " " + spawn.getBlockY() + " " + spawn.getBlockZ()
+        problems.add("No good spot for a " + (plugin.arrival().isLobbyWorld(name) ? "lobby gate near the lobby" : "return gate near spawn") + " in " + name + " (spawn " + spawn.getBlockX() + " " + spawn.getBlockY() + " " + spawn.getBlockZ()
             + ", reachable columns " + walked[0] + "/" + walked[2] + "). Place one by hand: /gate create return-" + name + " " + s.stationWorld);
         gaveUp.add(name);
     }

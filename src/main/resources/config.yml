@@ -147,6 +147,45 @@ island-posts:
   enabled: true
   label: "<gold>To the station"
 
+# Arriving players. The lobby gate leads from the lobby into the station. It's the lobby world's return
+# gate, placed near the lobby instead of the world's spawn, in its own design so nobody mistakes it for
+# a waygate. With Latchkey's lobby set up, Waystation uses that; otherwise the world named here.
+arrival:
+  lobby-gate: true
+  lobby-world: ""            # only used without Latchkey's lobby. "" for no lobby gate
+  # lobby-spot: {x: 0, y: 65, z: 0}   # where in lobby-world; leave out for its spawn
+  lobby-label: "<gold><bold>Central Station</bold>"
+  # A short rundown when someone walks into the station for the first time, or after this many days away.
+  # <worlds> is how many worlds they can reach and <groups> the platforms, both counted for that player.
+  welcome: true
+  welcome-after-days: 30
+  welcome-text:
+    - "<gold><bold>Welcome to Central Station.</bold>"
+    - "<gray>From here you can reach <white><worlds></white> on <white><groups></white>."
+    - "<gray>Walk through a lit gate to travel. In any world, <white>/waygate</white> shows the way back."
+
+# The Departures Board stands in front of the station's centrepiece. Each player sees their own: only the worlds
+# they can use, grouped by platform like the gates, and it changes as soon as their access does.
+departures-board:
+  enabled: true
+  title: "<gold><bold>Departures</bold>"
+  empty: "No gates are open to you yet."
+  distance: 5              # blocks from the centrepiece, towards the south
+
+# A top-down map of the station on a wall of maps behind the centrepiece, facing it. Each player sees their own
+# "you are here" marker, and only the gates they can use. The map ids are kept in wallmap.yml so restarts reuse them.
+wall-map:
+  enabled: true
+  tiles: 2                 # maps across and down: 2 makes a 2x2 wall
+  distance: 7              # blocks north of the centrepiece
+
+# Sealed gates. Off: a station gate you can't use isn't there at all, as before. On: you see its frame with the
+# opening walled up in the same stone, no light and no name, so the platform looks whole and the line looks closed on
+# purpose. It still says nothing about where it leads. Platforms listed in hidden-groups always stay hidden.
+sealed-gates:
+  enabled: false
+  hidden-groups: []
+
 # Walking through a gate.
 travel:
   cooldown-ticks: 40     # after arriving, a gate won't fire again for this long

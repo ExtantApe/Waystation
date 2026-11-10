@@ -80,9 +80,11 @@ final class Renderer implements Listener {
                     list -> list.add(spawnText(tag, Labels.price(plugin.payments().text(entry.price()), p.destination), 1f, Display.Billboard.CENTER))));
             }
             Location anchor = new Location(world, p.x + 0.5, p.y, p.z + 0.5);
-            scenes.put("gate:" + p.id, new Scene("gate:" + p.id, anchor, player -> plugin.canSee(player, p), list -> spawnGate(p, platform, list)));
+            scenes.put("gate:" + p.id, new Scene("gate:" + p.id, anchor, player -> plugin.canSee(player, p), list -> spawnGate(p, platform, list, false)));
             if (platform != null) {
-                scenes.put("floor:" + p.id, new Scene("floor:" + p.id, anchor, player -> plugin.canSee(player, p), list -> spawnFloor(p, platform, list)));
+                // Sealed: the same gate with its opening closed in stone, for players it isn't open to. Off by default.
+                scenes.put("sealed:" + p.id, new Scene("sealed:" + p.id, anchor, player -> sealedFor(player, p, platform), list -> spawnGate(p, platform, list, true)));
+                scenes.put("floor:" + p.id, new Scene("floor:" + p.id, anchor, player -> plugin.canSee(player, p) || sealedFor(player, p, platform), list -> spawnFloor(p, platform, list)));
             } else if (!p.isFargate() && settings.moveEnabled && settings.moveWorlds.contains(p.world)) {
                 Location chest = chestSpot(world, p, settings.look(plugin.lookName(p)));
                 scenes.put("chest:" + p.id, new Scene("chest:" + p.id, chest, player -> plugin.canEnter(player, p), list -> spawnChest(chest, p, list)));
@@ -183,7 +185,17 @@ final class Renderer implements Listener {
         return entities != null && !entities.isEmpty() && entities.stream().allMatch(player::canSee);
     }
 
-    private void spawnGate(Gate p, Station.Platform platform, List<Entity> out) {
+    /**
+     * Whether this player sees the gate sealed: it's a working station gate they can't see, sealing is on, and its
+     * platform isn't one that stays hidden.
+     */
+    boolean sealedFor(Player player, Gate p, Station.Platform platform) {
+        Settings.Sealed s = plugin.settings().sealed;
+        return s.enabled() && !p.isFargate() && !s.hiddenGroups().contains(platform.group())
+            && plugin.isActive(p) && !plugin.isDead(p) && !plugin.canSee(player, p);
+    }
+
+    private void spawnGate(Gate p, Station.Platform platform, List<Entity> out, boolean sealed) {
         Settings settings = plugin.settings();
         Settings.Look look = settings.look(plugin.lookName(p));
         World world = Bukkit.getWorld(p.world);
@@ -205,6 +217,7 @@ final class Renderer implements Listener {
 
         long seed = plugin.station().seed();
         GateForge.Blueprint print = p.isFargate() ? GateForge.fargate(half, h)
+            : plugin.arrival().isLobbyGate(p) ? GateForge.lobby(half, h)
             : platform != null ? GateForge.station(platform.seed(), seed ^ p.id.hashCode(), half, h, platform.design())
             : GateForge.world(seed ^ p.id.hashCode(), half, h, settings.standardWorldGates);
         BlockData glass = Bukkit.createBlockData(GateForge.GLASS[print.glass()] + "_stained_glass");
@@ -222,6 +235,9 @@ final class Renderer implements Listener {
                     case OPENING -> "red_stained_glass";
                     case GLOW -> "shroomlight";
                 });
+            } else if (sealed) { // the opening walled up in the frame's own stone, with no light: closed on purpose
+                if (part.role() == GateForge.Role.GLOW) continue;
+                block = part.role() == GateForge.Role.ACCENT ? pick(accent, random) : pick(frame, random);
             } else {
                 block = switch (part.role()) {
                     case FRAME -> pick(frame, random);
@@ -232,7 +248,7 @@ final class Renderer implements Listener {
             }
             out.add(part.spin() ? spawnDiamond(at, p, part, block) : spawnBox(at, p, part.a0(), part.a1(), part.v0(), part.v1(), part.d0(), part.d1(), block));
         }
-        String label = plugin.labelOf(p);
+        String label = sealed ? "" : plugin.labelOf(p); // a sealed gate never says where it leads
         if (!label.isBlank()) out.add(spawnText(at.clone().add(0, print.top() + 0.4, 0), label, look.labelScale(), Display.Billboard.CENTER));
 
     }

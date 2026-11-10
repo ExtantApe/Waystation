@@ -100,6 +100,23 @@ final class Settings {
     final Return returnCommand;
     final long escapeCooldownSeconds;
 
+    /** The arrival flow: the lobby gate into the station, and the welcome inside it. */
+    record Arrival(boolean lobbyGate, String lobbyWorld, double[] lobbySpot, String lobbyLabel,
+                   boolean welcome, int welcomeAfterDays, List<String> welcomeText) {}
+    final Arrival arrival;
+
+    /** The Departures Board beside the station's centrepiece. */
+    record Board(boolean enabled, String title, String empty, double distance) {}
+    final Board board;
+
+    /** The wall map behind the station's centrepiece: tiles across and down, and how far behind. */
+    record WallMapSettings(boolean enabled, int tiles, int distance) {}
+    final WallMapSettings wallMap;
+
+    /** Sealed gates: station gates shown walled up to players they aren't open to, instead of not at all. */
+    record Sealed(boolean enabled, Set<String> hiddenGroups) {}
+    final Sealed sealed;
+
     private final Map<String, String> messages = new LinkedHashMap<>();
 
     Settings(FileConfiguration c) {
@@ -135,6 +152,10 @@ final class Settings {
             }
         }
 
+        arrival = readArrival(c);
+        board = readBoard(c);
+        wallMap = readWallMap(c);
+        sealed = new Sealed(c.getBoolean("sealed-gates.enabled", false), Set.copyOf(c.getStringList("sealed-gates.hidden-groups")));
         stationWorld = c.getString("station.world", "waystation");
         returnLabel = c.getString("station.return-label", "<gold>Station");
         stationLabel = c.getString("station.station-label", "");
@@ -314,5 +335,38 @@ final class Settings {
     private static int number(Map<?, ?> map, String key) {
         if (map.get(key) instanceof Number n) return n.intValue();
         throw new IllegalArgumentException("station.slots: each slot needs a number for " + key);
+    }
+
+    static Arrival readArrival(FileConfiguration c) {
+        String world = c.getString("arrival.lobby-world", "").trim();
+        double[] spot = null;
+        if (c.isConfigurationSection("arrival.lobby-spot")) {
+            var s = c.getConfigurationSection("arrival.lobby-spot");
+            if (!s.isSet("x") || !s.isSet("y") || !s.isSet("z"))
+                throw new IllegalArgumentException("arrival.lobby-spot needs x, y and z, or leave it out to use the world's spawn");
+            spot = new double[] {s.getDouble("x"), s.getDouble("y"), s.getDouble("z")};
+        }
+        int days = c.getInt("arrival.welcome-after-days", 30);
+        if (days < 1 || days > 3650) throw new IllegalArgumentException("arrival.welcome-after-days must be from 1 to 3650");
+        List<String> text = c.getStringList("arrival.welcome-text");
+        if (text.size() > 8) throw new IllegalArgumentException("arrival.welcome-text has more than 8 lines; keep the welcome short");
+        return new Arrival(c.getBoolean("arrival.lobby-gate", true), world, spot,
+            c.getString("arrival.lobby-label", "<gold><bold>Central Station</bold>"),
+            c.getBoolean("arrival.welcome", true), days, List.copyOf(text));
+    }
+
+    static Board readBoard(FileConfiguration c) {
+        double distance = c.getDouble("departures-board.distance", 5);
+        if (distance < 2 || distance > 30) throw new IllegalArgumentException("departures-board.distance must be from 2 to 30 blocks");
+        return new Board(c.getBoolean("departures-board.enabled", true),
+            c.getString("departures-board.title", "<gold><bold>Departures</bold>"),
+            c.getString("departures-board.empty", "No gates are open to you yet."), distance);
+    }
+
+    static WallMapSettings readWallMap(FileConfiguration c) {
+        int tiles = c.getInt("wall-map.tiles", 2), distance = c.getInt("wall-map.distance", 7);
+        if (tiles < 1 || tiles > 4) throw new IllegalArgumentException("wall-map.tiles must be from 1 to 4 maps across");
+        if (distance < 3 || distance > 30) throw new IllegalArgumentException("wall-map.distance must be from 3 to 30 blocks");
+        return new WallMapSettings(c.getBoolean("wall-map.enabled", true), tiles, distance);
     }
 }
