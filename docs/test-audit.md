@@ -2,6 +2,24 @@
 
 What Waystation promises, and the tests that prove it. Newest first.
 
+## 2026-11-10: the --json console, and the Vault-blocked checks (0.6.0)
+
+| Promise | Proved by |
+| --- | --- |
+| Every `/gate` command answers exactly one `ea-result` line with `--json`, ok or an error with a stable code | unit `AdminCommandTest` (6 tests): once only, even if the code tries twice; a failure is the only answer; people get no JSON. Live `arrival`: unknown subcommand, `already-exists`, `not-found` |
+| `describe` lists every subcommand, each needing its own `waystation.admin.<sub>` node, optional arguments last | unit `describeListsEverySubcommandButHelp`, `everyCommandNeedsItsOwnNode`, `optionalArgumentsOnlyComeLast`; live `arrival` |
+| `list` answers in pages with a cursor to the next one; `create`, `test` and `remove` answer with the gate | live `arrival` |
+| A player without `waystation.admin` gets `no-permission` and no data | live `arrival` |
+| Without `--json`, the commands read as before | live `arrival` ("gate list reads as before") and every suite that parses `/gate list` text |
+| Negative coordinates are values, not flags | Signalbox 0.3.1 unit test. Found by `acceptance` here: Signalbox 0.3.0 refused `-60`, so `/gate create`/`move` with a negative y failed |
+| Buying a gate: price shown, can't afford refused with nothing charged, charged exactly, the gate opens, a failed grant refunds in full | `acceptance` "Buying a gate", 7/7, and `economy` 8/8 with EssentialsX, both on 26.1.2. Unblocked by VaultUnlocked 2.20.3 (Modrinth, SHA-512 checked) in place of Vault |
+| A plugin's veto event stops a gate | `acceptance` "plugin event hook vetoes the gate" |
+| The hand-over to a world's own plugin | `handover` 28/28 on 26.1.2 |
+
+`test/prepare-small.mjs` now adds Vault or VaultUnlocked to the stand-in when the jar folder has one. Results on Paper 26.1.2: `acceptance` 153/161, with the OneBlock section skipped. The 8 failures are exactly the stand-in list below (the real server's set-up, BlueMap's first render, the flaky op check, and the two crash checks after the OneBlock section). `arrival` passes 39/39 on 26.1.2 with Latchkey 0.3.0, the 10 `--json` checks included.
+
+**Still open:** walking through gates and fargates on 26.3 (bots are disconnected when they move there; the newest ViaVersion builds were checked on 2026-11-10), and everything on the real-client list.
+
 ## 2026-11-09: the arrival flow (0.5.0, branch arrival-flow)
 
 Covers what the arrival flow adds, and the first run of the older suites since there was no room for a real copy.
@@ -37,7 +55,7 @@ inventory-group and LuckPerms group names, all flat and empty. Results on Paper 
 
 What still needs the real copy, or something the stand-in can't have:
 
-- **Blocked on Vault (owner step N58):** "Buying a gate", 5 checks (`can't afford`, `buying works`, `charged exactly`,
+- **Blocked on Vault (owner step N58), unblocked 2026-11-10 (see above):** "Buying a gate", 5 checks (`can't afford`, `buying works`, `charged exactly`,
   `the gate now lets them through`, `grant fails: full refund`). Also the test hook plugin, which needs Vault, so
   "plugin event hook vetoes the gate". The `economy` and `handover` suites need Vault too.
 - **Needs a OneBlock plugin:** the whole OneBlock section, 7 checks. It's skipped on the stand-in with a line saying so.

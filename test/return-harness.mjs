@@ -15,7 +15,7 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms))
 const ROOT = new URL(path.basename(path.dirname(new URL(import.meta.url).pathname)) === '.run' ? '../../' : '../', import.meta.url).pathname
 const LIBS = path.join(ROOT, 'build/libs/')
 const built = existsSync(LIBS) ? readdirSync(LIBS).filter(f => /^Waystation-.*\.jar$/.test(f)) : []
-if (built.length !== 1) throw new Error(`Run ./gradlew clean jar first: expected one Waystation jar in build/libs, found ${built.length}`)
+if (built.length !== 1) throw new Error(`Run ./gradlew clean shadowJar first: expected one Waystation jar in build/libs, found ${built.length}`)
 export const JAR = path.join(LIBS, built[0])
 
 // A folder holding paper-<version>.jar for each version, optionally mojang_<version>.jar so Paper needn't download it,

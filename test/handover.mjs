@@ -7,7 +7,7 @@
 // WAYSTATION_HANDOVER_VERSION is 26.1.2 (default), 26.2 or 26.3. On 26.3 a bot behind ViaVersion is disconnected when
 // it walks, so there the walk-through checks are skipped and said so; everything else runs.
 //
-// ./gradlew jar hookJar, then:
+// ./gradlew shadowJar hookJar, then:
 // WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> node test/handover.mjs
 import { JAR, freshServer, writeConfig, pluginJar, Server, bot, settle, sleep, check, summary, BASE } from './return-harness.mjs'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

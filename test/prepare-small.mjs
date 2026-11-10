@@ -51,7 +51,9 @@ mkdirSync(path.join(dir, 'plugins'), { recursive: true })
 copyFileSync(path.join(JARS, `paper-${V}.jar`), path.join(dir, 'paper.jar'))
 // GriefPrevention 16.18.8 is built for 26.3's API only, so older servers get 16.18.7.
 const gp = V === '26.3' ? 'GriefPrevention-16.18.8' : 'GriefPrevention-16.18.7'
-const plugins = ['multiverse-core', 'multiverse-inventories', 'LuckPerms', gp, 'bluemap', ...(V.startsWith('26.1') ? [] : ['ViaVersion', 'ViaBackwards'])]
+// Vault (or VaultUnlocked, which keeps its API) when the jar folder has one, for the buying and economy checks.
+const vault = readdirSync(path.join(JARS, 'plugins')).some(f => /^vault/i.test(f) && f.endsWith('.jar')) ? ['Vault'] : []
+const plugins = ['multiverse-core', 'multiverse-inventories', 'LuckPerms', gp, 'bluemap', ...vault, ...(V.startsWith('26.1') ? [] : ['ViaVersion', 'ViaBackwards'])]
 for (const p of plugins) copyFileSync(jar(p), path.join(dir, 'plugins', path.basename(jar(p))))
 writeFileSync(path.join(dir, 'eula.txt'), 'eula=true\n')
 writeFileSync(path.join(dir, 'server.properties'), [

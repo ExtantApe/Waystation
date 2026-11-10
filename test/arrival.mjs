@@ -4,7 +4,7 @@
 // No copy of a real server.
 //
 // WAYSTATION_ARRIVAL_VERSION is 26.1.2 (default), 26.2 or 26.3. LATCHKEY_JAR is a Latchkey 0.3.0 jar.
-// ./gradlew clean jar, then:
+// ./gradlew clean shadowJar, then:
 // WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> LATCHKEY_JAR=<jar> node test/arrival.mjs
 import { JAR, freshServer, writeConfig, pluginJar, Server, bot, sleep, check, summary, BASE } from './return-harness.mjs'
 import { existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
@@ -133,6 +133,34 @@ console.log(`Arrival suite on Paper ${V}, port ${PORT}; servers in ${BASE}`)
     await s.ask('gate reload', 1500)
     const moved = await until(() => { const x = gate(folder, 'return-world'); return x && dist(x, -150.5, 40.5) <= 24 ? x : null })
     check('moving the lobby spot and reloading puts the gate by the new spot', !!moved, JSON.stringify(gate(folder, 'return-world')))
+
+    // /gate --json (Signalbox format 1), for scripts and the Leaf Juice app.
+    const j = async (c, id, ms = 1500) => {
+      const l = (await s.ask(`gate ${c} --json ${id}`, ms)).find(x => x.includes('ea-result ' + id + ' '))
+      return l ? JSON.parse(l.slice(l.indexOf('{', l.indexOf('ea-result')))) : null
+    }
+    const d = await j('describe', 'w1')
+    check('gate describe lists its commands in format 1', d?.ok && d.format === 1 && ['list', 'create', 'fargate', 'test', 'relayout'].every(n => d.commands.some(c => c.name === n)), JSON.stringify(d)?.slice(0, 200))
+    const all = await j('list', 'w2')
+    check('gate list answers in pages, with each gate\'s state', all?.ok && Array.isArray(all.items) && all.items.some(g => g.id === 'return-world' && g.state === 'open' && g.destination === 'waystation'), JSON.stringify(all)?.slice(0, 200))
+    const p1 = await j('list 1', 'w3'), p2 = p1?.next ? await j('list 1 ' + p1.next, 'w4') : null
+    check('a page of one has a cursor to the next, which gives a different gate', p1?.items?.length === 1 && p1.next === 'g1' && p2?.items?.length === 1 && p2.items[0].id !== p1.items[0].id, JSON.stringify([p1?.next, p2?.items?.[0]?.id]))
+    const made = await j('create jsontest world world 30 -60 30 north', 'w5')
+    check('gate create answers with the new gate', made?.ok && made.gate?.id === 'jsontest' && made.gate.facing === 'north', JSON.stringify(made))
+    const again = await j('create jsontest world world 30 -60 30 north', 'w6')
+    check('creating it twice is refused with already-exists', again?.ok === false && again.error.code === 'already-exists', JSON.stringify(again))
+    const tested = await j('test jsontest', 'w7')
+    check('gate test answers with the gate and each player', tested?.ok && tested.gate?.id === 'jsontest' && Array.isArray(tested.players), JSON.stringify(tested)?.slice(0, 200))
+    const gone = await j('remove jsontest', 'w8'), missing = await j('remove jsontest', 'w9')
+    check('remove works once, then says not-found', gone?.ok && gone.removed === 'jsontest' && missing?.ok === false && missing.error.code === 'not-found', JSON.stringify([gone, missing]))
+    const nope = await j('frobnicate', 'w10')
+    check('an unknown subcommand still gets one answer', nope?.ok === false && nope.error.code === 'unknown-command', JSON.stringify(nope))
+    const pb = await bot('Plain', { port: PORT, physics: V !== '26.3' })
+    pb.chat('/gate list --json w11'); await sleep(1500)
+    check('a player without waystation.admin gets no-permission, and no list', pb.chat_log.some(m => m.includes('ea-result w11') && m.includes('"code":"no-permission"')) && !pb.chat_log.some(m => m.includes('"items"')), pb.chat_log.join(' | ').slice(0, 200))
+    pb.quit(); await sleep(1000)
+    const human = (await s.ask('gate list', 1500)).join('\n')
+    check('without --json, gate list reads as before', /Station seed -?\d+, plan/.test(human) && /return-world: world /.test(human) && !/ea-result/.test(human), human.slice(0, 200))
     check('no Waystation errors', s.errors().length === 0, s.errors().slice(0, 2).join(' | '))
   } catch (e) { check('the run without Latchkey finished', false, e.message) } finally { await s.stop(); rmSync(folder, { recursive: true, force: true }) }
 }

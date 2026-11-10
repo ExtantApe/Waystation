@@ -7,6 +7,8 @@ at a train station in its own flat world, and a return gate near its own spawn. 
 real game client yet. On 26.1.2 the bots join as 26.1 clients directly. On 26.2 they go through ViaVersion and ViaBackwards.
 On 26.3 it loads, builds the station and passes every check that doesn't make a bot walk. Walking can't be tested there
 yet, because Paper 26.3 disconnects clients that come through ViaVersion when they move ("invalid player movement").
+Buying a gate was tested on 26.1.2 with EssentialsX behind VaultUnlocked (which keeps Vault's API); 0.6.0's `--json`
+console with bots on 26.1.2.
 Server hops were tested between two throwaway servers, with bots that reconnect the way a client does after a transfer.
 Money prices were tested with EssentialsX.
 
@@ -87,7 +89,13 @@ can't lose anything. Each tribute is written to the server log.
 | `/station`, `/hub` | everyone | Straight to the station. Name and on/off in config |
 | `/buygate [world]` | everyone | Buy access to a priced world |
 | `/return` | with `waystation.return` | To the other server after a countdown, if it's turned on. Name in config |
-| `/gate list, create, fargate, move, link, remove, test, addworld, relayout, reseed, enlarge, reload` | admins | Admin |
+| `/gate list, station, create, fargate, move, link, remove, test, addworld, relayout, reseed, enlarge, reload, describe` | admins | Admin |
+
+Every `/gate` command also takes `--json <id>` at the end, for scripts and the Leaf Juice app, and then answers with one
+`ea-result <id> {...}` line in the shared [Signalbox](https://github.com/ExtantApe/Signalbox) format. `/gate describe`
+lists the commands and their arguments. `/gate list` answers in pages of 25 (up to 100 with a limit) with a cursor
+for the next page, and `/gate station` gives the seed, plan and platforms. The slow ones (`addworld`, `relayout`,
+`reseed`, `enlarge`) answer once the station is built, with any problems in a list.
 
 ## Permissions
 
@@ -191,7 +199,7 @@ and the return command all work. The server log says which way it's running at s
 
 ## Tests
 
-Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew jar hookJar` and `npm install` in `test/` first, then
+Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew shadowJar hookJar` and `npm install` in `test/` first, then
 `node test/run.mjs <suite>`.
 
 | Suite | What it covers | Needs |
