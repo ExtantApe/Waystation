@@ -1,9 +1,10 @@
 plugins {
     java
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 group = "com.extantape"
-version = "0.5.0"
+version = "0.6.0"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
@@ -15,7 +16,7 @@ repositories {
     maven("https://repo.onarandombox.com/multiverse-releases")
     maven("https://repo.bluecolored.de/releases")
     maven("https://jitpack.io") {
-        content { includeGroup("com.github.MilkBowl") }
+        content { includeGroup("com.github.MilkBowl"); includeGroup("com.github.ExtantApe") }
     }
 }
 
@@ -32,6 +33,8 @@ dependencies {
     compileOnly(paperApi)
     compileOnly("org.mvplugins.multiverse.core:multiverse-core:5.8.2")
     compileOnly("de.bluecolored:bluemap-api:2.7.7")
+    // The shared command format (--json, describe), shaded in below.
+    implementation("com.github.ExtantApe:Signalbox:v0.3.1")
 
     testImplementation(paperApi)
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
@@ -59,10 +62,16 @@ tasks.processResources {
     filesMatching("paper-plugin.yml") { expand(props) }
 }
 
-tasks.jar {
+// Signalbox goes inside the jar, relocated, so it can never clash with another plugin's copy. The shaded jar is the
+// only plugin jar built.
+tasks.shadowJar {
     archiveBaseName.set("Waystation")
+    archiveClassifier.set("")
     from("LICENSE")
+    relocate("com.extantape.signalbox", "com.extantape.waystation.libs.signalbox")
 }
+tasks.jar { enabled = false }
+tasks.assemble { dependsOn(tasks.shadowJar) }
 
 tasks.register<Jar>("hookJar") {
     description = "Builds the test-only plugin the bot suites install."
