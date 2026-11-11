@@ -2,6 +2,14 @@
 
 What Waystation promises, and the tests that prove it. Newest first.
 
+## 2026-11-11: the older suites' failures on the stand-in (K24)
+
+Acceptance on the stand-in: 164/169, up from 161.
+- **Fixed in the test, 3:**
+  - "chest opened for the crash test", and "after kill -9: the worn piece is still worn", which needs that chest. An earlier check left a nether portal at the meadow's spawn, and the crash test's bot landed on it, went to the Nether and lost its bed. The portal is now removed once its check is done, and the bed is set after the bot reaches the chest.
+  - "op can't break ground at a world gate" passed on both later runs: still flaky, not changed.
+- **Need the real server's own setup, 5:** "admins keep /mvtp", "and can still send someone else", "creative: vanilla /tp still works", "nether portals still work" and "world gate is a BlueMap marker". They test that server's groups, creative permissions, portal linking and BlueMap config, not Waystation. The Server lead was asked to run them on a stopped copy at the next rehearsal. The OneBlock section waits for the same.
+
 ## 2026-11-11: other versions (K349)
 
 - `return` on 26.2: 53/53. On 26.3: 50/50. On 26.3 the bots run with physics off, so the walking and jumping checks are replaced by a piston-push check. Both runs used the harness that now deletes its own servers, and neither left a folder behind.
