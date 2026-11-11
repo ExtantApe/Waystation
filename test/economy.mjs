@@ -1,6 +1,6 @@
 // Buying a gate with a real economy plugin behind Vault, not the test stand-in. Needs
 // WAYSTATION_TEST_ECONOMY_JAR: an economy plugin jar such as EssentialsX.
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { Server, freshCopy, installJar, sleep, bot, check, summary, DIR } from './harness.mjs'
 
@@ -35,6 +35,12 @@ const buyer2 = await bot('buyer2'); await s.ask('mvtp buyer2 w:waystation', 2500
 await s.ask('eco set buyer2 100', 500)
 buyer2.chat('/buygate legacy'); await sleep(4500)
 check('grant fails: told and refunded in full', has(buyer2, /paid back/) && await balance('buyer2') === 100, buyer2.chat_log.at(-1))
+// No economy plugin behind Vault: a money price can't be paid, so nothing is charged and nothing is granted.
+await s.stop(); rmSync(path.join(DIR, 'plugins', path.basename(eco))); await s.start(); await sleep(12000)
+const buyer3 = await bot('buyer3'); await s.ask('mvtp buyer3 w:waystation', 2500)
+buyer3.chat('/buygate legacy'); await sleep(2500)
+check('no economy plugin: a money price is refused', has(buyer3, /don't have enough/), buyer3.chat_log.at(-1))
+check('and no access is granted', !(await s.ask('lp user buyer3 permission check multiverse.access.legacy', 800)).join(' ').includes('true'))
 check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
 await s.stop()
 summary()

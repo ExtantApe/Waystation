@@ -2,6 +2,38 @@
 
 What Waystation promises, and the tests that prove it. Newest first.
 
+## 2026-11-11: the whole repo (K23)
+
+Every promise in the README, `docs/decisions.md` and the shipped config's comments was checked against the real check names in `test/*.mjs` and the unit tests. The mappings in the sections below held up. What follows is only what they didn't cover.
+
+Gaps that must be covered (security, safety or money), each with the test that closes it:
+
+| Promise | Test to add | Status |
+| --- | --- | --- |
+| Arriving at a gate gives 5 seconds of protection | acceptance: "arriving at a gate: damage within 5 seconds is stopped" (20 → 20) and its control after 5 s (20 → 16.8) | passes, 2026-11-11 |
+| `waystation.move.<world>` false stops a tribute move | acceptance: "waystation.move.meadow false: no chest opens, and they're told", "and nothing is taken or moved", and the control after unsetting | passes, 2026-11-11 |
+| A dead gate is drawn only for those with access to its world, admins and `waystation.admin.seedead` | acceptance: "a dead gate isn't sent to a player with no access and no seedead" | passes, 2026-11-11. **The control fails**: once given `seedead`, the server says the player may see the dead gate (`gate test` answers true), but its entities aren't sent to them. Hiding works, so nothing leaks. Showing it late to an admin is a bug, tracked as its own task. |
+| The arrival guard has no bypass, operators included, and the whitelist still applies | `arrival-guard.mjs`: "an operator's direct join is refused too", "with a valid pass but off B's whitelist, still refused" (with a control that the pass was given) | passes, 18/18, 2026-11-11 |
+| `waystation.return` is granted to nobody, operators included | `return.mjs`: "an operator without an explicit grant is refused too" | passes, 53/53, 2026-11-11 |
+| `waystation.buy` false stops buying | acceptance: "waystation.buy false: nothing bought, nothing charged" | passes, 2026-11-11 |
+| With no economy plugin, a money price charges nothing and opens nothing | `economy.mjs`, restarted without EssentialsX: "no economy plugin: a money price is refused", "and no access is granted" | passes, 10/10, 2026-11-11 |
+| Each player's data (`players.yml`, seen marks) is shown to nobody else | by reading: the board, the wall map and the welcome only ever read the viewing player's own record. A unit test would test the shape of the code, not a path anyone can reach, so it's skipped | skipped, with this reason |
+
+Smaller gaps, not added now:
+
+- The default for `waystation.fargate.<name>` (nobody has it): covered indirectly. "No permission: sent no entities" is the same code path.
+- Tribute written to the server log: a convenience for admins, not a promise to players.
+- GriefPrevention's own claim settings (only the bed-trust case is tested): waits for a run with GriefPrevention configured like the real server.
+- The three layers of the access check, one at a time: walking into a refused gate is covered as a whole.
+
+Correction to the audit agent's report: the 5-second protection exists (`Travel.arrivalGuard`); only its test was missing.
+
+Acceptance on the stand-in: 160/169. That's the same 8 as before, plus the seedead control above.
+
+Known limits, unchanged: walking on 26.3 (bots can't), the arrival guard on the 26.2 → 26.3 path (the Server lead rehearses it on copies), BlueMap and OneBlock checks plus the 8 stand-in failures (they wait for the real copy, K24), and the flaky "op can't break ground at a world gate".
+
+Overkill: `ReturnCommandTest.everyReturnMessageTheCodeUsesIsInTheShippedConfig` overlaps the live "a config.yml from before the return command still shows the shipped messages". It stays, because it's cheap and fails before a server starts.
+
 ## 2026-11-10: the arrival guard, fargate checks, and stepping clear (0.7.0)
 
 | Promise | Covered by |
