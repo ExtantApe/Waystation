@@ -583,6 +583,8 @@ await s.ask(`execute in meadow run setblock ${nx} ${ny} ${nz} nether_portal[axis
 await s.ask(`execute in meadow run fill ${nx} ${ny} ${nz} ${nx} ${ny} ${nz} nether_portal[axis=x]`, 200)
 await sleep(5500)
 check('nether portals still work', await isIn(carl3, 'meadow_nether', 9000))
+// Take the test portal away, so nobody who lands at the meadow's spawn later is sent to the Nether by it.
+await s.ask(`execute in meadow run fill ${nx} ${ny} ${nz} ${nx} ${ny} ${nz} air replace nether_portal`, 300)
 const tardisRegistered = (await s.ask('tardis version', 400)).length >= 0
 if (s.log.some(l => /Enabling TARDIS/.test(l))) check('TARDIS still running', true)
 else console.log('  NOTE: TARDIS is not installed on this copy, so it could not be checked.')
@@ -786,11 +788,13 @@ console.log('\n# A crash with the tribute chest open')
 const cr = await bot('cracker')
 await s.ask('lp user cracker parent add family', 300); await s.ask('mvtp cracker w:meadow', 2500)
 await s.ask('clear cracker', 200); await s.ask('item replace entity cracker armor.chest with iron_chestplate', 300)
-const crAt = await flat([cx - 11, cz + 3]); await s.ask(`execute in meadow run spawnpoint cracker ${crAt.x} ${crAt.y} ${crAt.z}`, 400)
+// The chest only opens for a player with a bed in this world, and on a gate that isn't resting from an earlier move.
+const crAt = await flat([cx - 11, cz + 3]); await unrest()
 // Without a finished save a crash rolls back anything gained since the last one, Waystation or not.
 await s.ask('save-all flush', 4000)
 const rNow = await rdNow(); const [cdx, cdz] = dir[rNow.facing]
 await s.ask(`execute in meadow run tp cracker ${rNow.x + .5 + cdx * 2} ${rNow.y} ${rNow.z + .5 + cdz * 2}`, 1500)
+await bedAt(cr, crAt)
 const crChest = Object.values(cr.entities).find(e => e.name === 'interaction' && Math.hypot(e.position.x - rNow.x, e.position.z - rNow.z) < 5)
 const crOpened = new Promise(r => cr.once('windowOpen', r)); await cr.activateEntity(crChest)
 const crWin = await Promise.race([crOpened, sleep(4000).then(() => null)])
