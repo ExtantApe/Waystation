@@ -8,7 +8,11 @@ Acceptance on the stand-in: 164/169, up from 161.
 - **Fixed in the test, 3:**
   - "chest opened for the crash test", and "after kill -9: the worn piece is still worn", which needs that chest. An earlier check left a nether portal at the meadow's spawn, and the crash test's bot landed on it, went to the Nether and lost its bed. The portal is now removed once its check is done, and the bed is set after the bot reaches the chest.
   - "op can't break ground at a world gate" passed on both later runs: still flaky, not changed.
-- **Need the real server's own setup, 5:** "admins keep /mvtp", "and can still send someone else", "creative: vanilla /tp still works", "nether portals still work" and "world gate is a BlueMap marker". They test that server's groups, creative permissions, portal linking and BlueMap config, not Waystation. The Server lead was asked to run them on a stopped copy at the next rehearsal. The OneBlock section waits for the same.
+- **Need the real server's own setup, 5:** "admins keep /mvtp", "and can still send someone else", "creative: vanilla /tp still works", "nether portals still work" and "world gate is a BlueMap marker". They test that server's groups, creative permissions, portal linking and BlueMap config, not Waystation.
+- **Run on a stopped copy of the real server by the Server lead, 2026-11-11:**
+  - Pass: "admins keep /mvtp", "and can still send someone else", "creative: vanilla /tp still works", "nether portals still work", and all 15 OneBlock checks.
+  - Not yet a verdict: the BlueMap checks. The copy script turns BlueMap's web server off. A rerun with it on is first at the Server lead's next rehearsal.
+  - The copy's other failures come from that server's own settings, not from Waystation or the checks. Its tribute chests and gate prices aren't set up the way the suite's are, and the test-only hook plugin isn't on it. The crash test needs the chest, so it fails with it.
 
 ## 2026-11-11: other versions (K349)
 
