@@ -75,6 +75,19 @@ w2.setControlState('forward', true); await sleep(1600); w2.setControlState('forw
 w2.quit(); await sleep(1500)
 check("someone else's pass is refused", !(await join('borrower', { transferred: true, cookies: fresh })) && refusedFor('borrower', /pass wrong player/))
 
+console.log('\n# No bypass, operators included, and the whitelist still applies')
+await b.ask('op boss', 600)
+check('an operator\'s direct join is refused too', !(await join('boss', { cookies: new Map() })) && refusedFor('boss', /a direct join/))
+await b.ask('whitelist on', 800)
+const wl = new Map()
+const w4 = await bot('outsider', { port: A_PORT, cookies: wl })
+await a.ask(`tp outsider ${g.x + .5} ${g.y} ${g.z + 3.5} 180 0`, 1200)
+w4.setControlState('forward', true); await sleep(1600); w4.setControlState('forward', false); await sleep(2500)
+w4.quit(); await sleep(1500)
+check('control: the outsider got a pass from A', wl.has(PASS) && wl.get(PASS).length > 40, String(wl.get(PASS)?.length))
+check('with a valid pass but off B\'s whitelist, still refused', !(await join('outsider', { transferred: true, cookies: wl })))
+await b.ask('whitelist off', 800)
+
 console.log('\n# Put next to a gate by a teleport, a player must step clear before it fires')
 const s1 = await bot('stepper', { port: A_PORT, cookies: new Map() })
 // Half a block in front of the gate's opening: what Multiverse-Inventories' last location did on a real server.

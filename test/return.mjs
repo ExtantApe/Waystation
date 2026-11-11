@@ -99,6 +99,18 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
   b.quit()
 }
 
+// Granted to nobody by default, operators included
+{
+  await src.ask('op opret', 600)
+  const b = await player('opret', { allowed: false })
+  await sleep(1000)
+  b.chat('/returngate')
+  await sleep(AFTER)
+  check('an operator without an explicit grant is refused too', !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))
+  b.quit()
+  await src.ask('deop opret', 600)
+}
+
 // Success, with head turns along the way
 {
   const b = await player('turner')
