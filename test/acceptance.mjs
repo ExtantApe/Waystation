@@ -52,6 +52,16 @@ function hashArea(b, cx, cz, y0, y1, chunks = 0) {
 // Grass and dirt flip by themselves between boots, with no plugin installed: measured, so ignored here.
 const NATURAL = new Set([8, 9, 10])
 const hashDiff = (a, b) => { let d = 0; for (let i = 0; i < a.length; i++) if (a[i] !== b[i] && a[i] !== -1 && b[i] !== -1 && !(NATURAL.has(a[i]) && NATURAL.has(b[i]))) d++; return d }
+/** Which blocks differ between two hashArea snapshots of one chunk column, as "x y z: from -> to", for a failure's detail. */
+function hashDiffDetail(b, a1, a2, cx, cz, y0, y1, max = 8) {
+  const out = []; let i = 0
+  for (let x = cx << 4; x < (cx + 1) << 4; x++) for (let z = cz << 4; z < (cz + 1) << 4; z++) for (let y = y0; y <= y1; y++, i++) {
+    const p = a1[i], q = a2[i]
+    if (p === q || p === -1 || q === -1 || (NATURAL.has(p) && NATURAL.has(q))) continue
+    if (out.length < max) out.push(`${x} ${y} ${z}: ${b.registry.blocksByStateId[p]?.name ?? p} -> ${b.registry.blocksByStateId[q]?.name ?? q}`)
+  }
+  return out.join('; ')
+}
 const reliable = async (cmd, ms = 500) => s.ask(cmd, ms)
 
 // ---------- Phase 0: baseline with no plugin ----------
@@ -388,7 +398,12 @@ console.log('\n# Paying in hearts')
 await setMove({ rest: 300 })
 await heal(a); await bedAt(a, goodAt)
 await s.ask(`execute in meadow run tp carl ${goodAt.x} ${goodAt.y} ${goodAt.z}`, 2000)
+// Real terrain changes by itself (water, leaves, falling blocks), more so right after flat() cut into it. Two looks
+// before the move show how much, so a difference after the move can be told from the world's own.
+const hEarlier = hashArea(carl2, good[0], good[1], -64, 200)
+await sleep(5000)
 const h1 = hashArea(carl2, good[0], good[1], -64, 200)
+if (hashDiff(hEarlier, h1)) console.log(`  the chunk changes by itself: ${hashDiff(hEarlier, h1)} blocks in 5 s before the move (${hashDiffDetail(carl2, hEarlier, h1, good[0], good[1], -64, 200)})`)
 win = await clickChest(a); clearChat(a); clearChat(carl2)
 const hpBefore = await realHealth(a)
 check('with health to spare, the chest offers hearts', !!win && menuItems(win).length === 1 && menuItems(win)[0].name === 'redstone')
@@ -398,7 +413,7 @@ const hpAfter = await realHealth(a)
 check('exactly 6 hearts taken', Math.abs(hpBefore - 12 - hpAfter) < 0.01, `${hpBefore} -> ${hpAfter}`)
 await s.ask(`execute in meadow run tp carl ${goodAt.x} ${goodAt.y} ${goodAt.z}`, 2000)
 const h2 = hashArea(carl2, good[0], good[1], -64, 200)
-check('a move changes no block', hashDiff(h1, h2) === 0, `${hashDiff(h1, h2)} differ of ${h1.length}`)
+check('a move changes no block', hashDiff(h1, h2) === 0, `${hashDiff(h1, h2)} differ of ${h1.length}: ${hashDiffDetail(carl2, h1, h2, good[0], good[1], -64, 200)}`)
 check('others in the world are told it moved, not where', carl2.chat_log.some(m => /has moved. Nobody is saying where/.test(m)))
 const movedA = await rdNow()
 check('it moved to the bed\'s chunk', movedA.x >> 4 === good[0] && movedA.z >> 4 === good[1])
