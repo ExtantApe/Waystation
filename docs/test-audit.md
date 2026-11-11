@@ -2,6 +2,11 @@
 
 What Waystation promises, and the tests that prove it. Newest first.
 
+## 2026-11-11: other versions (K349)
+
+- `return` on 26.2: 53/53. On 26.3: 50/50. On 26.3 the bots run with physics off, so the walking and jumping checks are replaced by a piston-push check. Both runs used the harness that now deletes its own servers, and neither left a folder behind.
+- `acceptance`, `station` and the other walking suites can't run on 26.2 or 26.3: through ViaBackwards, a 26.1 bot's movement gets it kicked. That's unchanged, and those suites stay on 26.1.2. The arrival guard's 26.2 → 26.3 path is rehearsed by the Server lead on copies.
+
 ## 2026-11-11: the whole repo (K23)
 
 Every promise in the README, `docs/decisions.md` and the shipped config's comments was checked against the real check names in `test/*.mjs` and the unit tests. The mappings in the sections below held up. What follows is only what they didn't cover.
