@@ -12,6 +12,8 @@ Acceptance on the stand-in: 164/169, up from 161.
 - **Run on a stopped copy of the real server by the Server lead, 2026-11-11:**
   - Pass: "admins keep /mvtp", "and can still send someone else", "creative: vanilla /tp still works", "nether portals still work", and all 15 OneBlock checks.
   - Not yet a verdict: the BlueMap checks. The copy script turns BlueMap's web server off. A rerun with it on is first at the Server lead's next rehearsal.
+  - The rerun with BlueMap on (same day, 177/185): all four BlueMap checks pass, so all five setup checks pass on the real copy.
+  - Open: "a move changes no block" found 7 of 67,840 blocks different there. It finds 0 on the stand-in. Waystation's code sets no world block on a move (only display entities), and the test itself cuts a platform into real terrain just before, which lets water, leaves and loose blocks settle. That's the likely cause, not a proven one. The check now names the blocks that differ, and reports how much the chunk changes by itself in the 5 seconds before the move, so the next run on a copy settles it.
   - The copy's other failures come from that server's own settings, not from Waystation or the checks. Its tribute chests and gate prices aren't set up the way the suite's are, and the test-only hook plugin isn't on it. The crash test needs the chest, so it fails with it.
 
 ## 2026-11-11: other versions (K349)
