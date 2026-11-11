@@ -179,6 +179,31 @@ nothing. Both servers need `accepts-transfers=true`, and the other server needs 
 back, the player lands where they walked in from. `protocols` is set by hand, so update it when either
 server upgrades.
 
+Before sending anyone, a fargate checks the other server answers (`check-host` and `check-port` if its status
+address differs). If it doesn't, the player stays put and is told, and nothing changes.
+
+### Arrival guard (optional)
+
+For a server players should only reach through another server's fargate. With `arrival-guard` on, a joining
+player is checked while their connection is still being set up, before they reach any world, and is let in only
+with a valid pass from the fargate: signed, for them, for this server, about a minute old at most, and never used
+before. A direct join, a missing or reused pass, or someone else's pass is refused with `arrival-guard.message`.
+There's no bypass, for admins either. The whitelist still applies.
+
+1. On both servers, put the same key in `plugins/Waystation/transfer.key`: at least 32 random bytes, readable only
+   by the server's user, for example `head -c 32 /dev/urandom > transfer.key && chmod 600 transfer.key`. Never
+   put it in `config.yml`, a repo or chat. To change it, replace the file on both servers and restart both.
+2. On the sending server, add `pass: true` to that server's entry under `fargate-destinations`.
+3. On the guarded server, set `arrival-guard.enabled: true` and `arrival-guard.name` to the same name as that
+   entry.
+
+While the key is missing, too short or readable by others, the guarded server lets nobody in, and the sending
+server sends nobody there, each with a console line saying what to fix.
+
+A player put at a gate, or within a block of it, by a teleport or a respawn, by any plugin, has to step clear of it once before
+it takes them anywhere. Otherwise a plugin that restores a player's last spot could drop them on the step into a
+gate.
+
 ### Return command (optional)
 
 A fargate you don't have to walk to. `/return` sends the player to one of your `fargate-destinations` after a

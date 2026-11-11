@@ -24,7 +24,13 @@ final class Settings {
     record WorldEntry(String name, boolean enabled, String label, String look, Cost price, String arrival, String enterCommand, boolean handOver) {}
     record Slot(int x, Integer y, int z, BlockFace facing) {}
     /** Another server a fargate leads to, and the client versions it can take. */
-    record FargateTarget(String name, String label, String host, int port, Set<Integer> protocols, String permission) {}
+    record FargateTarget(String name, String label, String host, int port, Set<Integer> protocols, String permission,
+                         boolean pass, String checkHost, int checkPort) {
+        String pingHost() { return checkHost.isEmpty() ? host : checkHost; }
+        int pingPort() { return checkPort > 0 ? checkPort : port; }
+    }
+    /** D42: this server admits only players arriving through a fargate with a valid pass. Off unless enabled. */
+    record ArrivalGuardSettings(boolean enabled, String name, String message) {}
     /**
      * The return command: off unless it names a fargate destination. checkHost and checkPort are where this server pings
      * to see the destination is up, which can differ from the address players connect to.
@@ -79,6 +85,7 @@ final class Settings {
     final long moveRestSeconds;
     final Set<String> moveWorlds;
     final Map<String, FargateTarget> fargates = new LinkedHashMap<>();
+    ArrivalGuardSettings arrivalGuard;
     final String fargateLabel;
     final Map<String, String> platformDesigns = new LinkedHashMap<>(), platformPalettes = new LinkedHashMap<>();
     final int tileSize;
@@ -219,9 +226,13 @@ final class Settings {
                 List<Integer> protocols = t.getIntegerList("protocols");
                 if (protocols.isEmpty()) throw new IllegalArgumentException("fargate-destinations." + name + " needs protocols, the client versions it accepts");
                 fargates.put(name, new FargateTarget(name, t.getString("label", name), t.getString("host"), t.getInt("port", 25565),
-                    Set.copyOf(protocols), t.getString("permission", "waystation.fargate." + name)));
+                    Set.copyOf(protocols), t.getString("permission", "waystation.fargate." + name),
+                    t.getBoolean("pass", false), t.getString("check-host", "").trim(), t.getInt("check-port", 0)));
             }
         }
+        arrivalGuard = new ArrivalGuardSettings(c.getBoolean("arrival-guard.enabled", false), c.getString("arrival-guard.name", "").trim(),
+            c.getString("arrival-guard.message", "You can only come to this server through its gate on the other server."));
+        if (arrivalGuard.enabled() && arrivalGuard.name().isEmpty()) throw new IllegalArgumentException("arrival-guard.name is empty: name this server as the other server's fargate-destinations entry does");
         moveHearts = positive(c.getInt("move.hearts", 6), "move.hearts");
         gentleHearts = positive(c.getInt("move.gentle-hearts", 3), "move.gentle-hearts");
         tileSize = Math.max(1, c.getInt("station.tile-size", 2));

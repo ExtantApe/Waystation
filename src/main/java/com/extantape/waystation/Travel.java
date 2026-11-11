@@ -53,6 +53,17 @@ final class Travel implements Listener {
     private final Map<UUID, Long> arrivalGuard = new HashMap<>();
     private static final long ARRIVAL_GUARD_MS = 5000;
     private final Map<UUID, Location> arrivalPin = new HashMap<>();
+    /**
+     * Players put at or next to a gate by a teleport or a respawn, by any plugin. Its gate can't fire for them until
+     * they've stepped clear of it once. Multiverse-Inventories, for one, can put a respawned player back on their last
+     * spot in a world, which may be the step into a gate (seen on a real server's rehearsal, 2026-11-10).
+     */
+    private final java.util.Set<UUID> mustStepClear = new java.util.HashSet<>();
+    /**
+     * How far from a gate's trigger counts as "at" it, in blocks. One: wider would stop a player the station or a
+     * command puts a couple of blocks in front of a gate from walking straight in, which is how gates are meant to work.
+     */
+    static final double STEP_CLEAR = 1.0;
 
     Travel(WaystationPlugin plugin) {
         this.plugin = plugin;
@@ -64,6 +75,10 @@ final class Travel implements Listener {
         Player player = event.getPlayer();
         Location from = event.getFrom(), to = event.getTo();
         if (!from.getWorld().equals(to.getWorld())) return;
+        if (mustStepClear.contains(player.getUniqueId())) {
+            if (nearAny(to)) return;
+            mustStepClear.remove(player.getUniqueId());
+        }
         Gate entered = entered(from, to);
         if (entered != null) {
             enter(player, entered, from);
@@ -96,6 +111,31 @@ final class Travel implements Listener {
             if (length > 0.5 && box.rayTrace(from.toVector(), step.normalize(), length) != null) return p; // fast flyers
         }
         return null;
+    }
+
+    /** Inside a gate's trigger or within {@link #STEP_CLEAR} blocks of it. */
+    private boolean nearAny(Location at) {
+        for (Gate p : plugin.store().inWorld(at.getWorld().getName())) {
+            if (p.trigger(plugin.settings().look(plugin.lookName(p))).clone().expand(STEP_CLEAR).contains(at.toVector())) return true;
+        }
+        return false;
+    }
+
+    /** Wherever a teleport or respawn puts a player: if it's at a gate, they must step clear before it fires. */
+    private void landed(Player player, Location at) {
+        if (at == null || at.getWorld() == null) return;
+        if (nearAny(at)) mustStepClear.add(player.getUniqueId());
+        else mustStepClear.remove(player.getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onLandedByTeleport(PlayerTeleportEvent event) {
+        landed(event.getPlayer(), event.getTo());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onLandedByRespawn(org.bukkit.event.player.PlayerRespawnEvent event) {
+        landed(event.getPlayer(), event.getRespawnLocation());
     }
 
     private boolean insideAny(Location at) {
@@ -207,18 +247,45 @@ final class Travel implements Listener {
         }
     }
 
-    /** Off to another server. Everything stays here: no world changes, so no inventory swap. */
+    /**
+     * Off to another server. Everything stays here: no world changes, so no inventory swap. The destination is pinged
+     * first, off the main thread, and nobody is sent to a server that doesn't answer (K366).
+     */
     private void fargateOut(Player player, Gate gate, Location outside) {
         if (player.isInsideVehicle()) {
             tell(player, "no-vehicle");
             return;
         }
         Settings.FargateTarget target = plugin.settings().fargates.get(gate.fargateName());
-        player.closeInventory();
-        plugin.data().setFargateReturn(player.getUniqueId(), outside);
-        player.sendMessage(plugin.settings().message("fargate-leaving", "name", target.label()));
-        player.transfer(target.host(), target.port());
+        UUID id = player.getUniqueId();
+        inFlight.add(id);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean up = StatusPing.isUp(target.pingHost(), target.pingPort(), FARGATE_PING_MS);
+            if (!plugin.isEnabled()) return;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                inFlight.remove(id);
+                if (!player.isOnline()) return;
+                if (!up) {
+                    plugin.getLogger().info("Fargate " + gate.id + ": " + target.name() + " didn't answer at " + target.pingHost() + ":" + target.pingPort() + ", so " + player.getName() + " stays here.");
+                    player.sendMessage(plugin.settings().message("fargate-down", "name", target.label()));
+                    readyAt.put(id, System.currentTimeMillis() + FARGATE_RETRY_MS);
+                    return;
+                }
+                if (!plugin.givePass(player, target)) {
+                    player.sendMessage(plugin.settings().message("fargate-down", "name", target.label()));
+                    readyAt.put(id, System.currentTimeMillis() + FARGATE_RETRY_MS);
+                    return;
+                }
+                player.closeInventory();
+                plugin.data().setFargateReturn(id, outside);
+                player.sendMessage(plugin.settings().message("fargate-leaving", "name", target.label()));
+                player.transfer(target.host(), target.port());
+            });
+        });
     }
+
+    static final int FARGATE_PING_MS = 1_500;
+    static final long FARGATE_RETRY_MS = 5_000;
 
     /** From a OneBlock post: to that world's gate in the station, or the station's spawn if it has none. */
     void toStation(Player player, String fromWorld) {
@@ -370,6 +437,7 @@ final class Travel implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
+        mustStepClear.remove(id);
         lastGround.remove(id);
         lastMessage.remove(id);
         readyAt.remove(id);

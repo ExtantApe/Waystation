@@ -228,6 +228,8 @@ final class Station implements Listener {
         for (String world : liveWorlds()) {
             if (!plugin.store().generated(world) && !gaveUp.contains(world)) missing = true;
         }
+        // Paper-only (no Multiverse-Core): there's no station to build, so don't try every 30 seconds (K367).
+        if (!plugin.worlds().managesWorlds()) return;
         if (missing || !lineup().toString().equals(plugin.store().layout())) {
             generate(false).thenAccept(problems -> problems.forEach(plugin.getLogger()::warning));
         }

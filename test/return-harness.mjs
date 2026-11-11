@@ -137,8 +137,12 @@ export class Server {
  * physics: false stops the bot sending movement packets of its own. On Paper 26.3 behind ViaVersion 5.12, a
  * 26.1 bot is disconnected for "invalid player movement" when it moves. So on 26.3 the bots stand still.
  */
-export async function bot(username, { port, transferred = false, physics = true } = {}) {
+export async function bot(username, { port, transferred = false, physics = true, cookies = null } = {}) {
   const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: CLIENT, auth: 'offline', viewDistance: 'tiny', physicsEnabled: physics })
+  if (cookies) { // as a real client keeps transfer cookies across connections
+    b._client.on('store_cookie', d => cookies.set(d.key, d.value))
+    b._client.on('cookie_request', d => b._client.write('cookie_response', { key: d.cookie, value: cookies.get(d.cookie) }))
+  }
   b.physicsOn = physics
   // Raw packet writer for the tests' own movement packets.
   b.send = b._client.write.bind(b._client)

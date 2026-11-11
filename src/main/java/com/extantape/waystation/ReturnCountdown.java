@@ -138,6 +138,10 @@ final class ReturnCountdown implements Listener {
                 return;
             }
             stop(c);
+            if (!plugin.givePass(p, c.target)) {
+                end(c, "return-unavailable");
+                return;
+            }
             send(p, "return-sending", c.config, c.target, 0);
             play(p, c, SENDING, 1.0f);
             p.closeInventory();
