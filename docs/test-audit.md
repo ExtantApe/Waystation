@@ -12,7 +12,7 @@ Gaps that must be covered (security, safety or money), each with the test that c
 | --- | --- | --- |
 | Arriving at a gate gives 5 seconds of protection | acceptance: "arriving at a gate: damage within 5 seconds is stopped" (20 → 20) and its control after 5 s (20 → 16.8) | passes, 2026-11-11 |
 | `waystation.move.<world>` false stops a tribute move | acceptance: "waystation.move.meadow false: no chest opens, and they're told", "and nothing is taken or moved", and the control after unsetting | passes, 2026-11-11 |
-| A dead gate is drawn only for those with access to its world, admins and `waystation.admin.seedead` | acceptance: "a dead gate isn't sent to a player with no access and no seedead" | passes, 2026-11-11. **The control fails**: once given `seedead`, the server says the player may see the dead gate (`gate test` answers true), but its entities aren't sent to them. Hiding works, so nothing leaks. Showing it late to an admin is a bug, tracked as its own task. |
+| A dead gate is drawn only for those with access to its world, admins and `waystation.admin.seedead` | acceptance: "a dead gate isn't sent to a player with no access and no seedead" | passes, 2026-11-11, with its control: once given `seedead`, the player is sent the dead gate (33 entities). The control first failed because the check read a bot that had been disconnected by the suite's earlier restart. That was a test bug, not a plugin bug (K478, closed). |
 | The arrival guard has no bypass, operators included, and the whitelist still applies | `arrival-guard.mjs`: "an operator's direct join is refused too", "with a valid pass but off B's whitelist, still refused" (with a control that the pass was given) | passes, 18/18, 2026-11-11 |
 | `waystation.return` is granted to nobody, operators included | `return.mjs`: "an operator without an explicit grant is refused too" | passes, 53/53, 2026-11-11 |
 | `waystation.buy` false stops buying | acceptance: "waystation.buy false: nothing bought, nothing charged" | passes, 2026-11-11 |
@@ -28,7 +28,7 @@ Smaller gaps, not added now:
 
 Correction to the audit agent's report: the 5-second protection exists (`Travel.arrivalGuard`); only its test was missing.
 
-Acceptance on the stand-in: 160/169. That's the same 8 as before, plus the seedead control above.
+Acceptance on the stand-in: 161/169, the same 8 as before.
 
 Known limits, unchanged: walking on 26.3 (bots can't), the arrival guard on the 26.2 → 26.3 path (the Server lead rehearses it on copies), BlueMap and OneBlock checks plus the 8 stand-in failures (they wait for the real copy, K24), and the flaky "op can't break ground at a world gate".
 

@@ -643,10 +643,11 @@ await sleep(1500)
 const deadLive = near(boss2, sn.x, sn.z, 5).length
 check('dead gate still drawn, without its opening', deadLive > 0 && deadLive < entitiesLive, `${entitiesLive} -> ${deadLive}`)
 // Who sees a dead gate: those with access to its world, admins, and waystation.admin.seedead. Nina has none of them.
+// (nina2: the bot that rejoined after the restart above; the first one is gone.)
 await s.ask('mvtp nina w:waystation', 2500)
 await s.ask(`execute in waystation run tp nina ${sn.x + .5} ${sn.y} ${sn.z + 4.5}`, 2000)
-const ninaThere = await isIn(nina, 'waystation', 3000)
-const deadSeen = async () => `${(await s.ask(`gate test station-newsurvival nina`, 600)).join(' ').match(/sees it (true|false)/)?.[1]} / ${near(nina, sn.x, sn.z, 5).length} entities`
+const ninaThere = await isIn(nina2, 'waystation', 3000)
+const deadSeen = async () => `${(await s.ask(`gate test station-newsurvival nina`, 600)).join(' ').match(/sees it (true|false)/)?.[1]} / ${near(nina2, sn.x, sn.z, 5).length} entities`
 const without = await deadSeen()
 check('a dead gate isn\'t sent to a player with no access and no seedead', ninaThere && /^false \/ 0 /.test(without), `in station: ${ninaThere}; ${without}`)
 await s.ask('lp user nina permission set waystation.admin.seedead true', 3000)
