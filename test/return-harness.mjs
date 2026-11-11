@@ -30,6 +30,11 @@ export const CLIENT = process.env.WAYSTATION_TEST_CLIENT ?? '26.1'
 
 export const BASE = process.env.WAYSTATION_TEST_DIR ?? mkdtempSync(path.join(os.tmpdir(), 'waystation-return-test-'))
 mkdirSync(BASE, { recursive: true })
+// A folder the harness made for itself goes when the run ends, pass or fail: no test server is left behind. One
+// named in WAYSTATION_TEST_DIR is the caller's, and stays (it keeps Paper's downloaded libraries between runs).
+if (!process.env.WAYSTATION_TEST_DIR) {
+  process.on('exit', () => { try { rmSync(BASE, { recursive: true, force: true }) } catch {} })
+}
 
 /** A fresh server folder: flat world, 127.0.0.1 only, offline mode, with ViaVersion and ViaBackwards. */
 export function freshServer(name, { version, port, transfers = true, plugins = [] }) {
