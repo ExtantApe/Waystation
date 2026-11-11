@@ -53,7 +53,7 @@ class ReturnCommandTest {
 
     @Test
     void theProblemSaysWhatToFix() {
-        var target = new Settings.FargateTarget("home", "Home", "127.0.0.1", 25565, Set.of(775), "waystation.fargate.home");
+        var target = new Settings.FargateTarget("home", "Home", "127.0.0.1", 25565, Set.of(775), "waystation.fargate.home", false, "", 0);
         Map<String, Settings.FargateTarget> fargates = Map.of("home", target);
         assertEquals("return.enabled is false", ret(false, "home").problem(fargates));
         assertEquals("return.destination is empty", ret(true, "").problem(fargates));

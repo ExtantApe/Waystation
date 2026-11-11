@@ -156,8 +156,16 @@ export class Server {
 }
 
 /** A bot that keeps score of chat and of which tagged display entities it was sent. */
-export async function bot(username, { port = PORT, transferred = false } = {}) {
+/**
+ * cookies: a Map kept across connections, as a real client keeps its transfer cookies. The bot stores what a server
+ * sends (store_cookie) and answers a server's cookie_request from it, or with nothing.
+ */
+export async function bot(username, { port = PORT, transferred = false, cookies = null } = {}) {
   const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: CLIENT, auth: 'offline', viewDistance: 'normal' })
+  if (cookies) {
+    b._client.on('store_cookie', d => cookies.set(d.key, d.value))
+    b._client.on('cookie_request', d => b._client.write('cookie_response', { key: d.cookie, value: cookies.get(d.cookie) }))
+  }
   if (transferred) { // connect the way a client does after a transfer: handshake intent 3, not 2
     const write = b._client.write.bind(b._client)
     b._client.write = (name, data) => write(name, name === 'set_protocol' ? { ...data, nextState: 3 } : data)

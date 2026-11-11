@@ -74,6 +74,9 @@ public final class WaystationPlugin extends JavaPlugin {
         mover = new Mover(this);
         getServer().getPluginManager().registerEvents(mover, this);
         getServer().getPluginManager().registerEvents(travel, this);
+        arrivalGuard = new ArrivalGuard(getLogger(), System::currentTimeMillis);
+        applyArrivalGuard();
+        getServer().getPluginManager().registerEvents(arrivalGuard, this);
         getServer().getPluginManager().registerEvents(renderer, this);
         protection = new Protection(this);
         getServer().getPluginManager().registerEvents(protection, this);
@@ -145,6 +148,33 @@ public final class WaystationPlugin extends JavaPlugin {
     }
 
     private Travel travel;
+    private ArrivalGuard arrivalGuard;
+    private volatile TransferPass.Key transferKey = new TransferPass.Key(null, "not loaded");
+
+    /** Reads plugins/Waystation/transfer.key and applies the arrival guard's settings. Startup and /gate reload. */
+    private void applyArrivalGuard() {
+        transferKey = TransferPass.readKey(getDataFolder().toPath().resolve("transfer.key"));
+        Settings.ArrivalGuardSettings g = settings.arrivalGuard;
+        if (arrivalGuard != null) arrivalGuard.apply(new ArrivalGuard.Config(g.enabled(), g.name(), g.message(), transferKey));
+    }
+
+    /**
+     * Before any transfer: for a destination that wants one, store a signed pass on the player (D42). False when one
+     * is needed but can't be made, so nobody is sent off to be turned away.
+     */
+    boolean givePass(Player player, Settings.FargateTarget target) {
+        if (!target.pass()) return true;
+        TransferPass.Key key = transferKey;
+        if (!key.usable()) {
+            getLogger().severe("fargate-destinations." + target.name() + " asks for a pass, but " + key.problem()
+                + ", so nobody is sent there. Fix: put the shared key in plugins/Waystation/transfer.key, then /gate reload.");
+            return false;
+        }
+        player.storeCookie(ArrivalGuard.PASS, TransferPass.make(key.bytes(), player.getUniqueId(), target.name(), System.currentTimeMillis(), PASS_TTL_MS));
+        return true;
+    }
+
+    static final long PASS_TTL_MS = 60_000;
     private ReturnCountdown returns;
     private String returnName; // as registered at startup; null if it was off
     private List<String> returnAliases = List.of();
@@ -269,6 +299,7 @@ public final class WaystationPlugin extends JavaPlugin {
         if (!storeReadable) return "gates.yml has a problem. Settings reloaded, but the gates in memory stay as they were.";
         checkEscapeCommand();
         checkReturnCommand();
+        applyArrivalGuard();
         markers.reload();
         board.removeAll(); // redrawn on the next pass, in the new settings (title, label backing)
         arrival.refresh();

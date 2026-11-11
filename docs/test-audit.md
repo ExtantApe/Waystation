@@ -2,6 +2,21 @@
 
 What Waystation promises, and the tests that prove it. Newest first.
 
+## 2026-11-10: the arrival guard, fargate checks, and stepping clear (0.7.0)
+
+| Promise | Covered by |
+| --- | --- |
+| On a guarded server, only a transfer with a valid pass gets in: a direct join, no pass, a reused pass and someone else's pass are refused before any world | bots `arrival-guard` (two servers); unit `ArrivalGuardTest` (9 tests: also a forged or altered pass, a pass for another server, an expired pass, a client that never answers) |
+| No usable key means nobody gets in and nobody is sent | unit `withoutAUsableKeyNobodyGetsIn`, `theKeyFileMustBeLongEnoughAndPrivate` (and a key problem never prints the key) |
+| A pass is spent on the client once used | bots "B overwrites the pass on the client" |
+| A fargate sends nobody to a server that doesn't answer, and says so | bots "with B down, nobody is transferred", "and they are told, kindly" |
+| A teleport or respawn that lands a player at a gate can't let the gate take them on their first step | bots "walking straight in from where a teleport put them does nothing", with the control once they've stepped clear; Voidwell's suite plays Multiverse-Inventories' last-location teleport |
+| Paper-only servers don't try to build a station every 30 seconds | by reading: `Station.sync` returns before `generate` without Multiverse-Core (no bot check: the return suite runs Paper-only and showed no such warning) |
+
+Acceptance on the stand-in: 153/161, the same 8 as 0.6.0. One check ("op in creative can't break the station floor") read the bot's own view after a refused dig and failed once; it now asks the server, and passes.
+
+**Not covered:** the guard on the 26.2 server → 26.3 client → 26.3 server path the guarded server uses; the bots can't speak 26.3 without ViaVersion, which the guarded server doesn't have. The Server lead rehearses it on copies of both real servers.
+
 ## 2026-11-10: the --json console, and the Vault-blocked checks (0.6.0)
 
 | Promise | Proved by |

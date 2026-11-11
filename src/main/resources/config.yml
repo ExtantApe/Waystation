@@ -140,6 +140,22 @@ fargate-label: "<red><bold>Leaving this server</bold></red>\n<white><name></whit
 #     host: play.example.com
 #     port: 25565
 #     protocols: [776]
+#     # Optional. Where to check the server is up before sending anyone, if that differs from host and port.
+#     check-host: 127.0.0.1
+#     check-port: 25566
+#     # Optional. Give each player a signed pass for this server, for one whose arrival-guard is on.
+#     pass: true
+
+# Arrival guard. With it on, this server lets in only players arriving through another server's fargate
+# with a valid pass: a direct join is refused before the player reaches any world. Both servers need the
+# same key in plugins/Waystation/transfer.key: at least 32 random bytes, readable only by the server's
+# user. To change it, replace the file on both servers and restart both. While the key is missing or
+# unsafe, nobody can join, by design. The whitelist still applies.
+arrival-guard:
+  enabled: false
+  # This server's name, the same as its entry under the other server's fargate-destinations.
+  name: ""
+  message: "You can only come to this server through its gate on the other server."
 
 # OneBlock gives each player their own island, so each island with someone on it gets a glowing post
 # beside its block. Click it twice to go to the station. It's display entities, so it places no blocks.
@@ -242,6 +258,7 @@ messages:
   nearest-none: "<yellow>There's no waygate you can use in this world."
   nearest-none-escape: "<yellow>There's no waygate you can use in this world. <white><command></white> will take you to Central Station."
   fargate-leaving: "<red><bold>Leaving this server</bold></red> <gray>for <white><name></white>. See you back here."
+  fargate-down: "<red><white><name></white> isn't answering right now. You're staying here, and nothing changed.</red> <gray>Try again in a minute."
   move-disabled: "<red>Waygates can't be moved in this world."
   move-no-permission: "<red>You can't move waygates."
   move-resting: "<yellow>This waygate moved recently, and won't move again for <time>."
@@ -283,5 +300,6 @@ messages:
   return-cancelled-shutdown: "<red>Cancelled: this server is restarting.</red> <gray>Try again once it's back."
   return-offline: "<red><destination><red> isn't answering right now. You're staying here, and nothing changed.</red> <gray>Try again in a minute."
   return-wrong-version: "<red>Your game version can't join <destination><red>.</red> <gray>Ask an admin which version to use."
+  return-unavailable: "<red><destination><red> can't take you right now. You're staying here, and nothing changed.</red> <gray>Let an admin know if it keeps happening."
   return-not-set-up: "<red>This command isn't set up yet.</red> <gray>Let an admin know."
   return-not-set-up-admin: "<red>The return command isn't set up: <problem>.</red> <gray>Fix it in plugins/Waystation/config.yml, then /gate reload."
