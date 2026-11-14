@@ -24,19 +24,19 @@ import java.util.logging.Level;
 /**
  * The arrival flow (plan phase 3, owner 2026-11-09): the lobby gate into the station, and a short welcome inside it.
  *
- * <p>The lobby comes from Latchkey when it's installed and has one set up, otherwise from {@code arrival.lobby-world}.
- * Latchkey stays optional: Waystation doesn't build against it, and reads its {@code lobbyLocation()} method and its
- * {@code PlayerArrivedEvent} by name (crossing latchkey-waystation). If they don't match, it falls back to the config.
+ * <p>The lobby comes from WelcomeWagon when it's installed and has one set up, otherwise from {@code arrival.lobby-world}.
+ * WelcomeWagon stays optional: Waystation doesn't build against it, and reads its {@code lobbyLocation()} method and its
+ * {@code PlayerArrivedEvent} by name (crossing welcomewagon-waystation). If they don't match, it falls back to the config.
  */
 final class Arrival implements Listener {
-    static final String ARRIVED = "com.extantape.latchkey.api.PlayerArrivedEvent";
+    static final String ARRIVED = "com.extantape.welcomewagon.api.PlayerArrivedEvent";
     /** Furthest a lobby gate may stand from the lobby before it's put back: the placement search radius, and a little. */
     static final int LOBBY_REACH = 72;
 
     private final WaystationPlugin plugin;
     private final NamespacedKey seen;
-    private Method latchkeyLobby;
-    private Plugin latchkey;
+    private Method welcomewagonLobby;
+    private Plugin welcomewagon;
     private Location lobby;
 
     Arrival(WaystationPlugin plugin) {
@@ -44,13 +44,13 @@ final class Arrival implements Listener {
         this.seen = new NamespacedKey(plugin, "station_seen");
     }
 
-    /** Finds Latchkey's lobby by name, if Latchkey is here. Called once, when every plugin has enabled. */
-    void hookLatchkey() {
-        Plugin lk = Bukkit.getPluginManager().getPlugin("Latchkey");
+    /** Finds WelcomeWagon's lobby by name, if WelcomeWagon is here. Called once, when every plugin has enabled. */
+    void hookWelcomeWagon() {
+        Plugin lk = Bukkit.getPluginManager().getPlugin("WelcomeWagon");
         if (lk == null || !lk.isEnabled()) return;
         try {
-            latchkeyLobby = lk.getClass().getMethod("lobbyLocation");
-            latchkey = lk;
+            welcomewagonLobby = lk.getClass().getMethod("lobbyLocation");
+            welcomewagon = lk;
             Class<? extends Event> arrived = lk.getClass().getClassLoader().loadClass(ARRIVED).asSubclass(Event.class);
             Method getLobby = arrived.getMethod("getLobby");
             Bukkit.getPluginManager().registerEvent(arrived, this, EventPriority.MONITOR, (l, e) -> {
@@ -59,27 +59,27 @@ final class Arrival implements Listener {
                     Location at = (Location) getLobby.invoke(e);
                     if (!same(at, lobby)) refresh();
                 } catch (ReflectiveOperationException ex) {
-                    plugin.getLogger().log(Level.WARNING, "Couldn't read Latchkey's arrival event", ex);
+                    plugin.getLogger().log(Level.WARNING, "Couldn't read WelcomeWagon's arrival event", ex);
                 }
             }, plugin);
-            plugin.getLogger().info("Using Latchkey's lobby for the lobby gate.");
+            plugin.getLogger().info("Using WelcomeWagon's lobby for the lobby gate.");
         } catch (ReflectiveOperationException | ClassCastException e) {
-            latchkeyLobby = null;
-            plugin.getLogger().warning("Latchkey is installed but doesn't offer its lobby the way Waystation expects, so the lobby gate "
+            welcomewagonLobby = null;
+            plugin.getLogger().warning("WelcomeWagon is installed but doesn't offer its lobby the way Waystation expects, so the lobby gate "
                 + "uses arrival.lobby-world instead. Update both plugins. (" + e.getClass().getSimpleName() + ")");
         }
     }
 
-    /** Where the lobby is now: Latchkey's if it has one, else the configured world. Null for no lobby gate. */
+    /** Where the lobby is now: WelcomeWagon's if it has one, else the configured world. Null for no lobby gate. */
     Location currentLobby() {
         Settings.Arrival a = plugin.settings().arrival;
         if (!a.lobbyGate()) return null;
-        if (latchkeyLobby != null && latchkey.isEnabled()) {
+        if (welcomewagonLobby != null && welcomewagon.isEnabled()) {
             try {
-                Location at = (Location) latchkeyLobby.invoke(latchkey);
+                Location at = (Location) welcomewagonLobby.invoke(welcomewagon);
                 if (at != null) return at;
             } catch (ReflectiveOperationException | RuntimeException e) {
-                plugin.getLogger().log(Level.WARNING, "Couldn't ask Latchkey where the lobby is", e);
+                plugin.getLogger().log(Level.WARNING, "Couldn't ask WelcomeWagon where the lobby is", e);
             }
         }
         if (a.lobbyWorld().isEmpty()) return null;

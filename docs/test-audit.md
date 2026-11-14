@@ -61,7 +61,7 @@ Overkill: `ReturnCommandTest.everyReturnMessageTheCodeUsesIsInTheShippedConfig` 
 | No usable key means nobody gets in and nobody is sent | unit `withoutAUsableKeyNobodyGetsIn`, `theKeyFileMustBeLongEnoughAndPrivate` (and a key problem never prints the key) |
 | A pass is spent on the client once used | bots "B overwrites the pass on the client" |
 | A fargate sends nobody to a server that doesn't answer, and says so | bots "with B down, nobody is transferred", "and they are told, kindly" |
-| A teleport or respawn that lands a player at a gate can't let the gate take them on their first step | bots "walking straight in from where a teleport put them does nothing", with the control once they've stepped clear; Voidwell's suite plays Multiverse-Inventories' last-location teleport |
+| A teleport or respawn that lands a player at a gate can't let the gate take them on their first step | bots "walking straight in from where a teleport put them does nothing", with the control once they've stepped clear; OneVoid's suite plays Multiverse-Inventories' last-location teleport |
 | Paper-only servers don't try to build a station every 30 seconds | by reading: `Station.sync` returns before `generate` without Multiverse-Core (no bot check: the return suite runs Paper-only and showed no such warning) |
 
 Acceptance on the stand-in: 153/161, the same 8 as 0.6.0. One check ("op in creative can't break the station floor") read the bot's own view after a refused dig and failed once; it now asks the server, and passes.
@@ -82,7 +82,7 @@ Acceptance on the stand-in: 153/161, the same 8 as 0.6.0. One check ("op in crea
 | A plugin's veto event stops a gate | `acceptance` "plugin event hook vetoes the gate" |
 | The hand-over to a world's own plugin | `handover` 28/28 on 26.1.2 |
 
-`test/prepare-small.mjs` now adds Vault or VaultUnlocked to the stand-in when the jar folder has one. Results on Paper 26.1.2: `acceptance` 153/161, with the OneBlock section skipped. The 8 failures are exactly the stand-in list below (the real server's set-up, BlueMap's first render, the flaky op check, and the two crash checks after the OneBlock section). `arrival` passes 39/39 on 26.1.2 with Latchkey 0.3.0, the 10 `--json` checks included.
+`test/prepare-small.mjs` now adds Vault or VaultUnlocked to the stand-in when the jar folder has one. Results on Paper 26.1.2: `acceptance` 153/161, with the OneBlock section skipped. The 8 failures are exactly the stand-in list below (the real server's set-up, BlueMap's first render, the flaky op check, and the two crash checks after the OneBlock section). `arrival` passes 39/39 on 26.1.2 with WelcomeWagon 0.3.0, the 10 `--json` checks included.
 
 **Still open:** walking through gates and fargates on 26.3 (bots are disconnected when they move there; the newest ViaVersion builds were checked on 2026-11-10), and everything on the real-client list.
 
@@ -92,9 +92,9 @@ Covers what the arrival flow adds, and the first run of the older suites since t
 
 | Promise | Proved by |
 | --- | --- |
-| The lobby world's return gate stands by the lobby, not by the world's spawn, with the lobby label, leading to the station | `arrival`, without Latchkey (config lobby) and with Latchkey (its lobby). `ArrivalTest` |
-| Latchkey's lobby wins over Waystation's own setting, and Latchkey stays optional, read by name | `arrival`: "found Latchkey's lobby by name", "gives way to it"; the run without Latchkey |
-| When the lobby moves (config and reload, or Latchkey's lobby and the next arrival), the gate is placed again by the new spot | `arrival`, both runs. `ArrivalTest.whenTheLobbyGateIsPlacedAgain` |
+| The lobby world's return gate stands by the lobby, not by the world's spawn, with the lobby label, leading to the station | `arrival`, without WelcomeWagon (config lobby) and with WelcomeWagon (its lobby). `ArrivalTest` |
+| WelcomeWagon's lobby wins over Waystation's own setting, and WelcomeWagon stays optional, read by name | `arrival`: "found WelcomeWagon's lobby by name", "gives way to it"; the run without WelcomeWagon |
+| When the lobby moves (config and reload, or WelcomeWagon's lobby and the next arrival), the gate is placed again by the new spot | `arrival`, both runs. `ArrivalTest.whenTheLobbyGateIsPlacedAgain` |
 | A gate placed as an ordinary return gate before the lobby was known is replaced | `ArrivalTest`. This was a real bug: a removed gate was never placed again until its world's "done" mark was cleared |
 | The station welcome comes on a first visit, counts what that player can reach, and doesn't repeat on a quick return or a re-login | `arrival`. The 30-day gap: `ArrivalTest.aWelcomeIsDueOnTheFirstVisitAndAfterTheGap` |
 | The Departures Board: one per player in the station, listing only the worlds that player can use, under their platform | `arrival`: two players with different access |
@@ -109,7 +109,7 @@ Covers what the arrival flow adds, and the first run of the older suites since t
 | A reload redraws the board in the new settings (the label backing, for one) | `station`: "label-backing 0 keeps Minecraft's own background". It caught the board keeping its old plate until fixed |
 | What per-player data is kept, and that none is shown to other players | `docs/decisions.md`, 2026-11-09 |
 
-`arrival` passes 29/29 on Paper 26.1.2, 26.2 and 26.3, with and without Latchkey 0.3.0. Unit tests: 31. How the board, the wall map and a sealed gate look, and whether the marker turns with you, need a real client (tests.md T12).
+`arrival` passes 29/29 on Paper 26.1.2, 26.2 and 26.3, with and without WelcomeWagon 0.3.0. Unit tests: 31. How the board, the wall map and a sealed gate look, and whether the marker turns with you, need a real client (tests.md T12).
 
 ### The older suites, on a small made-up copy
 

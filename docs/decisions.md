@@ -23,3 +23,7 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 | by 2026-11-07 | Gradle with Kotlin DSL, group `com.extantape`, built like BlueMapHUD. Repo and jar named `Waystation`. |
 | by 2026-11-07 | One jar, readable source. No economy plugin of its own, no database, no client mod. Money goes through Vault when it's there. |
 | by 2026-11-07 | No dependency on Multiverse-Portals. Inventories must never be lost or mixed. Admin rights come from permissions (LuckPerms), not from being an operator. |
+
+## 2026-11-14
+
+- **Other plugins' new names (owner, D194, D196, D197, D198):** Waystation reads WelcomeWagon's lobby and arrival event by their new names, and its docs and tests use OneVoid, Mayor, Sheriff and the other new names. Waystation itself keeps its name until the Waycave rebuild (K649), as the owner chose. Released as 0.7.2.

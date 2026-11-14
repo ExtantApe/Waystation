@@ -8,7 +8,7 @@
 //
 // The bots are 26.1 clients: on 26.2 and 26.3 they come in through ViaVersion and ViaBackwards. A bot can't follow a
 // transfer by itself, so it records the transfer packet and reconnects the way a client does after one (intent 3).
-// Ported from ReturnGate's acceptance suite, which this replaces.
+// Ported from Wayport's acceptance suite, which this replaces.
 //
 // WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> node test/return.mjs
 import { JAR, freshServer, writeConfig, setProperty, Server, FakeStatus, bot, settle, sleep, said, saidCount, check, summary, BASE, CLIENT } from './return-harness.mjs'
@@ -33,7 +33,7 @@ const pistonPush = b => {
 }
 const LABEL = '<green>Test Destination</green>'
 /** Waystation's config with a destination and the return command turned on. */
-const config = ({ host = '127.0.0.1', port = TRANSFER_PORT, command = 'returngate', aliases = [], destination = 'home', enabled = true, protocols = [PROTOCOL] } = {}) => [
+const config = ({ host = '127.0.0.1', port = TRANSFER_PORT, command = 'wayport', aliases = [], destination = 'home', enabled = true, protocols = [PROTOCOL] } = {}) => [
   ['return:\n  enabled: false\n  destination: ""        # a name from fargate-destinations\n  command: return ',
     `return:\n  enabled: ${enabled}\n  destination: "${destination}"\n  command: ${command} `],
   ['  aliases: []\n  permission: waystation.return', `  aliases: [${aliases.join(', ')}]\n  permission: waystation.return`],
@@ -61,7 +61,7 @@ async function player(name, { allowed = true, admin = false, port = SRC_PORT, se
   b.chat_log.length = 0
   return b
 }
-async function start(b, cmd = '/returngate') {
+async function start(b, cmd = '/wayport') {
   b.chat(cmd)
   const end = Date.now() + 3000
   while (Date.now() < end && !said(b, STARTED)) await sleep(50)
@@ -91,9 +91,9 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
 {
   const b = await player('noperm', { allowed: false })
   await sleep(1000)
-  check("a player without waystation.return doesn't see the command", !b.commands.has('returngate'), [...b.commands].filter(c => /gate|return|station/.test(c)).join(', '))
+  check("a player without waystation.return doesn't see the command", !b.commands.has('wayport'), [...b.commands].filter(c => /gate|return|station/.test(c)).join(', '))
   check('there is no /station without a station to go to', !b.commands.has('station') && !b.commands.has('hub'))
-  b.chat('/returngate')
+  b.chat('/wayport')
   await sleep(AFTER)
   check('a player without the permission is refused', !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))
   b.quit()
@@ -104,7 +104,7 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
   await src.ask('op opret', 600)
   const b = await player('opret', { allowed: false })
   await sleep(1000)
-  b.chat('/returngate')
+  b.chat('/wayport')
   await sleep(AFTER)
   check('an operator without an explicit grant is refused too', !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))
   b.quit()
@@ -114,7 +114,7 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
 // Success, with head turns along the way
 {
   const b = await player('turner')
-  check('a permitted player sees the command', b.commands.has('returngate'))
+  check('a permitted player sees the command', b.commands.has('wayport'))
   const ok = await start(b)
   const turning = PHYS ? setInterval(() => b.look(Math.random() * Math.PI * 2, (Math.random() - 0.5) * 1.5, true), 150) : null
   await waitFor(() => b.transfers.length > 0, AFTER)
@@ -139,7 +139,7 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
   if (PHYS) { b.setControlState('forward', true); await sleep(600); b.setControlState('forward', false) } else pistonPush(b)
   await sleep(AFTER)
   check(PHYS ? 'walking cancels it' : 'being moved a block by a piston cancels it', said(b, /Cancelled: you moved/) && b.transfers.length === 0, b.chat_log.join(' | '))
-  check('the cancel message says how to try again, with the configured command', said(b, /Stand still and run \/returngate again/))
+  check('the cancel message says how to try again, with the configured command', said(b, /Stand still and run \/wayport again/))
   b.quit()
 }
 if (PHYS) {
@@ -155,7 +155,7 @@ if (PHYS) {
 // Repeating the command
 {
   const b = await player('repeater')
-  b.chat('/returngate'); await sleep(300); b.chat('/returngate'); await sleep(1500); b.chat('/returngate')
+  b.chat('/wayport'); await sleep(300); b.chat('/wayport'); await sleep(1500); b.chat('/wayport')
   await sleep(AFTER)
   check('running it again gives one countdown and one transfer',
     saidCount(b, STARTED) === 1 && saidCount(b, /already on your way/) === 2 && b.transfers.length === 1, `${saidCount(b, STARTED)} started, ${b.transfers.length} transfers`)
@@ -253,14 +253,14 @@ async function damageCase(name, label, act, re = /Cancelled: you took damage/) {
   await sleep(800)
   src.send('ride rider mount @e[type=minecraft:minecart,limit=1,sort=nearest]')
   await sleep(1000)
-  b.chat('/returngate'); await sleep(AFTER)
+  b.chat('/wayport'); await sleep(AFTER)
   check('riding something: told to hop off, nothing starts', said(b, /Hop off your ride/) && !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))
   src.send('kill @e[type=minecraft:minecart]'); b.quit()
 }
 
 // Console
 {
-  const out = await src.ask('returngate')
+  const out = await src.ask('wayport')
   check("the console is told it's for players only", out.some(l => /Only players can use this/.test(l)), out.join(' | '))
 }
 
@@ -322,7 +322,7 @@ await restartSource(config({ host: 'no-such-host.invalid' }))
 await restartSource(config({ protocols: [1] }))
 {
   const b = await player('oldgame')
-  b.chat('/returngate'); await sleep(2500)
+  b.chat('/wayport'); await sleep(2500)
   check("a client version the destination doesn't take: told so, nothing starts", said(b, /Your game version can't join Test Destination/) && !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))
   b.quit()
 }
@@ -330,11 +330,11 @@ await restartSource(config({ destination: 'nowhere' }))
 {
   check('a destination that isn\'t defined is logged at startup', src.log.some(l => /\[Waystation\] The return command isn't ready: return\.destination "nowhere" isn't under fargate-destinations/.test(l)))
   const admin = await player('admin', { admin: true })
-  admin.chat('/returngate'); await sleep(2000)
+  admin.chat('/wayport'); await sleep(2000)
   check('an admin is told exactly what to fix', said(admin, /The return command isn't set up: return\.destination "nowhere" isn't under fargate-destinations\. Fix it in plugins\/Waystation\/config\.yml/) && !said(admin, STARTED), admin.chat_log.join(' | '))
   admin.quit()
   const plain = await player('plain')
-  plain.chat('/returngate'); await sleep(2000)
+  plain.chat('/wayport'); await sleep(2000)
   check('a player is told it isn\'t set up, without the details', said(plain, /This command isn't set up yet\. Let an admin know/) && !said(plain, /fargate-destinations/), plain.chat_log.join(' | '))
   plain.quit()
 }
@@ -344,7 +344,7 @@ await restartSource(config({ command: 'hop', aliases: ['hopback'] }))
 {
   const b = await player('renamed')
   await sleep(1000)
-  check('the command name and aliases come from config', b.commands.has('hop') && b.commands.has('hopback') && !b.commands.has('returngate'), [...b.commands].filter(c => /hop|return/.test(c)).join(', '))
+  check('the command name and aliases come from config', b.commands.has('hop') && b.commands.has('hopback') && !b.commands.has('wayport'), [...b.commands].filter(c => /hop|return/.test(c)).join(', '))
   const ok = await start(b, '/hopback')
   await waitFor(() => b.transfers.length > 0, AFTER)
   check('an alias works', ok && transferredTo(b, TRANSFER_PORT))

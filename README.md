@@ -62,8 +62,8 @@ blocks and is never left behind when OneBlock reuses an island.
 ## Arriving players
 
 - **Lobby gate.** The lobby world's gate to the station stands by the lobby, not by the world's spawn, in its own design: a
-  wide arch on two lantern posts. With [Latchkey](https://github.com/ExtantApe/Latchkey) 0.3.0 its lobby is used,
-  read by name, so Latchkey stays optional. Otherwise set `arrival.lobby-world`. Move the lobby and the gate follows.
+  wide arch on two lantern posts. With [WelcomeWagon](https://github.com/ExtantApe/WelcomeWagon) 0.3.0 its lobby is used,
+  read by name, so WelcomeWagon stays optional. Otherwise set `arrival.lobby-world`. Move the lobby and the gate follows.
 - **Welcome.** Walking into the station the first time, or after 30 days away, you get three short lines saying how many
   worlds and platforms you can reach. The time of your last visit is kept on your player file and shown to nobody else.
 - **Departures Board.** In front of the centrepiece. Each player sees their own: only the worlds they can use, grouped

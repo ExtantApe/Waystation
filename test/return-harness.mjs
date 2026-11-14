@@ -1,7 +1,7 @@
 // Harness for the return suite: fresh, empty Paper servers in a temp folder on 127.0.0.1, driven from their consoles,
 // with mineflayer bots as players. Unlike harness.mjs it needs no copy of a real server, since the return command
 // is for a one-world server without Multiverse. It never touches any folder it didn't create.
-// Adapted from ReturnGate's harness, which this suite replaces.
+// Adapted from Wayport's harness, which this suite replaces.
 import { spawn, execSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, writeFileSync, copyFileSync, mkdirSync, rmSync, mkdtempSync } from 'node:fs'
 import os from 'node:os'
