@@ -170,10 +170,10 @@ island-posts:
 
 # Arriving players. The lobby gate leads from the lobby into the station. It's the lobby world's return
 # gate, placed near the lobby instead of the world's spawn, in its own design so nobody mistakes it for
-# a waygate. With Latchkey's lobby set up, Waystation uses that; otherwise the world named here.
+# a waygate. With WelcomeWagon's lobby set up, Waystation uses that; otherwise the world named here.
 arrival:
   lobby-gate: true
-  lobby-world: ""            # only used without Latchkey's lobby. "" for no lobby gate
+  lobby-world: ""            # only used without WelcomeWagon's lobby. "" for no lobby gate
   # lobby-spot: {x: 0, y: 65, z: 0}   # where in lobby-world; leave out for its spawn
   lobby-label: "<gold><bold>Central Station</bold>"
   # A short rundown when someone walks into the station for the first time, or after this many days away.

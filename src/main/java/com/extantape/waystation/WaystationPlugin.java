@@ -116,7 +116,7 @@ public final class WaystationPlugin extends JavaPlugin {
             if (settings.exampleWorlds) makeExampleWorlds(firstStart);
             station.ensureWorld();
             Bukkit.getWorlds().forEach(renderer::sweep);
-            arrival.hookLatchkey();
+            arrival.hookWelcomeWagon();
             arrival.refresh();
             station.sync(true);
             Bukkit.getScheduler().runTaskTimer(this, renderer::pass, 20L, 20L);

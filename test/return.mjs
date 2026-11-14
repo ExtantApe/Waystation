@@ -8,7 +8,7 @@
 //
 // The bots are 26.1 clients: on 26.2 and 26.3 they come in through ViaVersion and ViaBackwards. A bot can't follow a
 // transfer by itself, so it records the transfer packet and reconnects the way a client does after one (intent 3).
-// Ported from ReturnGate's acceptance suite, which this replaces.
+// Ported from Wayport's acceptance suite, which this replaces.
 //
 // WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> node test/return.mjs
 import { JAR, freshServer, writeConfig, setProperty, Server, FakeStatus, bot, settle, sleep, said, saidCount, check, summary, BASE, CLIENT } from './return-harness.mjs'

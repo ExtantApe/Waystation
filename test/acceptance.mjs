@@ -777,7 +777,7 @@ else {
   await sleep(2500)
   const postOf = b => Object.values(b.entities).find(e => e.name === 'interaction' && Math.hypot(e.position.x - b.entity.position.x, e.position.z - b.entity.position.z) < 8)
   const hasPosts = !!postOf(obA) && !!postOf(obB)
-  // Servers that use Voidwell's bell turn the island posts off; the post checks don't apply there.
+  // Servers that use OneVoid's bell turn the island posts off; the post checks don't apply there.
   if (!hasPosts && process.env.WS_NO_POSTS) console.log('  skip: island posts are off on this server (WS_NO_POSTS)')
   else check('each island gets a post', hasPosts)
   if (hasPosts) {
