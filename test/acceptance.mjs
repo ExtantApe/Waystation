@@ -776,7 +776,11 @@ else {
   await s.ask('give obann emerald 2', 500)
   await sleep(2500)
   const postOf = b => Object.values(b.entities).find(e => e.name === 'interaction' && Math.hypot(e.position.x - b.entity.position.x, e.position.z - b.entity.position.z) < 8)
-  check('each island gets a post', !!postOf(obA) && !!postOf(obB))
+  const hasPosts = !!postOf(obA) && !!postOf(obB)
+  // Servers that use Voidwell's bell turn the island posts off; the post checks don't apply there.
+  if (!hasPosts && process.env.WS_NO_POSTS) console.log('  skip: island posts are off on this server (WS_NO_POSTS)')
+  else check('each island gets a post', hasPosts)
+  if (hasPosts) {
   const blockAtIsland = obA.blockAt(pa.offset(2, -1, 0).floored())
   check('the post places no block', !blockAtIsland || blockAtIsland.name === 'air', blockAtIsland?.name)
   clearChat(obA); await obA.activateEntity(postOf(obA)); await sleep(1500)
@@ -788,6 +792,7 @@ else {
   check('the station inventory is its own', cnt0(obA, 'emerald') === 0 && cnt0(obA, 'diamond') === 3, `emeralds ${cnt0(obA, 'emerald')} diamonds ${cnt0(obA, 'diamond')}`)
   await walkThrough(obA, sob); await sleep(3000)
   check('going back returns you to your own island', Math.hypot(obA.entity.position.x - pa.x, obA.entity.position.z - pa.z) < 5 && cnt0(obA, 'emerald') === 2, `${obA.entity.position} emeralds ${cnt0(obA, 'emerald')}`)
+  }
   obA.chat('/oneblock leave'); await sleep(2500)
   check('/oneblock leave still works', await isIn(obA, 'lobby', 1500))
   obB.chat('/station'); await sleep(2500)
