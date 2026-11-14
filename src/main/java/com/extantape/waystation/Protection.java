@@ -71,6 +71,37 @@ final class Protection implements Listener {
         }
     }
 
+    /**
+     * What Rewild must never rewild: every chunk inside the station's world border, kept whole, and the zone around each
+     * gate elsewhere, kept in place. Reported whether or not protection is on, because a gate is never wild land.
+     */
+    List<RewildKeeps.Chunk> rewildChunks(org.bukkit.World w) {
+        List<RewildKeeps.Chunk> out = new ArrayList<>();
+        if (!w.getName().equals(plugin.settings().stationWorld)) return out;
+        var border = w.getWorldBorder();
+        double half = border.getSize() / 2;
+        int x0 = (int) Math.floor(border.getCenter().getX() - half) >> 4, x1 = (int) Math.floor(border.getCenter().getX() + half) >> 4;
+        int z0 = (int) Math.floor(border.getCenter().getZ() - half) >> 4, z1 = (int) Math.floor(border.getCenter().getZ() + half) >> 4;
+        // A border left at the default (60 million blocks) would list the whole world; the station sets its own, so cap it.
+        if ((long) (x1 - x0 + 1) * (z1 - z0 + 1) > 65_536) throw new IllegalStateException("the station's world border is too large to report to Rewild");
+        for (int x = x0; x <= x1; x++) for (int z = z0; z <= z1; z++) out.add(new RewildKeeps.Chunk(x, z, "the station"));
+        return out;
+    }
+
+    List<RewildKeeps.Box> rewildBoxes(org.bukkit.World w) {
+        List<RewildKeeps.Box> out = new ArrayList<>();
+        Settings s = plugin.settings();
+        for (Gate gate : plugin.store().all()) {
+            if (!gate.world.equals(w.getName()) || gate.world.equals(s.stationWorld)) continue;
+            int reach = Math.max(2, s.look(plugin.lookName(gate)).width() / 2 + 1);
+            int height = s.look(plugin.lookName(gate)).height();
+            int along = gate.alongX() ? reach : 2, across = gate.alongX() ? 2 : reach;
+            out.add(new RewildKeeps.Box(gate.x - along, gate.y - 1, gate.z - across, gate.x + along, gate.y + height, gate.z + across,
+                    "a gate (" + gate.id + ")"));
+        }
+        return out;
+    }
+
     boolean isProtected(Location at) {
         Settings s = plugin.settings();
         if (!s.protectionEnabled) return false;
