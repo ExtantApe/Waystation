@@ -80,6 +80,11 @@ public final class WaystationPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(renderer, this);
         protection = new Protection(this);
         getServer().getPluginManager().registerEvents(protection, this);
+        if (getConfig().getBoolean("rewild.keep-gates", true)) {
+            RewildKeeps keeps = new RewildKeeps(this, protection::rewildChunks, protection::rewildBoxes);
+            getServer().getPluginManager().registerEvents(keeps, this);
+            keeps.start();
+        }
         getServer().getPluginManager().registerEvents(station, this);
         getServer().getPluginManager().registerEvents(arrival, this);
         getServer().getPluginManager().registerEvents(board, this);

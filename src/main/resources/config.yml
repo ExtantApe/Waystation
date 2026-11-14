@@ -108,6 +108,11 @@ station:
 # Nobody can change blocks in the station or around a world's gate: no player, no
 # permission, no operator. Explosions, fire, liquid, pistons and growth are stopped too.
 # To rebuild the room itself, set enabled: false here and run /gate reload.
+# With Rewild installed, tells it to leave the station's world alone and keep every gate in place, so Rewild never
+# rewilds them. Rewild listens once an admin respects Waystation with /rewild plugins. Read at startup.
+rewild:
+  keep-gates: true
+
 protection:
   enabled: true
   # World-editing commands refused for players anywhere in the station's world, and
