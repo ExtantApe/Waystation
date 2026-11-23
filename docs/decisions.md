@@ -27,3 +27,7 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 ## 2026-11-14
 
 - **Other plugins' new names (owner, D194, D196, D197, D198):** Waystation reads WelcomeWagon's lobby and arrival event by their new names, and its docs and tests use OneVoid, Mayor, Sheriff and the other new names. Waystation itself keeps its name until the Waycave rebuild (K649), as the owner chose. Released as 0.7.2.
+
+## 2026-11-22
+
+- **Waycave answers (owner, Simon's dialogs, 2026-11-22, relayed by the chief of staff):** cave shape "organic tunnels and chambers that are unique to each instance"; trails "Moss and glow lichen (Recommended)", visible only to that player; seeing other players in the cave "Follow Mayor's groups (Recommended)"; arrival "End of their last trail", falling back to the start chamber when that spot is gone or unsafe (the lead's pick); the old station world "throw it away, was never used", moved to the Trash at the switch once a backup exists in the normal backup set, with no hold. Generated caves must always connect, with no dead chambers, and tests prove it. Details in `docs/waycave-design.md` (K649).
