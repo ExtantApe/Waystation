@@ -41,4 +41,5 @@ Dates are when the decision was made. Those marked "by" were made while the firs
   admins and not squeezed in; the Trails board names a world as (trail closed) only to a player who once had a trail to
   it; Mayor must list `waycave` as a circle-only world for the cave to follow circles; the Wayport gate runs Wayport's
   command and Waycave's own fargate transfer code is untouched (to retire separately).
+- **Cave chat (owner, D287, 2026-11-24):** "Circle-only (Recommended)". The cave world goes in Mayor's `circle-only-worlds`, so players there see and chat only with their circles; a player with no circle can't chat in the cave.
 - **D284 (owner, 2026-11-24):** "Players never need to type a command in game where a walk-in portal, sign, book, menu or NPC can do the job. Commands stay for admins and as a hidden fallback." Applied: no text teaches a player command except `/buygate`, which still needs a menu or portal.
