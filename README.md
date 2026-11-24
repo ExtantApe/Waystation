@@ -302,6 +302,8 @@ cave, and keeps running until you press Ctrl-C, then deletes everything it made.
 Minecraft name (it is never written into the repo), `WAYCAVE_TEST_GROUP` to `family` or `kids` (run it twice to compare
 what each sees), and the usual `WAYCAVE_TEST_BASE`, `WAYCAVE_TEST_PORT` and `WAYCAVE_TEST_JAVA`. Join `127.0.0.1:<port>`
 with a client of the server's version; you arrive in the start chamber and the trails to your gates are already laid.
+The short way: `zsh test/walk-cave.sh YOURNAME [family|kids] [26.3|26.2|26.1.2]` builds the jar, makes the small copy in a temp
+folder (accepting the EULA for it), runs the test cave on 127.0.0.1:25725 and deletes the temp folder at Ctrl-C.
 
 `return` and `handover` need no copy of a server. They make fresh ones, so it needs `WAYCAVE_TEST_JARS`: a folder with
 `paper-<version>.jar` (and `mojang_<version>.jar`, so Paper needn't download it) and a `plugins/` folder holding
