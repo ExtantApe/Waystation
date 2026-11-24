@@ -6,25 +6,25 @@ import path from 'node:path'
 import mineflayer from 'mineflayer'
 import minecraftData from 'minecraft-data'
 
-export const BASE = process.env.WAYSTATION_TEST_BASE
+export const BASE = process.env.WAYCAVE_TEST_BASE
 if (!BASE || !existsSync(path.join(BASE, 'server/server.properties'))) {
-  throw new Error('Set WAYSTATION_TEST_BASE to the folder holding the prepared throwaway copy in server/')
+  throw new Error('Set WAYCAVE_TEST_BASE to the folder holding the prepared throwaway copy in server/')
 }
 export const RUN = path.join(BASE, 'run')
 export const DIR = path.join(RUN, 'server')
-export const PORT = Number(process.env.WAYSTATION_TEST_PORT ?? 25599) // must match the prepared copy
+export const PORT = Number(process.env.WAYCAVE_TEST_PORT ?? 25599) // must match the prepared copy
 /** The bots' game version. 26.1 joins a 26.1 server directly; newer servers need ViaVersion and ViaBackwards. */
-export const CLIENT = process.env.WAYSTATION_TEST_CLIENT ?? '26.1'
+export const CLIENT = process.env.WAYCAVE_TEST_CLIENT ?? '26.1'
 export const CLIENT_PROTOCOL = minecraftData(CLIENT).version.version
-const JAVA = process.env.WAYSTATION_TEST_JAVA ?? 'java' // Paper 26.x needs Java 25
+const JAVA = process.env.WAYCAVE_TEST_JAVA ?? 'java' // Paper 26.x needs Java 25
 // test/run.mjs runs a generated copy of the suites, in test/.run.
 const ROOT = new URL(path.basename(path.dirname(new URL(import.meta.url).pathname)) === '.run' ? '../../' : '../', import.meta.url).pathname
 const LIBS = path.join(ROOT, 'build/libs/')
-const built = existsSync(LIBS) ? readdirSync(LIBS).filter(f => /^Waystation-.*\.jar$/.test(f)) : []
-if (built.length !== 1) throw new Error(`Run ./gradlew clean shadowJar hookJar first: expected one Waystation jar in build/libs, found ${built.length}`)
+const built = existsSync(LIBS) ? readdirSync(LIBS).filter(f => /^Waycave-.*\.jar$/.test(f)) : []
+if (built.length !== 1) throw new Error(`Run ./gradlew clean shadowJar hookJar first: expected one Waycave jar in build/libs, found ${built.length}`)
 export const JAR = path.join(LIBS, built[0])
 export const HOOK_JAR = path.join(ROOT, 'build/test-hook/DenyHook.jar')
-export const PLUGIN_JAR = 'Waystation.jar'
+export const PLUGIN_JAR = 'Waycave.jar'
 
 const props = readFileSync(path.join(BASE, 'server/server.properties'), 'utf8')
 if (!/^server-ip=127\.0\.0\.1$/m.test(props) || !new RegExp(`^server-port=${PORT}$`, 'm').test(props)) {
@@ -94,7 +94,7 @@ const TEST_SETTINGS = [
 
 export function installJar({ testConfig = true } = {}) {
   copyFileSync(JAR, path.join(DIR, 'plugins', PLUGIN_JAR))
-  const cfg = path.join(DIR, 'plugins/Waystation/config.yml')
+  const cfg = path.join(DIR, 'plugins/Waycave/config.yml')
   if (!testConfig || existsSync(cfg)) return
   let text = readFileSync(path.join(ROOT, 'src/main/resources/config.yml'), 'utf8')
   for (const [from, to] of TEST_SETTINGS) {
@@ -111,7 +111,7 @@ export class Server {
   constructor({ dir = DIR, java = JAVA, memory = '3G' } = {}) { Object.assign(this, { dir, java, memory }) }
   async start() {
     const from = this.log.length
-    this.proc = spawn(this.java, [`-Xms${this.memory}`, `-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false', '-Dwaystation.test.deny=meadow', '-jar', 'paper.jar', 'nogui'],
+    this.proc = spawn(this.java, [`-Xms${this.memory}`, `-Xmx${this.memory}`, '-Dterminal.jline=false', '-Dterminal.ansi=false', '-Dwaycave.test.deny=meadow', '-jar', 'paper.jar', 'nogui'],
       { cwd: this.dir, stdio: ['pipe', 'pipe', 'pipe'] })
     this.exited = new Promise(r => this.proc.on('exit', r))
     const proc = this.proc; process.on('exit', () => { if (proc.exitCode === null) proc.kill('SIGKILL') }) // never leave a server behind
@@ -145,7 +145,7 @@ export class Server {
     return m ? Number(m[1]) : 0
   }
   errors() {
-    return this.log.filter(l => /Waystation/.test(l) && /(ERROR|Exception|SEVERE)/.test(l))
+    return this.log.filter(l => /Waycave/.test(l) && /(ERROR|Exception|SEVERE)/.test(l))
   }
   async stop() {
     this.send('stop')
@@ -160,8 +160,9 @@ export class Server {
  * cookies: a Map kept across connections, as a real client keeps its transfer cookies. The bot stores what a server
  * sends (store_cookie) and answers a server's cookie_request from it, or with nothing.
  */
-export async function bot(username, { port = PORT, transferred = false, cookies = null } = {}) {
-  const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: CLIENT, auth: 'offline', viewDistance: 'normal' })
+export async function bot(username, { port = PORT, transferred = false, cookies = null, physics = true } = {}) {
+  // physics: false keeps the bot still from the first tick, for versions where a moving older client is disconnected.
+  const b = mineflayer.createBot({ host: '127.0.0.1', port, username, version: CLIENT, auth: 'offline', viewDistance: 'normal', physicsEnabled: physics })
   if (cookies) {
     b._client.on('store_cookie', d => cookies.set(d.key, d.value))
     b._client.on('cookie_request', d => b._client.write('cookie_response', { key: d.cookie, value: cookies.get(d.cookie) }))
@@ -169,6 +170,10 @@ export async function bot(username, { port = PORT, transferred = false, cookies 
   if (transferred) { // connect the way a client does after a transfer: handshake intent 3, not 2
     const write = b._client.write.bind(b._client)
     b._client.write = (name, data) => write(name, name === 'set_protocol' ? { ...data, nextState: 3 } : data)
+  }
+  if (!physics) { // mineflayer still answers each teleport with a position packet: drop it, the teleport confirm is enough
+    const write = b._client.write.bind(b._client)
+    b._client.write = (name, data) => (/^(position|position_look|look|flying)$/.test(name) ? undefined : write(name, data))
   }
   b.chat_log = []
   b.on('messagestr', (m, position) => { if (position !== 'game_info') b.chat_log.push(m) }) // chat, not the action bar other plugins fill

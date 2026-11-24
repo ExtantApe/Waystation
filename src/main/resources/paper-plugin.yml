@@ -1,14 +1,14 @@
-name: Waystation
+name: Waycave
 version: ${version}
-main: com.extantape.waystation.WaystationPlugin
+main: com.extantape.waycave.WaycavePlugin
 api-version: '26.1'
-description: Walkable display-entity gates between Multiverse world groups.
-# Lets other plugins see Waystation's classes, so they can listen for WaystationAccessEvent and veto a gate.
+description: A lush glowing cave of your own, with a trail from its start to each world you can reach, and walkable display-entity gates between Multiverse world groups.
+# Lets other plugins see Waycave's classes, so they can listen for WaycaveAccessEvent and veto a gate.
 has-open-classloader: true
 # Commands are registered in code, with Paper's registerCommand.
 dependencies:
   server:
-    # Optional: without it there's no station, but fargates, placed gates and the return command work.
+    # Optional: without it there's no cave, but fargates, placed gates and the return command work.
     Multiverse-Core: {load: BEFORE, required: false, join-classpath: true}
     BlueMap: {load: BEFORE, required: false, join-classpath: true}
     # Reached through their own classloaders when present, so no classpath access is needed.
@@ -17,41 +17,44 @@ dependencies:
     GriefPrevention: {load: BEFORE, required: false, join-classpath: false}
     Vault: {load: BEFORE, required: false, join-classpath: false}
     ViaVersion: {load: BEFORE, required: false, join-classpath: false}
-    # Optional: its lobby places the lobby gate. Read by name, so Waystation builds and runs without it.
+    # Optional: its lobby places the lobby gate. Read by name, so Waycave builds and runs without it.
     WelcomeWagon: {load: BEFORE, required: false, join-classpath: false}
+    # Optional: who can see whom in the cave follows its groups. Read by name. Without it nobody in the cave sees anyone.
+    Mayor: {load: BEFORE, required: false, join-classpath: false}
+    # Optional: with it the start chamber has a gate to another server. Read by name.
+    Wayport: {load: BEFORE, required: false, join-classpath: false}
 permissions:
   # default: false everywhere an admin is concerned: operators get nothing for free.
-  waystation.admin:
-    description: All of /gate. For a narrower role, grant waystation.admin.<subcommand> instead.
+  waycave.admin:
+    description: All of /gate. For a narrower role, grant waycave.admin.<subcommand> instead.
     default: false
-  waystation.admin.help: {default: false}
-  waystation.admin.list: {default: false}
-  waystation.admin.create: {default: false}
-  waystation.admin.fargate: {default: false}
-  waystation.admin.move: {default: false}
-  waystation.admin.link: {default: false}
-  waystation.admin.remove: {default: false}
-  waystation.admin.test: {default: false}
-  waystation.admin.addworld: {default: false}
-  waystation.admin.relayout: {default: false}
-  waystation.admin.reseed: {default: false}
-  waystation.admin.enlarge: {default: false}
-  waystation.admin.reload: {default: false}
-  waystation.admin.seedead:
+  waycave.admin.help: {default: false}
+  waycave.admin.list: {default: false}
+  waycave.admin.create: {default: false}
+  waycave.admin.fargate: {default: false}
+  waycave.admin.move: {default: false}
+  waycave.admin.link: {default: false}
+  waycave.admin.remove: {default: false}
+  waycave.admin.test: {default: false}
+  waycave.admin.addworld: {default: false}
+  waycave.admin.relayout: {default: false}
+  waycave.admin.reseed: {default: false}
+  waycave.admin.reload: {default: false}
+  waycave.admin.seedead:
     description: See dead gates even without access to the world they led to.
     default: false
-  waystation.buy:
+  waycave.buy:
     description: Use /buygate.
     default: true
-  waystation.find:
+  waycave.find:
     description: Use /waygate.
     default: true
-  waystation.move:
+  waycave.move:
     description: Offer a tribute at a waygate's chest. The node name is configurable in config.yml.
     default: true
-  waystation.return:
+  waycave.return:
     description: Use the return command. The node name is configurable in config.yml.
     default: false
-  waystation.escape:
+  waycave.escape:
     description: Use the escape command. The node name is configurable in config.yml.
     default: true

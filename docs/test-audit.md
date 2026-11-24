@@ -1,6 +1,44 @@
 # Test audit
 
-What Waystation promises, and the tests that prove it. Newest first.
+What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
+
+## 2026-11-24: the Waycave rebuild (K649)
+
+What the cave promises, and what proves it. Counts and versions are in the CHANGELOG and the PR.
+
+| Promise | Proved by |
+| --- | --- |
+| The same seed and groups give the same cave; another seed a different one | `CaveTest`: same seed, another seed |
+| A group added later adds a chamber and moves no chamber, tunnel or gate place | `CaveTest`: added later (20 seeds); `cave` bots: every gate where it was, a chamber more, the sampled blocks unchanged |
+| Every chamber, tunnel point and gate front can be walked to from the start, and no walkable ground is cut off | `CaveTest`: 200 seeds with 1 to 7 groups; `cave` bots: the plugin's walk over the real blocks passed |
+| No dead chamber: each has gates or a feature | `CaveTest`: no dead chambers (40 seeds) |
+| Floors step at most one block, two blocks of headroom everywhere | `CaveTest`: floors and headroom |
+| Every walkable block is at light 9 or more (so nothing spawns) | `CaveTest`: light (25 seeds, simulated light) |
+| Tunnels are 3 to 5 blocks wide and wind; gate places are spaced, clear of doors, face the middle, and fit | `CaveTest`: widths, sockets, capacity |
+| Each player sees only their own gates | `cave` bots: two bots, 13 gates, 26 checks, at the same coordinates |
+| Each player sees only their own trails, and another player on the same spot sees plain floor; nothing is placed in the world | `cave` bots: carpet at the end of every trail, 26 checks; real block is not carpet; `TrailRouteTest` for the shape |
+| A trail is walkable ground, connected, starts by the monument and ends in front of its gate; stable per player, different between players | `TrailRouteTest` (25 seeds, every gate place) |
+| Players see each other only where Mayor allows; fails closed without Mayor | `CaveCrowdTest` (rule, null answers); `cave` bots: shared circle (control), no shared circle, joining and leaving a circle, and a run without Mayor |
+| A lost access closes the trail, the gate and reads (trail closed); a regained one reopens; a world never held is never named | `TrailsBoardTest`; `cave` bots: board text, trail and gate gone and back, bob's board |
+| Nobody can change a block in the cave | `cave` bots: a survival bot's break is refused. Control: the same break works in a survival world |
+| Arrival is at the end of the last trail, else the start chamber | `CaveCrowdTest` (every reason to fall back); `cave` bots (26.1.2 only): lands two blocks in front of the gate; with the gate removed, in the start chamber |
+| The Wayport gate exists only with Wayport, and only a player who may use it sees it | `cave` bots: absent without, present with, seen by one player and not another, walking in runs Wayport's command (26.1.2 only) |
+| Old gates from an older install are re-pointed at the new world | Not tested yet (see gaps) |
+
+### Gaps
+
+- **Walking on 26.2 and 26.3.** A 26.1 bot that moves is disconnected there, so those runs skip arrival and the Wayport walk. Arrival's rule is unit tested and was walked on 26.1.2.
+- **A real client.** Nothing about how it looks, reads or feels is checked.
+- **The upgrade.** The re-pointing of a Waystation install's return gates (`repointStale`) and the rename steps have not been run against a copy of a real install. The rehearsal on a stopped copy is the Head's.
+- **Trails across a chunk reload.** The resend when a chunk reaches a player (`PlayerChunkLoadEvent`) isn't exercised by a bot: the bots stay in range.
+- **The older suites** (`acceptance`, `fargate`, `defaults`, `hop`, `economy`, `return`, `handover`) were renamed mechanically and not run. Several assert the old platforms, floor tiles and `/gate enlarge`. K24's last checks are still to run against Waycave on a stopped real copy.
+- **`/buygate`** is still typed (D284 asks for a portal or menu). Not built.
+- **Hand-placed gates in the cave** get no trail: a trail follows the plan to a gate place.
+
+### Skipped as overkill
+
+- The shape of the wall noise and the exact blocks of walls and ceilings: only that the result is connected, lit and the same each time.
+- Mayor's own rules: Mayor tests those. Waycave tests only what it does with the answer.
 
 ## 2026-11-11: the older suites' failures on the stand-in (K24)
 

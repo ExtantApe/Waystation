@@ -3,9 +3,9 @@
 // It never reads a real server. The result goes where prepare-copy.sh would put a copy: <base>/server.
 //
 // Usage: node test/prepare-small.mjs <base folder under a temp folder> <version: 26.1.2|26.2|26.3>
-// Needs WAYSTATION_TEST_JARS (paper-<version>.jar and plugins/ with multiverse-core, multiverse-inventories, LuckPerms,
-// GriefPrevention, bluemap and, on 26.2+, ViaVersion and ViaBackwards), WAYSTATION_TEST_EULA=accept and
-// WAYSTATION_TEST_JAVA. The suites then run with WAYSTATION_TEST_BASE=<base>.
+// Needs WAYCAVE_TEST_JARS (paper-<version>.jar and plugins/ with multiverse-core, multiverse-inventories, LuckPerms,
+// GriefPrevention, bluemap and, on 26.2+, ViaVersion and ViaBackwards), WAYCAVE_TEST_EULA=accept and
+// WAYCAVE_TEST_JAVA. The suites then run with WAYCAVE_TEST_BASE=<base>.
 //
 // What it can't stand in for: real terrain (trees, water, cliffs and builds near spawn), real players' saved spots and
 // inventories, and a big world's load. docs/test-audit.md lists the cases that still need the real copy.
@@ -19,9 +19,9 @@ if (!BASE || !['26.1.2', '26.2', '26.3'].includes(V)) throw new Error('Usage: no
 const base = path.resolve(BASE)
 if (![os.tmpdir(), '/tmp', '/private/tmp', '/var/folders'].map(p => path.resolve(p)).some(t => base.startsWith(t + path.sep)))
   throw new Error('The base folder must be inside a temp folder, not ' + base)
-const JARS = process.env.WAYSTATION_TEST_JARS, JAVA = process.env.WAYSTATION_TEST_JAVA ?? 'java'
-if (process.env.WAYSTATION_TEST_EULA !== 'accept') throw new Error('Set WAYSTATION_TEST_EULA=accept to accept the Minecraft EULA for this throwaway server')
-const PORT = Number(process.env.WAYSTATION_TEST_PORT ?? 25599)
+const JARS = process.env.WAYCAVE_TEST_JARS, JAVA = process.env.WAYCAVE_TEST_JAVA ?? 'java'
+if (process.env.WAYCAVE_TEST_EULA !== 'accept') throw new Error('Set WAYCAVE_TEST_EULA=accept to accept the Minecraft EULA for this throwaway server')
+const PORT = Number(process.env.WAYCAVE_TEST_PORT ?? 25599)
 const jar = start => {
   const dir = path.join(JARS, 'plugins'), hit = readdirSync(dir).find(f => f.toLowerCase().startsWith(start.toLowerCase()) && f.endsWith('.jar'))
   if (!hit) throw new Error(`No ${start}*.jar in ${dir}`)
@@ -84,7 +84,7 @@ for (const [w, env] of Object.entries(WORLDS)) {
 // nobody owns legacy (it's for sale) and quiet has no members. Everyone may /mvtp themselves until the gates-only
 // set-up takes it away; admins may send others.
 const ACCESS = {
-  default: ['lobby', 'waystation'],
+  default: ['lobby', 'waycave'],
   family: ['meadow', 'meadow_nether', 'meadow_the_end', 'survival', 'survival_the_end', 'creative', 'flatlands', 'oneblock', 'TARDIS_TimeVortex'],
   friends: ['friends_survival', 'friends_flatlands'], kids: ['kids_survival', 'kids_flatlands'], quiet: ['quiet_survival', 'quiet_flatlands'],
 }
@@ -107,7 +107,7 @@ const missing = Object.keys(WORLDS).filter(w => !made.includes(w))
 if (missing.length) throw new Error('These worlds weren\'t made: ' + missing.join(', ') + '\n' + log.slice(-10).join('\n'))
 
 // Multiverse-Inventories groups, the station's world in the Lobby group as the install steps say.
-GROUPS.Lobby.push('waystation')
+GROUPS.Lobby.push('waycave')
 mkdirSync(path.join(dir, 'plugins/Multiverse-Inventories'), { recursive: true })
 writeFileSync(path.join(dir, 'plugins/Multiverse-Inventories/groups.yml'), 'groups:\n' + Object.entries(GROUPS).map(([g, ws]) =>
   `  ${g}:\n    worlds:\n${ws.map(w => `    - ${w}\n`).join('')}    shares:\n${SHARES.map(s => `    - ${s}\n`).join('')}`).join(''))
@@ -121,10 +121,10 @@ if (existsSync(path.join(bm, 'core.conf'))) {
   const web = path.join(bm, 'webserver.conf')
   writeFileSync(web, readFileSync(web, 'utf8').replace(/^port: .*/m, 'port: 8199') + '\nip: "127.0.0.1"\n')
   mkdirSync(path.join(bm, 'maps'), { recursive: true })
-  const conf = new URL('../setup/bluemap-waystation.conf', import.meta.url).pathname
-  writeFileSync(path.join(bm, 'maps/waystation.conf'), readFileSync(conf, 'utf8').replace(/^world: "world"/m, 'world: "lobby"'))
+  const conf = new URL('../setup/bluemap-waycave.conf', import.meta.url).pathname
+  writeFileSync(path.join(bm, 'maps/waycave.conf'), readFileSync(conf, 'utf8').replace(/^world: "world"/m, 'world: "lobby"'))
 }
 // The set-up files name their admin group admin-family; here it's admin. run.mjs swaps names from this file.
 writeFileSync(path.join(base, 'names.json'), JSON.stringify({ 'admin-family': 'admin' }) + '\n')
 console.log(`Prepared a small stand-in in ${dir}: ${made.length} worlds plus the lobby, ${Object.keys(GROUPS).length} inventory groups.`)
-console.log(`Run a suite with WAYSTATION_TEST_BASE=${base} WAYSTATION_TEST_NAMES=${path.join(base, 'names.json')} node test/run.mjs <suite>`)
+console.log(`Run a suite with WAYCAVE_TEST_BASE=${base} WAYCAVE_TEST_NAMES=${path.join(base, 'names.json')} node test/run.mjs <suite>`)

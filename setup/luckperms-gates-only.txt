@@ -45,7 +45,7 @@ lp group gates-only permission set multiverse.teleport.self.w.kids_survival fals
 lp group gates-only permission set multiverse.teleport.self.w.kids_survival_nether false
 lp group gates-only permission set multiverse.teleport.self.w.kids_survival_the_end false
 lp group gates-only permission set multiverse.teleport.self.w.oneblock false
-lp group gates-only permission set multiverse.teleport.self.w.waystation false
+lp group gates-only permission set multiverse.teleport.self.w.waycave false
 lp group gates-only permission set multiverse.teleport.self.w.survival false
 lp group gates-only permission set multiverse.teleport.self.w.survival_nether false
 lp group gates-only permission set multiverse.teleport.self.w.survival_the_end false
@@ -57,10 +57,10 @@ lp group gates-only permission set multiverse.teleport.other.pl false
 lp group default parent add gates-only
 #
 # Give admins the /gate command (LuckPerms, since there are no vanilla operators):
-lp group admin-family permission set waystation.admin true
+lp group admin-family permission set waycave.admin true
 #
 # Everyone needs to be allowed into the station:
-lp group default permission set multiverse.access.waystation true
+lp group default permission set multiverse.access.waycave true
 #
 # Admins keep /mvtp: a group that outranks gates-only, with the same nodes turned back on.
 lp creategroup admin-mvtp
@@ -97,7 +97,7 @@ lp group admin-mvtp permission set multiverse.teleport.self.w.kids_survival true
 lp group admin-mvtp permission set multiverse.teleport.self.w.kids_survival_nether true
 lp group admin-mvtp permission set multiverse.teleport.self.w.kids_survival_the_end true
 lp group admin-mvtp permission set multiverse.teleport.self.w.oneblock true
-lp group admin-mvtp permission set multiverse.teleport.self.w.waystation true
+lp group admin-mvtp permission set multiverse.teleport.self.w.waycave true
 lp group admin-mvtp permission set multiverse.teleport.self.w.survival true
 lp group admin-mvtp permission set multiverse.teleport.self.w.survival_nether true
 lp group admin-mvtp permission set multiverse.teleport.self.w.survival_the_end true

@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { Server, freshCopy, installJar, sleep, check, summary, DIR, worldDir } from './harness.mjs'
 const s = new Server()
-const cfg = DIR + '/plugins/Waystation/config.yml'
+const cfg = DIR + '/plugins/Waycave/config.yml'
 const gates = async () => (await s.ask('gate list', 1000)).join('\n')
 
 console.log('\n# Default config')
@@ -12,7 +12,7 @@ check('the default config lists no worlds or groups', /^worlds: \{\}/m.test(text
 check('the example worlds are off', /^example-worlds: false/m.test(text))
 check('every world still gets a gate', /station-survival:/.test(list) && /station-lobby:/.test(list) && /return-survival:/.test(list), list.slice(0, 160))
 check('no example world without the flag', !existsSync(worldDir('example_survival')) && !/example_/.test(list))
-check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+check('no Waycave errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
 writeFileSync(cfg, text.replace('example-worlds: false', 'example-worlds: true'))
 await s.stop(); await sleep(1500); await s.start(); await sleep(8000)
 check('the flag does nothing once gates exist', !existsSync(worldDir('example_survival')))
@@ -21,7 +21,7 @@ await s.stop(); await sleep(1500)
 
 console.log('\n# The flag, before the first start')
 freshCopy(); installJar({ testConfig: false })
-mkdirSync(DIR + '/plugins/Waystation', { recursive: true }); writeFileSync(cfg, 'example-worlds: true\n')
+mkdirSync(DIR + '/plugins/Waycave', { recursive: true }); writeFileSync(cfg, 'example-worlds: true\n')
 await s.start(); await sleep(15000)
 text = readFileSync(cfg, 'utf8'); list = await gates()
 check('the one-line file becomes the full config', /^looks:/m.test(text) && /^messages:/m.test(text))
@@ -37,6 +37,6 @@ check('they load again after a restart', /example_survival/.test(after) && /exam
 const made = s.log.filter(l => /Created an example world/.test(l)).length
 check('a restart makes nothing again', made === 2, `created ${made} times`)
 check('the worlds and gates are still there', /station-example_survival:/.test(await gates()))
-check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+check('no Waycave errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
 await s.stop()
 summary()

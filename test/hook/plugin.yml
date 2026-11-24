@@ -2,7 +2,7 @@ name: DenyHook
 version: 1
 main: hook.DenyHook
 api-version: '26.1'
-depend: [Waystation, Vault]
+depend: [Waycave, Vault]
 commands:
   fakebalance: {}
   hookhandover: {}

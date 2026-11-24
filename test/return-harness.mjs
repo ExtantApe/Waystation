@@ -14,25 +14,25 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms))
 // test/run.mjs runs a generated copy of the suites, in test/.run.
 const ROOT = new URL(path.basename(path.dirname(new URL(import.meta.url).pathname)) === '.run' ? '../../' : '../', import.meta.url).pathname
 const LIBS = path.join(ROOT, 'build/libs/')
-const built = existsSync(LIBS) ? readdirSync(LIBS).filter(f => /^Waystation-.*\.jar$/.test(f)) : []
-if (built.length !== 1) throw new Error(`Run ./gradlew clean shadowJar first: expected one Waystation jar in build/libs, found ${built.length}`)
+const built = existsSync(LIBS) ? readdirSync(LIBS).filter(f => /^Waycave-.*\.jar$/.test(f)) : []
+if (built.length !== 1) throw new Error(`Run ./gradlew clean shadowJar first: expected one Waycave jar in build/libs, found ${built.length}`)
 export const JAR = path.join(LIBS, built[0])
 
 // A folder holding paper-<version>.jar for each version, optionally mojang_<version>.jar so Paper needn't download it,
 // and plugins/ with ViaVersion, ViaBackwards and LuckPerms jars.
-export const JARS = process.env.WAYSTATION_TEST_JARS
-if (!JARS || !existsSync(path.join(JARS, 'plugins'))) throw new Error('Set WAYSTATION_TEST_JARS to a folder with paper-<version>.jar files and plugins/')
+export const JARS = process.env.WAYCAVE_TEST_JARS
+if (!JARS || !existsSync(path.join(JARS, 'plugins'))) throw new Error('Set WAYCAVE_TEST_JARS to a folder with paper-<version>.jar files and plugins/')
 // Starting a server means accepting Mojang's EULA. That's the owner's call, so it has to be said out loud.
-if (process.env.WAYSTATION_TEST_EULA !== 'accept') throw new Error('Set WAYSTATION_TEST_EULA=accept to accept the Minecraft EULA for these throwaway test servers')
-export const JAVA = process.env.WAYSTATION_TEST_JAVA ?? 'java'
+if (process.env.WAYCAVE_TEST_EULA !== 'accept') throw new Error('Set WAYCAVE_TEST_EULA=accept to accept the Minecraft EULA for these throwaway test servers')
+export const JAVA = process.env.WAYCAVE_TEST_JAVA ?? 'java'
 /** The bots' game version. 26.1 joins a 26.1 server directly; newer servers let them in through ViaVersion. */
-export const CLIENT = process.env.WAYSTATION_TEST_CLIENT ?? '26.1'
+export const CLIENT = process.env.WAYCAVE_TEST_CLIENT ?? '26.1'
 
-export const BASE = process.env.WAYSTATION_TEST_DIR ?? mkdtempSync(path.join(os.tmpdir(), 'waystation-return-test-'))
+export const BASE = process.env.WAYCAVE_TEST_DIR ?? mkdtempSync(path.join(os.tmpdir(), 'waycave-return-test-'))
 mkdirSync(BASE, { recursive: true })
 // A folder the harness made for itself goes when the run ends, pass or fail: no test server is left behind. One
-// named in WAYSTATION_TEST_DIR is the caller's, and stays (it keeps Paper's downloaded libraries between runs).
-if (!process.env.WAYSTATION_TEST_DIR) {
+// named in WAYCAVE_TEST_DIR is the caller's, and stays (it keeps Paper's downloaded libraries between runs).
+if (!process.env.WAYCAVE_TEST_DIR) {
   process.on('exit', () => { try { rmSync(BASE, { recursive: true, force: true }) } catch {} })
 }
 
@@ -57,7 +57,7 @@ export function freshServer(name, { version, port, transfers = true, plugins = [
   return dir
 }
 
-/** A plugin jar from WAYSTATION_TEST_JARS/plugins, found by the start of its name. */
+/** A plugin jar from WAYCAVE_TEST_JARS/plugins, found by the start of its name. */
 export function pluginJar(start) {
   const dir = path.join(JARS, 'plugins'), hit = readdirSync(dir).find(f => f.toLowerCase().startsWith(start.toLowerCase()) && f.endsWith('.jar'))
   if (!hit) throw new Error(`No ${start}*.jar in ${dir}`)
@@ -69,15 +69,15 @@ export function setProperty(dir, key, value) {
   writeFileSync(p, readFileSync(p, 'utf8').replace(new RegExp(`^${key}=.*$`, 'm'), `${key}=${value}`))
 }
 
-/** Waystation's shipped config.yml with these replacements, so every other setting stays as a new server gets it. */
+/** Waycave's shipped config.yml with these replacements, so every other setting stays as a new server gets it. */
 export function writeConfig(dir, replacements) {
   let text = readFileSync(path.join(ROOT, 'src/main/resources/config.yml'), 'utf8')
   for (const [from, to] of replacements) {
     if (!text.includes(from)) throw new Error('config.yml has no ' + JSON.stringify(from))
     text = text.replace(from, to)
   }
-  mkdirSync(path.join(dir, 'plugins/Waystation'), { recursive: true })
-  writeFileSync(path.join(dir, 'plugins/Waystation/config.yml'), text)
+  mkdirSync(path.join(dir, 'plugins/Waycave'), { recursive: true })
+  writeFileSync(path.join(dir, 'plugins/Waycave/config.yml'), text)
 }
 
 export class Server {
@@ -123,7 +123,7 @@ export class Server {
     return this.log.slice(from).map(l => l.replace(/^\[[\d:]+ \w+\]: /, ''))
   }
   errors() {
-    return this.log.filter(l => /(ERROR|SEVERE|Exception)/.test(l) && /Waystation|waystation/.test(l))
+    return this.log.filter(l => /(ERROR|SEVERE|Exception)/.test(l) && /Waycave|waycave/.test(l))
   }
   since(from) { return this.log.slice(from) }
   async stop() {

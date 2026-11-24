@@ -27,3 +27,18 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 ## 2026-11-14
 
 - **Other plugins' new names (owner, D194, D196, D197, D198):** Waystation reads WelcomeWagon's lobby and arrival event by their new names, and its docs and tests use OneVoid, Mayor, Sheriff and the other new names. Waystation itself keeps its name until the Waycave rebuild (K649), as the owner chose. Released as 0.7.2.
+
+## 2026-11-22
+
+- **Waycave answers (owner, Simon's dialogs, 2026-11-22, relayed by the chief of staff):** cave shape "organic tunnels and chambers that are unique to each instance"; trails "Moss and glow lichen (Recommended)", visible only to that player; seeing other players in the cave "Follow Mayor's groups (Recommended)"; arrival "End of their last trail", falling back to the start chamber when that spot is gone or unsafe (the lead's pick); the old station world "throw it away, was never used", moved to the Trash at the switch once a backup exists in the normal backup set, with no hold. Generated caves must always connect, with no dead chambers, and tests prove it. Details in `docs/waycave-design.md` (K649).
+
+## 2026-11-24
+
+- **Waycave build (K649).** Decisions the design notes didn't cover, made while building, for the owner to confirm:
+  the world is a flat Multiverse world with the cave built high above its ground, because Multiverse loads worlds before a
+  generator plugin is up on restart; the cave is planned once and `/gate reseed` leaves it alone; `/gate enlarge` is gone,
+  since a chamber is sized for its group's gates plus spares; a world with no place left in its chamber is reported to
+  admins and not squeezed in; the Trails board names a world as (trail closed) only to a player who once had a trail to
+  it; Mayor must list `waycave` as a circle-only world for the cave to follow circles; the Wayport gate runs Wayport's
+  command and Waycave's own fargate transfer code is untouched (to retire separately).
+- **D284 (owner, 2026-11-24):** "Players never need to type a command in game where a walk-in portal, sign, book, menu or NPC can do the job. Commands stay for admins and as a hidden fallback." Applied: no text teaches a player command except `/buygate`, which still needs a menu or portal.
