@@ -1,23 +1,25 @@
 // Buying a gate with a real economy plugin behind Vault, not the test stand-in. Needs
-// WAYSTATION_TEST_ECONOMY_JAR: an economy plugin jar such as EssentialsX.
+// WAYCAVE_TEST_ECONOMY_JAR: an economy plugin jar such as EssentialsX.
 import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { Server, freshCopy, installJar, sleep, bot, check, summary, DIR } from './harness.mjs'
+import { Server, freshCopy, installJar, sleep, bot as joinBot, check, summary, DIR } from './harness.mjs'
+// On 26.2 and 26.3 a bot that moves is disconnected, and buying needs no walking, so those runs keep the bots still.
+const bot = name => joinBot(name, { physics: process.env.WAYCAVE_TEST_NOWALK !== '1' })
 
-const eco = process.env.WAYSTATION_TEST_ECONOMY_JAR
-if (!eco) throw new Error('Set WAYSTATION_TEST_ECONOMY_JAR')
+const eco = process.env.WAYCAVE_TEST_ECONOMY_JAR
+if (!eco) throw new Error('Set WAYCAVE_TEST_ECONOMY_JAR')
 const s = new Server()
-const cfg = DIR + '/plugins/Waystation/config.yml'
+const cfg = DIR + '/plugins/Waycave/config.yml'
 const has = (b, re) => b.chat_log.some(m => re.test(m))
 const balance = async name => { const out = (await s.ask(`balance ${name}`, 800)).join(' '); return Number(out.match(/\$([\d,]+(?:\.\d+)?)/)?.[1].replace(/,/g, '') ?? NaN) }
 
 freshCopy(); copyFileSync(eco, path.join(DIR, 'plugins', path.basename(eco))); installJar()
 writeFileSync(cfg, readFileSync(cfg, 'utf8').replace(/^  legacy: +\{enabled: true, label: "<gold>Legacy"\}/m, '  legacy: {enabled: true, label: "<gold>Legacy", price: {money: 40}}'))
 await s.start(); await sleep(12000)
-await s.ask('lp group default permission set multiverse.access.waystation true', 300)
+await s.ask('lp group default permission set multiverse.access.waycave true', 300)
 check('control: Vault sees the real economy', s.log.some(l => /Essentials/.test(l) && /Vault|economy/i.test(l)) || (await s.ask('vault-info', 800)).join(' ').includes('Essentials'))
 
-const buyer = await bot('buyer'); await s.ask('mvtp buyer w:waystation', 2500)
+const buyer = await bot('buyer'); await s.ask('mvtp buyer w:waycave', 2500)
 await s.ask('eco set buyer 30', 500)
 check('control: the economy reads the balance it was given', await balance('buyer') === 30)
 buyer.chat('/buygate legacy'); await sleep(2000)
@@ -31,16 +33,16 @@ check('and access was granted', (await s.ask('lp user buyer permission check mul
 console.log('\n# A grant that fails is refunded')
 writeFileSync(cfg, readFileSync(cfg, 'utf8').replace('    - "lp user <player> permission set multiverse.access.<world> true"', '    - "say no grant for <player>"'))
 await s.ask('gate reload', 1500)
-const buyer2 = await bot('buyer2'); await s.ask('mvtp buyer2 w:waystation', 2500)
+const buyer2 = await bot('buyer2'); await s.ask('mvtp buyer2 w:waycave', 2500)
 await s.ask('eco set buyer2 100', 500)
 buyer2.chat('/buygate legacy'); await sleep(4500)
 check('grant fails: told and refunded in full', has(buyer2, /paid back/) && await balance('buyer2') === 100, buyer2.chat_log.at(-1))
 // No economy plugin behind Vault: a money price can't be paid, so nothing is charged and nothing is granted.
 await s.stop(); rmSync(path.join(DIR, 'plugins', path.basename(eco))); await s.start(); await sleep(12000)
-const buyer3 = await bot('buyer3'); await s.ask('mvtp buyer3 w:waystation', 2500)
+const buyer3 = await bot('buyer3'); await s.ask('mvtp buyer3 w:waycave', 2500)
 buyer3.chat('/buygate legacy'); await sleep(2500)
 check('no economy plugin: a money price is refused', has(buyer3, /don't have enough/), buyer3.chat_log.at(-1))
 check('and no access is granted', !(await s.ask('lp user buyer3 permission check multiverse.access.legacy', 800)).join(' ').includes('true'))
-check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+check('no Waycave errors', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
 await s.stop()
 summary()

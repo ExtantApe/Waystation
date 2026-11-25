@@ -11,7 +11,7 @@ Draft by the Plugins Lead, 2026-11-22, for K649. Nothing here is built yet, exce
 - **The owner's answers (Simon's dialogs, 2026-11-22):**
   - Cave shape: "organic tunnels and chambers that are unique to each instance". Each server gets its own generated layout.
   - Trails: "Moss and glow lichen (Recommended)", visible only to that player.
-  - Seeing other players in the cave: "Follow Mayor's groups (Recommended)".
+  - Seeing other players in the cave: "Follow Posse's groups (Recommended)".
   - Arrival: "End of their last trail", with a safe fallback (see Arrival).
   - The old station world: "throw it away, was never used". At the switch it moves to the Trash once a backup exists in the normal backup set. No hold period.
 
@@ -54,7 +54,7 @@ You arrive at the end of your last trail (owner): one step in front of the gate 
 
 ## Seeing other players
 
-Players in the cave see each other only where Mayor's player groups allow (owner). Anyone outside a player's groups is hidden from them while both are in the cave (`hideEntity`), and shown again when either leaves or the groups change. Without Mayor, players in the cave are hidden from each other (fails closed).
+Players in the cave see each other only where Posse's player groups allow (owner). Anyone outside a player's groups is hidden from them while both are in the cave (`hideEntity`), and shown again when either leaves or the groups change. Without Posse, players in the cave are hidden from each other (fails closed).
 
 ## The Trails board
 
@@ -85,7 +85,7 @@ The install steps rename the folder and the permission nodes (LuckPerms: one `lp
 ## Order of work
 
 1. The cave generator, with its connection checks, and a `/waycave preview` that builds a cave in a throwaway world.
-2. Trails on the generated tunnels, the Trails board, arrival and hiding players by Mayor's groups.
+2. Trails on the generated tunnels, the Trails board, arrival and hiding players by Posse's groups.
 3. The rename, in the same release (it waits for the cave).
 4. The test cave the owner walks in a real game (D194). Nothing goes live before that.
 5. Wayport in the start chamber.
@@ -94,6 +94,6 @@ The install steps rename the folder and the permission nodes (LuckPerms: one `lp
 ## Testing
 
 - **Unit:** the layout from a seed and a group list (same input, same cave; different servers, different caves; a new group adds a chamber and moves none). Over many seeds: every chamber and gate reachable from the start, no dead chambers, every tunnel walkable, and the flood fill agrees with the plan. Trail curves (stay on walkable floor, never cross a wall, reach the gate). Light levels (no walkable block below 9). Arrival (last trail's end, and the start chamber whenever that spot is gone or unsafe). The board's lines, including closed trails.
-- **Bots on a throwaway server:** each bot sees only its own trails and gates (two bots with different access, looking at the same blocks); bots outside each other's Mayor groups don't see each other in the cave; a lost access closes the trail and the board says so; protection holds; arrival lands at the last trail's end, or the start chamber after that gate is removed.
+- **Bots on a throwaway server:** each bot sees only its own trails and gates (two bots with different access, looking at the same blocks); bots outside each other's Posse groups don't see each other in the cave; a lost access closes the trail and the board says so; protection holds; arrival lands at the last trail's end, or the start chamber after that gate is removed.
 - **Real client (owner):** how the cave and trails look and read, as D194 asks.
 - **Clean-up (D226):** every test removes only the folders and servers it made, pass or fail, with a leftover check.

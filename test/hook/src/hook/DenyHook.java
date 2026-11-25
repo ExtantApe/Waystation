@@ -1,7 +1,7 @@
 package hook;
-import com.extantape.waystation.LandingService;
-import com.extantape.waystation.WaystationAccessEvent;
-import com.extantape.waystation.WaystationHandOverEvent;
+import com.extantape.waycave.LandingService;
+import com.extantape.waycave.WaycaveAccessEvent;
+import com.extantape.waycave.WaycaveHandOverEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -63,10 +63,10 @@ public final class DenyHook extends JavaPlugin implements Listener {
             return true;
         });
     }
-    @EventHandler public void on(WaystationAccessEvent e) {
-        if (e.getPlayer().getName().equals("hooky") && e.getDestination().equals(System.getProperty("waystation.test.deny", "meadow"))) e.setCancelled(true);
+    @EventHandler public void on(WaycaveAccessEvent e) {
+        if (e.getPlayer().getName().equals("hooky") && e.getDestination().equals(System.getProperty("waycave.test.deny", "meadow"))) e.setCancelled(true);
     }
-    @EventHandler public void on(WaystationHandOverEvent e) {
+    @EventHandler public void on(WaycaveHandOverEvent e) {
         boolean screenOpen = e.getPlayer().getOpenInventory().getTopInventory().getType() != org.bukkit.event.inventory.InventoryType.CRAFTING;
         getLogger().info("HANDOVER " + e.getPlayer().getName() + " gate " + e.getGateId() + " dest " + e.getDestination()
             + " handled-before " + e.isHandled() + " screen-open " + screenOpen + " will-handle " + handOver);

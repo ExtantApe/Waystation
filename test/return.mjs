@@ -1,26 +1,26 @@
-// The return command, and Waystation on a one-world server without Multiverse-Core. Bots on one fresh, empty Paper
-// server on 127.0.0.1:25617, the version in WAYSTATION_RETURN_SOURCE (26.1.2, 26.2 or 26.3; default 26.1.2).
+// The return command, and Waycave on a one-world server without Multiverse-Core. Bots on one fresh, empty Paper
+// server on 127.0.0.1:25617, the version in WAYCAVE_RETURN_SOURCE (26.1.2, 26.2 or 26.3; default 26.1.2).
 //
 // One server: the return command sends players back to the same server, and a fake status responder on
 // 127.0.0.1:25628 stands in for the destination's server list ping, so it can be made to look up or down.
-// WAYSTATION_TWO_SERVERS=1 runs a real destination as well, on 127.0.0.1:25618: 26.3, or 26.2 when the source is 26.3.
+// WAYCAVE_TWO_SERVERS=1 runs a real destination as well, on 127.0.0.1:25618: 26.3, or 26.2 when the source is 26.3.
 // That proves a hop between versions, but runs two servers at once.
 //
 // The bots are 26.1 clients: on 26.2 and 26.3 they come in through ViaVersion and ViaBackwards. A bot can't follow a
 // transfer by itself, so it records the transfer packet and reconnects the way a client does after one (intent 3).
 // Ported from Wayport's acceptance suite, which this replaces.
 //
-// WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> node test/return.mjs
+// WAYCAVE_TEST_JARS=<folder> WAYCAVE_TEST_EULA=accept WAYCAVE_TEST_JAVA=<java 25> node test/return.mjs
 import { JAR, freshServer, writeConfig, setProperty, Server, FakeStatus, bot, settle, sleep, said, saidCount, check, summary, BASE, CLIENT } from './return-harness.mjs'
 import minecraftData from 'minecraft-data'
 import { copyFileSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const SRC_PORT = 25617, DEST_PORT = 25618, FAKE_PORT = 25628
-const TWO = process.env.WAYSTATION_TWO_SERVERS === '1'
+const TWO = process.env.WAYCAVE_TWO_SERVERS === '1'
 const TRANSFER_PORT = TWO ? DEST_PORT : SRC_PORT
-const SRC_V = process.env.WAYSTATION_RETURN_SOURCE ?? '26.1.2', DEST_V = SRC_V === '26.3' ? '26.2' : '26.3'
-if (!['26.1.2', '26.2', '26.3'].includes(SRC_V)) throw new Error('WAYSTATION_RETURN_SOURCE must be 26.1.2, 26.2 or 26.3')
+const SRC_V = process.env.WAYCAVE_RETURN_SOURCE ?? '26.1.2', DEST_V = SRC_V === '26.3' ? '26.2' : '26.3'
+if (!['26.1.2', '26.2', '26.3'].includes(SRC_V)) throw new Error('WAYCAVE_RETURN_SOURCE must be 26.1.2, 26.2 or 26.3')
 const PROTOCOL = minecraftData(CLIENT).version.version
 // On 26.3, behind ViaVersion, a bot that moves is disconnected, so there the bots stand still and a piston moves them.
 const physicsOn = port => (port === SRC_PORT ? SRC_V : DEST_V) !== '26.3'
@@ -32,11 +32,11 @@ const pistonPush = b => {
   src.send(`setblock ${p.x - 2} ${p.y} ${p.z} minecraft:redstone_block`)
 }
 const LABEL = '<green>Test Destination</green>'
-/** Waystation's config with a destination and the return command turned on. */
+/** Waycave's config with a destination and the return command turned on. */
 const config = ({ host = '127.0.0.1', port = TRANSFER_PORT, command = 'wayport', aliases = [], destination = 'home', enabled = true, protocols = [PROTOCOL] } = {}) => [
   ['return:\n  enabled: false\n  destination: ""        # a name from fargate-destinations\n  command: return ',
     `return:\n  enabled: ${enabled}\n  destination: "${destination}"\n  command: ${command} `],
-  ['  aliases: []\n  permission: waystation.return', `  aliases: [${aliases.join(', ')}]\n  permission: waystation.return`],
+  ['  aliases: []\n  permission: waycave.return', `  aliases: [${aliases.join(', ')}]\n  permission: waycave.return`],
   ['  check-port: 0\n', `  check-port: ${!TWO && host === '127.0.0.1' && port === TRANSFER_PORT ? FAKE_PORT : 0}\n`],
   ['# fargate-destinations:\n', `fargate-destinations:\n  home:\n    label: "${LABEL}"\n    host: "${host}"\n    port: ${port}\n    protocols: [${protocols.join(', ')}]\n# fargate-destinations:\n`],
 ]
@@ -46,14 +46,14 @@ const transferredTo = (b, port) => b.transfers.length === 1 && b.transfers[0].ho
 const T = { countdown: 5000, check: 3000 }
 const AFTER = T.countdown + T.check + 1500 // long enough for any countdown started now to have finished
 
-console.log(`Test servers in ${BASE}: Waystation on ${SRC_V} without Multiverse, destination ${TWO ? DEST_V : 'the same server, with a fake status check'}, `
+console.log(`Test servers in ${BASE}: Waycave on ${SRC_V} without Multiverse, destination ${TWO ? DEST_V : 'the same server, with a fake status check'}, `
   + `bots ${CLIENT} (protocol ${PROTOCOL}), physics ${PHYS ? 'on' : 'off'}`)
 let x = 0 // each bot gets its own spot, far enough from the others that nobody pushes anybody
 /** A player at their own spot. allowed: given the return command's permission through LuckPerms. */
 async function player(name, { allowed = true, admin = false, port = SRC_PORT, server = src } = {}) {
   const b = await bot(name, { port, physics: physicsOn(port) })
-  if (allowed) await server.ask(`lp user ${name} permission set waystation.return true`, 600)
-  if (admin) await server.ask(`lp user ${name} permission set waystation.admin true`, 600)
+  if (allowed) await server.ask(`lp user ${name} permission set waycave.return true`, 600)
+  if (admin) await server.ask(`lp user ${name} permission set waycave.admin true`, 600)
   x += 12
   server.send(`tp ${name} ${x}.5 ${Math.floor(b.entity.position.y)} 0.5 0 0`)
   await sleep(1200)
@@ -74,7 +74,7 @@ async function waitFor(fn, ms) {
 }
 const blockPos = b => b.entity.position.floored()
 
-// --- Waystation with no Multiverse-Core -----------------------------------------------------------------------
+// --- Waycave with no Multiverse-Core -----------------------------------------------------------------------
 const srcDir = freshServer('source', { version: SRC_V, port: SRC_PORT })
 const destDir = TWO ? freshServer('destination', { version: DEST_V, port: DEST_PORT }) : null
 const startDest = () => (TWO ? new Server(destDir, DEST_V, DEST_PORT) : new FakeStatus(FAKE_PORT)).start()
@@ -83,7 +83,7 @@ copyFileSync(JAR, path.join(srcDir, 'plugins', path.basename(JAR)))
 let src = await new Server(srcDir, SRC_V, SRC_PORT).start()
 let dest = await startDest()
 await sleep(3000)
-check('Waystation loads on Paper ' + SRC_V + ' without Multiverse-Core', src.log.some(l => /Waystation.*Enabling Waystation|\[Waystation\] Enabling/.test(l)) && src.errors().length === 0, src.errors()[0]?.slice(0, 160))
+check('Waycave loads on Paper ' + SRC_V + ' without Multiverse-Core', src.log.some(l => /Waycave.*Enabling Waycave|\[Waycave\] Enabling/.test(l)) && src.errors().length === 0, src.errors()[0]?.slice(0, 160))
 check('it says plainly that there is no station without Multiverse', src.log.some(l => /Multiverse-Core isn't installed, so there's no station/.test(l)))
 check('and makes no station world', !(await src.ask('gate list', 800)).some(l => /station-/.test(l)))
 
@@ -91,8 +91,8 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
 {
   const b = await player('noperm', { allowed: false })
   await sleep(1000)
-  check("a player without waystation.return doesn't see the command", !b.commands.has('wayport'), [...b.commands].filter(c => /gate|return|station/.test(c)).join(', '))
-  check('there is no /station without a station to go to', !b.commands.has('station') && !b.commands.has('hub'))
+  check("a player without waycave.return doesn't see the command", !b.commands.has('wayport'), [...b.commands].filter(c => /gate|return|station/.test(c)).join(', '))
+  check('there is no /cave without a cave to go to', !b.commands.has('cave') && !b.commands.has('hub'))
   b.chat('/wayport')
   await sleep(AFTER)
   check('a player without the permission is refused', !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))
@@ -328,10 +328,10 @@ await restartSource(config({ protocols: [1] }))
 }
 await restartSource(config({ destination: 'nowhere' }))
 {
-  check('a destination that isn\'t defined is logged at startup', src.log.some(l => /\[Waystation\] The return command isn't ready: return\.destination "nowhere" isn't under fargate-destinations/.test(l)))
+  check('a destination that isn\'t defined is logged at startup', src.log.some(l => /\[Waycave\] The return command isn't ready: return\.destination "nowhere" isn't under fargate-destinations/.test(l)))
   const admin = await player('admin', { admin: true })
   admin.chat('/wayport'); await sleep(2000)
-  check('an admin is told exactly what to fix', said(admin, /The return command isn't set up: return\.destination "nowhere" isn't under fargate-destinations\. Fix it in plugins\/Waystation\/config\.yml/) && !said(admin, STARTED), admin.chat_log.join(' | '))
+  check('an admin is told exactly what to fix', said(admin, /The return command isn't set up: return\.destination "nowhere" isn't under fargate-destinations\. Fix it in plugins\/Waycave\/config\.yml/) && !said(admin, STARTED), admin.chat_log.join(' | '))
   admin.quit()
   const plain = await player('plain')
   plain.chat('/wayport'); await sleep(2000)
@@ -353,7 +353,7 @@ await restartSource(config({ command: 'hop', aliases: ['hopback'] }))
 
 // An older config.yml, without the return messages, still gets readable text
 {
-  const file = path.join(srcDir, 'plugins/Waystation/config.yml')
+  const file = path.join(srcDir, 'plugins/Waycave/config.yml')
   writeFileSync(file, readFileSync(file, 'utf8').replace(/^  return-[a-z-]+: .*\n/gm, '').replace(/^  escape-[a-z-]+: .*\n/gm, ''))
   await src.stop(); src = await new Server(srcDir, SRC_V, SRC_PORT).start()
   const b = await player('oldconfig')
@@ -367,7 +367,7 @@ await restartSource(config())
 // A fargate still works on a one-world server
 if (PHYS) {
   await src.ask(`gate fargate tg home world 40 -60 40 south`, 1200)
-  await src.ask('lp group default permission set waystation.fargate.home true', 600)
+  await src.ask('lp group default permission set waycave.fargate.home true', 600)
   const b = await player('gatewalker', { allowed: false })
   src.send('tp gatewalker 40.5 -60 43.5 180 0'); await sleep(1500); await settle(b)
   b.setControlState('forward', true)
@@ -419,7 +419,7 @@ if (PHYS) {
   back.quit()
 }
 
-// Control: a destination with accepts-transfers=false refuses. Waystation can't see that setting from here.
+// Control: a destination with accepts-transfers=false refuses. Waycave can't see that setting from here.
 if (TWO) {
   await dest.stop()
   setProperty(destDir, 'accepts-transfers', 'false')
@@ -430,7 +430,7 @@ if (TWO) {
 }
 
 const errs = [...src.errors(), ...dest.errors()]
-check('no Waystation errors in either log', errs.length === 0, errs.slice(0, 3).join(' | '))
+check('no Waycave errors in either log', errs.length === 0, errs.slice(0, 3).join(' | '))
 await src.stop(); await dest.stop()
 summary()
 process.exit()

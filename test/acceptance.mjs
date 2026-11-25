@@ -86,12 +86,12 @@ installJar()
 console.log('\n# Phase 1: generation')
 await s.start()
 let g = await gates()
-for (let i = 0; i < 40 && (!g._lines.some(l => /^Platform/.test(l)) || !g['return-quiet_survival']); i++) { await sleep(3000); g = await gates() }
+for (let i = 0; i < 40 && (!g._lines.some(l => /^Chamber/.test(l)) || !g['return-quiet_survival']); i++) { await sleep(3000); g = await gates() }
 const live = ['lobby', 'quiet_survival', 'quiet_flatlands', 'meadow', 'survival', 'creative', 'flatlands', 'legacy', 'kids_survival', 'kids_flatlands', 'friends_survival', 'friends_flatlands']
 check('every world has a station gate', live.every(w => g['station-' + w]), Object.keys(g).filter(k => k.startsWith('station-')).join(','))
 check('every world has a return gate', live.every(w => g['return-' + w]), Object.keys(g).filter(k => k.startsWith('return-')).join(','))
 check('nether, End and TARDIS worlds have no gate', !g['station-meadow_nether'] && !g['station-TARDIS_TimeVortex'] && !g['station-survival_the_end'])
-const platformLines = g._lines.filter(l => /^Platform \d+/.test(l))
+const platformLines = g._lines.filter(l => /^Chamber \d+/.test(l))
 console.log('  ' + platformLines.join('\n  '))
 const groupsWithGates = new Set()
 { const text = readFileSync(groupsPath, 'utf8'); let group = null
@@ -99,16 +99,16 @@ const groupsWithGates = new Set()
     const m = line.match(/^  (\w+):$/); if (m) group = m[1]
     const w = line.match(/^    - (\w+)$/); if (w && group && g['station-' + w[1]]) groupsWithGates.add(group)
   } }
-check('one platform per world group', platformLines.length === groupsWithGates.size, `${platformLines.length} platforms`)
-check('a group shares a platform', platformLines.some(l => /\(Survival\).*station-meadow.*station-survival|\(Survival\).*station-survival.*station-meadow/.test(l)))
-console.log('  ' + g._lines.find(l => /^Station seed/.test(l)))
+check('one chamber per world group', platformLines.length === groupsWithGates.size, `${platformLines.length} chambers`)
+check('a group shares a chamber', platformLines.some(l => /\(Survival\).*station-meadow.*station-survival|\(Survival\).*station-survival.*station-meadow/.test(l)))
+console.log('  ' + g._lines.find(l => /^Gate seed/.test(l)))
 const sameWall = (p, q) => (p.x === q.x && Math.abs(p.z - q.z) <= 18) || (p.z === q.z && Math.abs(p.x - q.x) <= 18)
-check('group members stand next to each other', sameWall(g['station-meadow'], g['station-survival']))
+check('group members stand in the same chamber, close together', Math.hypot(g['station-meadow'].x - g['station-survival'].x, g['station-meadow'].z - g['station-survival'].z) <= 40)
 
 // bots
 const alice = await bot('alice'), amy = await bot('amy'), nina = await bot('nina'), carl = await bot('carl'), boss = await bot('boss'), oppy = await bot('oppy'), hooky = await bot('hooky')
 for (const c of ['lp user alice parent add family', 'lp user carl parent add family', 'lp user amy parent add friends', 'lp user nina parent add kids',
-  'lp user hooky parent add family', 'lp user boss permission set waystation.admin true', 'lp user boss parent add family', 'op oppy', 'lp group default permission set multiverse.access.waystation true']) await s.ask(c, 300)
+  'lp user hooky parent add family', 'lp user boss permission set waycave.admin true', 'lp user boss parent add family', 'op oppy', 'lp group default permission set multiverse.access.waycave true']) await s.ask(c, 300)
 await sleep(1500)
 
 console.log('\n# Terrain untouched')
@@ -133,7 +133,7 @@ scout.end()
 
 // ---------- visibility ----------
 console.log('\n# Visibility and access')
-for (const b of [alice, amy, nina, carl, boss, hooky]) await s.ask(`mvtp ${b.username} w:waystation`, 1200)
+for (const b of [alice, amy, nina, carl, boss, hooky]) await s.ask(`mvtp ${b.username} w:waycave`, 1200)
 await sleep(3000)
 const sd = g['station-meadow'], sa = g['station-friends_survival'], sc = g['station-creative']
 check('positive control: permitted player sees the meadow gate', await sees(alice, sd), `${near(alice, sd.x, sd.z, 5).length} entities`)
@@ -147,33 +147,33 @@ check('alice is sent no entities for an friends gate', !(await sees(alice, sa)))
 clearChat(amy)
 await walkThrough(amy, sd); await sleep(1000)
 check('walking into a gate you can\'t see does nothing and says nothing', !has(amy, /waygate/i), amy.chat_log.join('|').slice(0, 100))
-check('and stays in the station', await isIn(amy, 'waystation', 1500))
+check('and stays in the station', await isIn(amy, 'waycave', 1500))
 
 await s.ask('lp user amy permission set multiverse.access.meadow true', 2500)
 check('permission added: gate appears with no rejoin', await sees(amy, sd))
 await s.ask('lp user amy permission unset multiverse.access.meadow', 2500)
 check('permission removed: gate disappears', !(await sees(amy, sd)))
-await s.ask('lp user amy permission set multiverse.access.meadow true world=waystation', 2500)
+await s.ask('lp user amy permission set multiverse.access.meadow true world=waycave', 2500)
 check('LuckPerms world context is respected: visible in the station', await sees(amy, sd))
-await s.ask('lp user amy permission unset multiverse.access.meadow world=waystation', 2500)
+await s.ask('lp user amy permission unset multiverse.access.meadow world=waycave', 2500)
 await s.ask('lp user amy permission set multiverse.access.meadow true world=creative', 2500)
 check('LuckPerms world context is respected: hidden with other context', !(await sees(amy, sd)))
 await s.ask('lp user amy permission unset multiverse.access.meadow world=creative', 800)
 
 // ---------- hooks ----------
 console.log('\n# Role and player hooks')
-const hookCases = [['waystation.use.meadow false', 'waystation.use.meadow'], ['waystation.platform.Survival false', 'waystation.platform.Survival'], ['waystation.gate.station-meadow false', 'waystation.gate.station-meadow']]
+const hookCases = [['waycave.use.meadow false', 'waycave.use.meadow'], ['waycave.platform.Survival false', 'waycave.platform.Survival'], ['waycave.gate.station-meadow false', 'waycave.gate.station-meadow']]
 for (const [set, node] of hookCases) {
   await s.ask(`lp user carl permission set ${set}`, 2500)
   const hidden = !(await sees(carl, sd))
   clearChat(carl); await walkThrough(carl, sd); await sleep(1000)
-  check(`${node} false hides and refuses despite Multiverse access`, hidden && await isIn(carl, 'waystation', 1500))
+  check(`${node} false hides and refuses despite Multiverse access`, hidden && await isIn(carl, 'waycave', 1500))
   await s.ask(`lp user carl permission unset ${node}`, 2500)
   check(`positive control: unset, ${node} no longer blocks`, await sees(carl, sd))
 }
-await s.ask('lp group family permission set waystation.gate.station-creative false', 2500)
+await s.ask('lp group family permission set waycave.gate.station-creative false', 2500)
 check('a role (group) can close one gate', !(await sees(alice, sc)))
-await s.ask('lp group family permission unset waystation.gate.station-creative', 2500)
+await s.ask('lp group family permission unset waycave.gate.station-creative', 2500)
 check('positive control: role node removed, gate back', await sees(alice, sc))
 check('plugin event hook vetoes the gate', !(await sees(hooky, sd)))
 check('positive control: hook leaves other gates alone', await sees(hooky, sc))
@@ -181,35 +181,35 @@ clearChat(alice); alice.chat('/gate list'); await sleep(800)
 check('no admin permission: /gate refused', has(alice, /don't have permission/))
 clearChat(boss); boss.chat('/gate list'); await sleep(800)
 check('positive control: admin may use /gate', boss.chat_log.some(m => /station-meadow/.test(m)))
-await s.ask('lp user alice permission set waystation.admin.list true', 800)
+await s.ask('lp user alice permission set waycave.admin.list true', 800)
 clearChat(alice); alice.chat('/gate list'); await sleep(800); const listOk = alice.chat_log.some(m => /station-meadow/.test(m))
 clearChat(alice); alice.chat('/gate reload'); await sleep(800)
 check('narrow admin role: list allowed, reload refused', listOk && has(alice, /don't have permission/))
-await s.ask('lp user alice permission unset waystation.admin.list', 500)
+await s.ask('lp user alice permission unset waycave.admin.list', 500)
 
 // ---------- /waygate ----------
 console.log('\n# /waygate')
-clearChat(alice); await s.ask('execute in waystation run tp alice 0 -60 0', 800); alice.chat('/waygate'); await sleep(800)
+clearChat(alice); await s.ask('execute in waycave run tp alice 0 -60 0', 800); alice.chat('/waygate'); await sleep(800)
 console.log('  alice:', alice.chat_log.at(-1))
 const am = alice.chat_log.join(' ').match(/at (-?\d+) (-?\d+) (-?\d+), (\d+) blocks (\w+)/)
 // Every station gate she can see, OneBlock included: the random layout decides which is nearest.
 const canSeeIds = []
-for (const x of Object.values(g)) if (x?.world === 'waystation' && x.id && await sees(alice, x)) canSeeIds.push(x)
+for (const x of Object.values(g)) if (x?.world === 'waycave' && x.id && await sees(alice, x)) canSeeIds.push(x)
 console.log('  alice sees:', canSeeIds.map(x => x.id).join(', '))
 const expected = canSeeIds.map(x => Math.hypot(x.x + .5 - .5, x.z + .5 - .5)).sort((a, b) => a - b)[0]
 check('waygate gives coordinates of the nearest gate she can use', am && Math.abs(+am[4] - expected) <= 2, `says ${am && am[4]}, nearest ${expected?.toFixed(1)}`)
-clearChat(amy); await s.ask('execute in waystation run tp amy 0 -60 0', 800); amy.chat('/waygate'); await sleep(800)
+clearChat(amy); await s.ask('execute in waycave run tp amy 0 -60 0', 800); amy.chat('/waygate'); await sleep(800)
 console.log('  amy:', amy.chat_log.at(-1))
 // The gate at the coordinates she's given must be one she can use; the random layout decides which.
 const amyAt = amy.chat_log.join(' ').match(/at (-?\d+) (-?\d+) (-?\d+),/)
-const amyGate = amyAt && Object.values(g).find(x => x?.world === 'waystation' && x.x === +amyAt[1] && x.z === +amyAt[3])
+const amyGate = amyAt && Object.values(g).find(x => x?.world === 'waycave' && x.x === +amyAt[1] && x.z === +amyAt[3])
 const amyHidden = []
-for (const x of Object.values(g)) if (x?.world === 'waystation' && x.id && !(await sees(amy, x))) amyHidden.push(x.id)
+for (const x of Object.values(g)) if (x?.world === 'waycave' && x.id && !(await sees(amy, x))) amyHidden.push(x.id)
 check('control: some station gates are hidden from amy', amyHidden.length > 0, amyHidden.join(', '))
 check("waygate never reveals a gate you can't use", !!amyGate && await sees(amy, amyGate), amyGate?.id ?? 'no gate at those coordinates')
 await s.ask('mvtp alice w:meadow_nether', 2500); clearChat(alice); alice.chat('/waygate'); await sleep(800)
-check('waygate in a world with no gates says so and offers the way out', has(alice, /no waygate you can use/) && has(alice, /\/station/), alice.chat_log.at(-1))
-await s.ask('mvtp alice w:waystation', 2000)
+check('waygate in a world with no gates says so (and teaches no command, D284)', has(alice, /no waygate you can use/) && !has(alice, /\/cave|\/station/), alice.chat_log.at(-1))
+await s.ask('mvtp alice w:waycave', 2000)
 
 // ---------- travel, inventories, XP, last spot ----------
 console.log('\n# Travel, inventories, XP, last spot')
@@ -220,7 +220,7 @@ await s.ask('clear alice', 300); await s.ask('give alice diamond 7', 300); await
 check('items arrive in Survival', invCount(alice, 'diamond') === 7)
 const rd = g['return-meadow']
 await walkThrough(alice, rd)
-check('return gate leads back to the station', await isIn(alice, 'waystation', 8000))
+check('return gate leads back to the station', await isIn(alice, 'waycave', 8000))
 await sleep(2500)
 check('Survival items do not follow into the station', invCount(alice, 'diamond') === 0, `diamonds ${invCount(alice, 'diamond')}`)
 await s.ask('give alice apple 3', 500); await sleep(500)
@@ -231,7 +231,7 @@ check('Creative group starts its own inventory', invCount(alice, 'diamond') === 
 await s.ask('give alice emerald 2', 500); await sleep(500)
 const rc = g['return-creative']
 await walkThrough(alice, rc)
-check('back to the station from Creative', await isIn(alice, 'waystation', 8000))
+check('back to the station from Creative', await isIn(alice, 'waycave', 8000))
 await sleep(2500)
 check('station inventory intact', invCount(alice, 'apple') === 3 && invCount(alice, 'emerald') === 0 && invCount(alice, 'diamond') === 0)
 await walkThrough(alice, sd)
@@ -245,7 +245,7 @@ console.log(`  arrived at ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)},
 check('survival world: you arrive at its gate', dist < 3, `${dist.toFixed(1)} from the gate`)
 check('no teleport loop: she stays in Meadow', await isIn(alice, 'meadow', 1500))
 await s.ask(`execute in meadow run tp alice ${rd.x + 8} ${rd.y + 2} ${rd.z + 8}`, 2500)
-await s.ask('mvtp alice w:waystation', 2500); await sleep(2500)
+await s.ask('mvtp alice w:waycave', 2500); await sleep(2500)
 await walkThrough(alice, sd); await sleep(2500)
 // Arriving at a gate gives 5 seconds of protection (README); after that, damage counts again.
 const hpNow = async who => Number((await s.ask(`data get entity ${who} Health`, 400)).join(' ').match(/([\d.]+)f/)?.[1])
@@ -264,7 +264,7 @@ check('survival world: still the gate, wherever you left from', backAtGate < 3, 
 await s.ask('mvtp alice w:creative', 2500)
 const farX = rc.x + 25, farZ = rc.z + 12
 await s.ask(`execute in creative run tp alice ${farX} ${rc.y + 3} ${farZ}`, 2000)
-await s.ask('mvtp alice w:waystation', 2500); await sleep(800)
+await s.ask('mvtp alice w:waycave', 2500); await sleep(800)
 await walkThrough(alice, sc); await sleep(2500)
 const pc = alice.entity.position
 check('creative world: you return to your last spot', Math.hypot(pc.x - farX, pc.z - farZ) < 3, `${Math.hypot(pc.x - farX, pc.z - farZ).toFixed(1)} blocks off`)
@@ -283,14 +283,14 @@ const alice2 = await bot('alice')
 await sleep(3000)
 check('after restart: inventory intact', invCount(alice2, 'diamond') === 7 && invCount(alice2, 'apple') === 0)
 check('after restart: XP intact', alice2.experience.level === 11)
-await s.ask('mvtp alice w:waystation', 3000)
+await s.ask('mvtp alice w:waycave', 3000)
 await sleep(2000); await walkThrough(alice2, sc)
 await sleep(3000)
 check('after restart: went to Creative', await isIn(alice2, 'creative', 2000))
 await sleep(1500) // the server has moved her; let the bot hear about it
 const p2 = alice2.entity.position
 check('after restart: last spot remembered', Math.hypot(p2.x - npos.x, p2.z - npos.z) < 3, `${Math.hypot(p2.x - npos.x, p2.z - npos.z).toFixed(1)} blocks off`)
-await s.ask('mvtp alice w:waystation', 2500); await sleep(800)
+await s.ask('mvtp alice w:waycave', 2500); await sleep(800)
 await walkThrough(alice2, sd)
 check('after restart: still walks through', await isIn(alice2, 'meadow', 8000))
 await sleep(3000)
@@ -301,7 +301,7 @@ const alicePhase2 = alice2
 // ---------- tribute chest ----------
 console.log('\n# The tribute chest')
 const a = alice2
-const cfgMove = DIR + '/plugins/Waystation/config.yml'
+const cfgMove = DIR + '/plugins/Waycave/config.yml'
 const carl2 = await bot('carl')
 await s.ask('mvtp carl w:meadow', 2500)
 const setMove = async ({ rest = 0, search = 0 } = {}) => {
@@ -360,13 +360,13 @@ let win = await clickChest(a)
 check('with a bed and safe ground, the chest opens', !!win)
 if (win) { a.closeWindow(win); await sleep(800) }
 check('closing it takes nothing and moves nothing', a.health === h0 && (await rdNow()).x === pos0.x)
-// waystation.move.<world> false: no chest, nothing taken, the gate stays; unset, the chest opens again.
-await s.ask(`lp user ${a.username} permission set waystation.move.meadow false`, 1500)
+// waycave.move.<world> false: no chest, nothing taken, the gate stays; unset, the chest opens again.
+await s.ask(`lp user ${a.username} permission set waycave.move.meadow false`, 1500)
 clearChat(a)
 const denied = await clickChest(a); await sleep(500)
-check('waystation.move.meadow false: no chest opens, and they\'re told', !denied && has(a, /can't move waygates/), a.chat_log.at(-1))
+check('waycave.move.meadow false: no chest opens, and they\'re told', !denied && has(a, /can't move waygates/), a.chat_log.at(-1))
 check('and nothing is taken or moved', a.health === h0 && (await rdNow()).x === pos0.x)
-await s.ask(`lp user ${a.username} permission unset waystation.move.meadow`, 1500)
+await s.ask(`lp user ${a.username} permission unset waycave.move.meadow`, 1500)
 win = await clickChest(a)
 check('control: unset again, the chest opens', !!win)
 if (win) { a.closeWindow(win); await sleep(800) }
@@ -425,7 +425,7 @@ await heal(carl2); clearChat(carl2); const rested = await clickChest(carl2); awa
 check('the gate rests: another player can\'t move it straight away', !rested && has(carl2, /moved recently/), carl2.chat_log.at(-1))
 await heal(a); await s.ask('mvtp alice w:flatlands', 2500); await s.ask('mvtp alice w:meadow', 2500)
 await walkThrough(a, movedA)
-check('the moved gate still works', await isIn(a, 'waystation', 8000))
+check('the moved gate still works', await isIn(a, 'waycave', 8000))
 await s.ask('mvtp alice w:meadow', 2500)
 
 console.log('\n# Not enough hearts')
@@ -522,31 +522,33 @@ check('positive control: the same piston out of the zone pushes', await piston(w
 await s.ask(`execute in flatlands run fill ${wx - 3} ${wy} ${wz - 3} ${wx + 3} ${wy + 5} ${wz + 3} stone`, 800)
 check('survives console /fill', (await live2('return-flatlands')) === liveBefore)
 await s.ask(`execute in flatlands run fill ${wx - 3} ${wy} ${wz - 3} ${wx + 3} ${wy + 5} ${wz + 3} air`, 800)
-await s.ask('kill @e[tag=waystation]', 2500)
+await s.ask('kill @e[tag=waycave]', 2500)
 check('/kill is undone within seconds', (await live2('return-flatlands')) === liveBefore)
-await s.ask(`execute as @e[tag=waystation] run tp @s ${wx + 60} ${wy} ${wz}`, 2500)
+await s.ask(`execute as @e[tag=waycave] run tp @s ${wx + 60} ${wy} ${wz}`, 2500)
 check('shoving entities is undone within seconds', (await live2('return-flatlands')) === liveBefore)
 
 // ---------- protection, operators ----------
 console.log('\n# Nobody can edit: operators too')
 const opb = await bot('oppy')
-await s.ask('mvtp oppy w:waystation', 2500); await s.ask('gamemode creative oppy', 800)
-await s.ask('execute in waystation run tp oppy 0 -60 0', 1500)
-const floor = opb.blockAt(new Vec3(1, -61, 1))
+await s.ask('mvtp oppy w:waycave', 2500); await s.ask('gamemode creative oppy', 800)
+// The cave's floor is at y 63, with the player's feet at 64 (the same spot the cave suite uses).
+await s.ask('execute in waycave run tp oppy 0.5 64 -11.5', 1500)
+const floor = opb.blockAt(new Vec3(0, 63, -12))
 await opb.lookAt(floor.position.offset(.5, .5, .5), true)
 await opb.dig(floor, 'ignore').catch(() => {}); await sleep(1000)
 // The server's view, not the bot's: a refused dig can still show as air on the client until the correction arrives.
-const floorGone = (await s.ask('execute in waystation if block 1 -61 1 minecraft:air', 800)).join(' ')
-check('op in creative can\'t break the station floor', /Test failed/.test(floorGone), floorGone.slice(0, 120))
-clearChat(opb); opb.chat('/setblock 1 -60 1 stone'); await sleep(800)
-check('op /setblock in the station refused', has(opb, /Nothing can be changed|cannot/i) || (await s.ask('execute in waystation if block 1 -60 1 minecraft:air', 400)).some(l => /Test passed/.test(l)))
-opb.chat('/fill -5 -60 -5 5 -58 5 stone'); await sleep(800)
-check('op /fill in the station refused', (await s.ask('execute in waystation if block 2 -59 2 minecraft:air', 400)).some(l => /Test passed/.test(l)))
+const floorGone = (await s.ask('execute in waycave if block 0 63 -12 minecraft:air', 800)).join(' ')
+check('op in creative can\'t break the cave floor', /Test failed/.test(floorGone), floorGone.slice(0, 120))
+clearChat(opb); opb.chat('/setblock 0 64 -12 stone'); await sleep(800)
+check('op /setblock in the cave refused', has(opb, /Nothing can be changed|cannot/i) || (await s.ask('execute in waycave if block 0 64 -12 minecraft:air', 400)).some(l => /Test passed/.test(l)))
+opb.chat('/fill -5 64 -17 5 66 -7 stone'); await sleep(800)
+check('op /fill in the cave refused', (await s.ask('execute in waycave if block 2 65 -10 minecraft:air', 400)).some(l => /Test passed/.test(l)))
 await s.ask('mvtp oppy w:flatlands', 2500); await s.ask('gamemode creative oppy', 800)
 await s.ask(`execute in flatlands run tp oppy ${wx + 3} ${wy} ${wz}`, 1500)
 const zb = opb.blockAt(new Vec3(wx, wy - 1, wz))
 await opb.lookAt(zb.position.offset(.5, .5, .5), true); await opb.dig(zb, 'ignore').catch(() => {}); await sleep(1000)
-check('op can\'t break ground at a world gate', opb.blockAt(new Vec3(wx, wy - 1, wz)).name !== 'air')
+// The server's view, as above: the bot's own view can show air until the server's correction arrives.
+check('op can\'t break ground at a world gate', /Test failed/.test((await s.ask(`execute in flatlands if block ${wx} ${wy - 1} ${wz} minecraft:air`, 800)).join(' ')))
 opb.chat(`/setblock ${wx} ${wy} ${wz} stone`); await sleep(800)
 check('op /setblock on a world gate refused', await groundAt(wx, wy, wz))
 const far = opb.blockAt(new Vec3(wx + 3, wy - 1, wz + 12))
@@ -560,27 +562,30 @@ check('positive control: the same op /setblock away from the gate', !(await grou
 // ---------- /mvtp ----------
 console.log('\n# Gates replace /mvtp')
 const nina2 = await bot('nina'), carl3 = carl2
-await s.ask('mvtp alice w:waystation', 2500)
+await s.ask('mvtp alice w:waycave', 2500)
 a.chat('/mvtp w:flatlands'); await sleep(2000)
 check('positive control: before the setup, /mvtp works', await isIn(a, 'flatlands', 2000), a.chat_log.at(-1))
 const chief = await bot('chief')
-await s.ask('lp user chief parent add admin', 500); await s.ask('lp user chief parent add family', 500); await s.ask('mvtp chief w:waystation', 2000)
+await s.ask('lp user chief parent add admin', 500); await s.ask('lp user chief parent add family', 500); await s.ask('mvtp chief w:waycave', 2000)
 chief.chat('/mvtp alice w:creative'); await sleep(2000)
 check('positive control: before the setup, an admin can /mvtp someone else', await isIn(a, 'creative', 2000))
+// The set-up file names a group for admins, admin-family: the real server has it, the small made-up copy doesn't, so it is made here.
+await s.ask('lp creategroup admin-family', 300)
 for (const line of readFileSync(new URL('./luckperms-gates-only.txt', import.meta.url), 'utf8').split('\n')) {
   if (line.trim() && !line.startsWith('#')) await s.ask(line, 120)
 }
+await s.ask('lp user chief parent add admin-family', 300)
 await sleep(1000)
 chief.chat('/mvtp w:creative'); await sleep(2000)
 check('admins keep /mvtp', await isIn(chief, 'creative', 1500), chief.chat_log.at(-1))
 chief.chat('/mvtp alice w:flatlands'); await sleep(2000)
 check('and can still send someone else', await isIn(a, 'flatlands', 1500))
-await s.ask('mvtp alice w:waystation', 2500)
+await s.ask('mvtp alice w:waycave', 2500)
 a.chat('/mvtp w:flatlands'); await sleep(2000)
-check('a regular adult has no /mvtp', await isIn(a, 'waystation', 1000), a.chat_log.at(-1))
-await s.ask('mvtp nina w:waystation', 2500)
+check('a regular adult has no /mvtp', await isIn(a, 'waycave', 1000), a.chat_log.at(-1))
+await s.ask('mvtp nina w:waycave', 2500)
 clearChat(nina2); nina2.chat('/mvtp w:kids_flatlands'); await sleep(1500)
-check('a kid has no /mvtp', await isIn(nina2, 'waystation', 1000), nina2.chat_log.at(-1))
+check('a kid has no /mvtp', await isIn(nina2, 'waycave', 1000), nina2.chat_log.at(-1))
 await walkThrough(nina2, gg['station-kids_flatlands'])
 check('and the gate to that same world still works', await isIn(nina2, 'kids_flatlands', 8000))
 await sleep(2000)
@@ -588,6 +593,7 @@ await s.ask('mvtp carl w:creative', 2500)
 carl3.chat('/mvtp e:creative:10,80,10'); await sleep(1500)
 const carlPos = carl3.entity.position
 check('creative: /mvtp e: is refused too', Math.hypot(carlPos.x - 10, carlPos.z - 10) > 2)
+await s.ask('lp user carl permission set minecraft.command.tp true', 300) // the real server's creative group grants this; the small copy has none
 carl3.chat('/tp 40 80 40'); await sleep(1500)
 check('creative: vanilla /tp still works', Math.hypot(carl3.entity.position.x - 40, carl3.entity.position.z - 40) < 2)
 await s.ask('lp user carl permission check tardis.timetravel world=meadow', 300)
@@ -609,23 +615,23 @@ check('console can always move a player', await isIn(nina2, 'kids_flatlands', 15
 
 // ---------- escape ----------
 console.log('\n# Escape')
-clearChat(nina2); nina2.chat('/station'); await sleep(2500)
-check('/station takes you to the station', await isIn(nina2, 'waystation', 1500))
+clearChat(nina2); nina2.chat('/cave'); await sleep(2500)
+check('/cave takes you to the cave', await isIn(nina2, 'waycave', 1500))
 await s.ask('mvtp nina w:kids_flatlands', 2000)
 nina2.chat('/hub'); await sleep(2500)
-check('/hub alias works too', await isIn(nina2, 'waystation', 1500))
-const cfg = DIR + '/plugins/Waystation/config.yml'
+check('/hub alias works too', await isIn(nina2, 'waycave', 1500))
+const cfg = DIR + '/plugins/Waycave/config.yml'
 const originalCfg = readFileSync(cfg, 'utf8')
 writeFileSync(cfg, originalCfg.replace(/escape:\n  enabled: true/, 'escape:\n  enabled: false'))
 await s.ask('gate reload', 1500)
-await s.ask('mvtp nina w:kids_flatlands', 2000); nina2.chat('/station'); await sleep(2000)
-check('turned off: /station is gone', await isIn(nina2, 'kids_flatlands', 1000))
+await s.ask('mvtp nina w:kids_flatlands', 2000); nina2.chat('/cave'); await sleep(2000)
+check('turned off: /cave is gone', await isIn(nina2, 'kids_flatlands', 1000))
 writeFileSync(cfg, originalCfg.replace('escape:\n  enabled: true', 'escape:\n  enabled: true') + '\nbad: [yaml')
 const badOut = await s.ask('gate reload', 1200)
 check('a broken config is refused and keeps running', badOut.join(' ').includes('has a problem'))
 writeFileSync(cfg, originalCfg); await s.ask('gate reload', 1500)
-nina2.chat('/station'); await sleep(2500)
-check('turned back on: works', await isIn(nina2, 'waystation', 1500))
+nina2.chat('/cave'); await sleep(2500)
+check('turned back on: works', await isIn(nina2, 'waycave', 1500))
 
 // ---------- worlds appear and die ----------
 console.log('\n# Worlds appear and die')
@@ -633,18 +639,19 @@ await s.ask('mv create newsurvival normal --world-type flat', 8000)
 await sleep(5000)
 let g2 = await gates()
 check('a new world gets a pair by itself', !!g2['station-newsurvival'] && !!g2['return-newsurvival'], Object.keys(g2).length)
-const pl = g2._lines.filter(l => /^Platform/.test(l))
+const pl = g2._lines.filter(l => /^Chamber/.test(l))
 console.log('  ' + pl.join('\n  '))
-check('it joins its group\'s platform', pl.some(l => /\(Survival\).*station-newsurvival/.test(l)))
-check('it stands with its group', sameWall(g2['station-newsurvival'], g2['station-meadow']))
-check('the station made room: no gates overlap', Object.values(g2).filter(x => x.world === 'waystation').every((p, i, all) => all.every((q, j) => i === j || Math.hypot(p.x - q.x, p.z - q.z) >= 7)))
+check('it joins its group\'s chamber', pl.some(l => /\(Survival\).*station-newsurvival/.test(l)))
+check('it stands with its group', Math.hypot(g2['station-newsurvival'].x - g2['station-meadow'].x, g2['station-newsurvival'].z - g2['station-meadow'].z) <= 40)
+check('the station made room: no gates overlap', Object.values(g2).filter(x => x.world === 'waycave').every((p, i, all) => all.every((q, j) => i === j || Math.hypot(p.x - q.x, p.z - q.z) >= 7)))
 await s.ask('mv create elsewhere normal --world-type flat', 8000); await sleep(5000)
 let g3 = await gates()
-check('a world in no group gets its own platform', g3._lines.some(l => /^Platform \d+ \(Other\).*station-elsewhere/.test(l)))
+check('a world in no group gets its own chamber', g3._lines.some(l => /^Chamber \d+ \(Other\).*station-elsewhere/.test(l)))
 await s.ask('lp user boss permission set multiverse.access.newsurvival true', 500)
-const boss2 = await bot('boss'); await s.ask('mvtp boss w:waystation', 2500); await sleep(1500)
+const boss2 = await bot('boss'); await s.ask('mvtp boss w:waycave', 2500); await sleep(1500)
 const sn = g3['station-newsurvival']
 check('new gate visible to someone with access', await sees(boss2, sn))
+await s.ask(`execute in waycave run tp boss ${sn.x + .5} ${sn.y} ${sn.z + 4.5}`, 2000); await sleep(1500)
 const entitiesLive = near(boss2, sn.x, sn.z, 5).length
 const confirmDelete = async world => {
   const out = await s.ask(`mv delete ${world}`, 1000)
@@ -659,21 +666,21 @@ check('deleted world: the return gate went with it', !g4['return-newsurvival'])
 await sleep(1500)
 const deadLive = near(boss2, sn.x, sn.z, 5).length
 check('dead gate still drawn, without its opening', deadLive > 0 && deadLive < entitiesLive, `${entitiesLive} -> ${deadLive}`)
-// Who sees a dead gate: those with access to its world, admins, and waystation.admin.seedead. Nina has none of them.
+// Who sees a dead gate: those with access to its world, admins, and waycave.admin.seedead. Nina has none of them.
 // (nina2: the bot that rejoined after the restart above; the first one is gone.)
-await s.ask('mvtp nina w:waystation', 2500)
-await s.ask(`execute in waystation run tp nina ${sn.x + .5} ${sn.y} ${sn.z + 4.5}`, 2000)
-const ninaThere = await isIn(nina2, 'waystation', 3000)
+await s.ask('mvtp nina w:waycave', 2500)
+await s.ask(`execute in waycave run tp nina ${sn.x + .5} ${sn.y} ${sn.z + 4.5}`, 2000)
+const ninaThere = await isIn(nina2, 'waycave', 3000)
 const deadSeen = async () => `${(await s.ask(`gate test station-newsurvival nina`, 600)).join(' ').match(/sees it (true|false)/)?.[1]} / ${near(nina2, sn.x, sn.z, 5).length} entities`
 const without = await deadSeen()
 check('a dead gate isn\'t sent to a player with no access and no seedead', ninaThere && /^false \/ 0 /.test(without), `in station: ${ninaThere}; ${without}`)
-await s.ask('lp user nina permission set waystation.admin.seedead true', 3000)
+await s.ask('lp user nina permission set waycave.admin.seedead true', 3000)
 await sleep(3000)
 const withIt = await deadSeen()
-check('control: with waystation.admin.seedead it is', /^true \/ [1-9]/.test(withIt), withIt)
-await s.ask('lp user nina permission unset waystation.admin.seedead', 1500)
+check('control: with waycave.admin.seedead it is', /^true \/ [1-9]/.test(withIt), withIt)
+await s.ask('lp user nina permission unset waycave.admin.seedead', 1500)
 clearChat(boss2); await walkThrough(boss2, g4['station-newsurvival']); await sleep(1200)
-check('dead gate goes nowhere and says why', has(boss2, /line has closed/) && await isIn(boss2, 'waystation', 1000), boss2.chat_log.at(-1))
+check('dead gate goes nowhere and says why', has(boss2, /line has closed/) && await isIn(boss2, 'waycave', 1000), boss2.chat_log.at(-1))
 await s.stop(); await s.start(); await sleep(8000)
 let g5 = await gates()
 check('dead gate survives a restart', /DEAD/.test(g5['station-newsurvival']?.rest ?? ''))
@@ -684,14 +691,14 @@ check('the station closes the gap', g6['station-survival'].x !== undefined && JS
 
 // ---------- admin commands ----------
 console.log('\n# Admin commands')
-await s.ask('gate create testgate lobby waystation 40 -60 40 north', 1200)
+await s.ask('gate create testgate lobby waycave 40 -60 40 north', 1200)
 let g7 = await gates()
 check('create', !!g7.testgate)
-await s.ask('gate move testgate waystation 45 -60 40', 1000); g7 = await gates()
+await s.ask('gate move testgate waycave 45 -60 40', 1000); g7 = await gates()
 check('move', g7.testgate.x === 45)
 await s.ask('gate create testb creative creative 100 80 100 north', 1000)
 await s.ask('gate link testgate testb', 1000); g7 = await gates()
-check('link', g7.testgate.dest === 'creative' && g7.testb.dest === 'waystation')
+check('link', g7.testgate.dest === 'creative' && g7.testb.dest === 'waycave')
 const testOut = (await s.ask('gate test station-meadow', 800)).join(' ')
 check('test reports state', /destination meadow/.test(testOut) && /entities/.test(testOut), testOut.slice(0, 100))
 await s.ask('gate remove testgate', 800); await s.ask('gate remove testb', 800); g7 = await gates()
@@ -701,25 +708,25 @@ console.log('\n# Buying a gate')
 writeFileSync(cfg, readFileSync(cfg, 'utf8').replace(/^  legacy: +\{enabled: true, label: "<gold>Legacy"\}/m, '  legacy: {enabled: true, label: "<gold>Legacy", price: {xp-levels: 3, money: 40}}'))
 await s.ask('gate reload', 2000)
 const buyer = await bot('buyer')
-await s.ask('mvtp buyer w:waystation', 2500); await sleep(2000)
+await s.ask('mvtp buyer w:waycave', 2500); await sleep(2000)
 const sl = (await gates())['station-legacy']
 check('priced gate shows as locked to someone without access', await sees(buyer, sl))
 clearChat(buyer); await walkThrough(buyer, sl); await sleep(1000)
-check('walking in says the price and how to buy', has(buyer, /costs .*\/buygate legacy/) && await isIn(buyer, 'waystation', 800), buyer.chat_log.at(-1))
+check('walking in says the price and how to buy', has(buyer, /costs .*Trails board/) && await isIn(buyer, 'waycave', 800), buyer.chat_log.at(-1))
 clearChat(buyer); buyer.chat('/buygate legacy'); await sleep(1500)
 check("can't afford: refused, nothing charged", has(buyer, /don't have enough/) && (await s.ask('fakebalance buyer', 400)).join(' ').includes('100.0'))
-// waystation.buy false: no buying, nothing charged; then the positive control below.
-await s.ask('lp user buyer permission set waystation.buy false', 1500); await s.ask('xp set buyer 10 levels', 800)
+// waycave.buy false: no buying, nothing charged; then the positive control below.
+await s.ask('lp user buyer permission set waycave.buy false', 1500); await s.ask('xp set buyer 10 levels', 800)
 clearChat(buyer); buyer.chat('/buygate legacy'); await sleep(2500)
-check('waystation.buy false: nothing bought, nothing charged', !has(buyer, /is open for you/) && buyer.experience.level === 10 && (await s.ask('fakebalance buyer', 400)).join(' ').includes('100.0'), buyer.chat_log.at(-1))
-await s.ask('lp user buyer permission unset waystation.buy', 1500)
+check('waycave.buy false: nothing bought, nothing charged', !has(buyer, /is open for you/) && buyer.experience.level === 10 && (await s.ask('fakebalance buyer', 400)).join(' ').includes('100.0'), buyer.chat_log.at(-1))
+await s.ask('lp user buyer permission unset waycave.buy', 1500)
 await s.ask('xp set buyer 10 levels', 800); clearChat(buyer); buyer.chat('/buygate legacy'); await sleep(3500)
 check('positive control: buying works', has(buyer, /is open for you/), buyer.chat_log.at(-1))
 check('charged exactly', buyer.experience.level === 7 && (await s.ask('fakebalance buyer', 400)).join(' ').includes('60.0'))
 await walkThrough(buyer, sl)
 check('and the gate now lets them through', await isIn(buyer, 'legacy', 8000))
-const noperm = await bot('buyer2'); await s.ask('lp group default permission set multiverse.access.waystation true', 300)
-await s.ask('mvtp buyer2 w:waystation', 2500); await s.ask('xp set buyer2 10 levels', 500)
+const noperm = await bot('buyer2'); await s.ask('lp group default permission set multiverse.access.waycave true', 300)
+await s.ask('mvtp buyer2 w:waycave', 2500); await s.ask('xp set buyer2 10 levels', 500)
 const beforeBreak = readFileSync(cfg, 'utf8')
 writeFileSync(cfg, beforeBreak.replace('lp user <player> permission set multiverse.access.<world> true', 'say grant broken'))
 await s.ask('gate reload', 1500)
@@ -741,16 +748,16 @@ async function markers(map) {
     return await r.json()
   } catch { return null }
 }
-let md = null; for (let i = 0; i < 30 && !md?.['waystation-gates']; i++) { md = await markers('meadow'); await sleep(1000) }
-check('world gate is a BlueMap marker', !!md?.['waystation-gates']?.markers?.['return-meadow'], JSON.stringify(md?.['waystation-gates']?.markers?.['return-meadow'])?.slice(0, 120))
+let md = null; for (let i = 0; i < 30 && !md?.['waycave-gates']; i++) { md = await markers('meadow'); await sleep(1000) }
+check('world gate is a BlueMap marker', !!md?.['waycave-gates']?.markers?.['return-meadow'], JSON.stringify(md?.['waycave-gates']?.markers?.['return-meadow'])?.slice(0, 120))
 // BlueMap writes markers on its own schedule, so give the station's map a little time.
-let ms = null; for (let i = 0; i < 20 && Object.keys(ms?.['waystation-gates']?.markers ?? {}).length < 9; i++) { ms = await markers('waystation'); await sleep(1000) }
-console.log('  station map markers:', Object.keys(ms?.['waystation-gates']?.markers ?? {}).join(', ') || 'none')
-check('Quiet never appears on the map', !Object.keys(ms?.['waystation-gates']?.markers ?? {}).some(k => /quiet/.test(k)))
-check('the station world has its own map with its gates', Object.keys(ms?.['waystation-gates']?.markers ?? {}).length >= 9, `${Object.keys(ms?.['waystation-gates']?.markers ?? {}).length} markers`)
+let ms = null; for (let i = 0; i < 20 && Object.keys(ms?.['waycave-gates']?.markers ?? {}).length < 9; i++) { ms = await markers('waycave'); await sleep(1000) }
+console.log('  station map markers:', Object.keys(ms?.['waycave-gates']?.markers ?? {}).join(', ') || 'none')
+check('Quiet never appears on the map', !Object.keys(ms?.['waycave-gates']?.markers ?? {}).some(k => /quiet/.test(k)))
+check('the station world has its own map with its gates', Object.keys(ms?.['waycave-gates']?.markers ?? {}).length >= 9, `${Object.keys(ms?.['waycave-gates']?.markers ?? {}).length} markers`)
 await confirmDelete('elsewhere'); await sleep(2000)
-const deadMarkers = await markers('waystation')
-check('dead gates are labelled on the map', /line closed/.test(deadMarkers?.['waystation-gates']?.markers?.['station-elsewhere']?.label ?? ''), deadMarkers?.['waystation-gates']?.markers?.['station-elsewhere']?.label)
+const deadMarkers = await markers('waycave')
+check('dead gates are labelled on the map', /trail closed/.test(deadMarkers?.['waycave-gates']?.markers?.['station-elsewhere']?.label ?? ''), deadMarkers?.['waycave-gates']?.markers?.['station-elsewhere']?.label)
 
 // ---------- shutdown ----------
 console.log('\n# OneBlock')
@@ -763,7 +770,7 @@ else {
   check('and needs no return gate', !ob['return-oneblock'])
   check('and no warning about one', !s.log.some(l => /No good spot.*oneblock/.test(l)))
   const obA = await bot('obann'), obB = await bot('obcal')
-  for (const b of [obA, obB]) { await s.ask(`mvtp ${b.username} w:waystation`, 1800); await s.ask(`clear ${b.username}`, 200) }
+  for (const b of [obA, obB]) { await s.ask(`mvtp ${b.username} w:waycave`, 1800); await s.ask(`clear ${b.username}`, 200) }
   await s.ask('give obann diamond 3', 500)
   const inWorldObA = () => isIn(obA, 'oneblock', 1500)
   await walkThrough(obA, sob); await sleep(3000)
@@ -787,7 +794,7 @@ else {
   check('one click only asks', has(obA, /Click the post again/) && await inWorldObA(), obA.chat_log.at(-1))
   await obA.activateEntity(postOf(obA)); await sleep(3500)
   const back = obA.entity.position
-  check('a second click takes you to the station', await isIn(obA, 'waystation', 2000))
+  check('a second click takes you to the station', await isIn(obA, 'waycave', 2000))
   check('beside the OneBlock gate', Math.hypot(back.x - (sob.x + .5), back.z - (sob.z + .5)) < 4, back.toString())
   check('the station inventory is its own', cnt0(obA, 'emerald') === 0 && cnt0(obA, 'diamond') === 3, `emeralds ${cnt0(obA, 'emerald')} diamonds ${cnt0(obA, 'diamond')}`)
   await walkThrough(obA, sob); await sleep(3000)
@@ -795,11 +802,11 @@ else {
   }
   obA.chat('/oneblock leave'); await sleep(2500)
   check('/oneblock leave still works', await isIn(obA, 'lobby', 1500))
-  obB.chat('/station'); await sleep(2500)
-  check('/station works from an island', await isIn(obB, 'waystation', 1500))
+  obB.chat('/cave'); await sleep(2500)
+  check('/cave works from an island', await isIn(obB, 'waycave', 1500))
   await sleep(2000)
   await s.ask('execute in oneblock run forceload add 0 0', 800)
-  check('the post is gone once nobody is there', (await s.ask('execute in oneblock if entity @e[tag=waystation-island-post]', 500)).join(' ').includes('failed'))
+  check('the post is gone once nobody is there', (await s.ask('execute in oneblock if entity @e[tag=waycave-island-post]', 500)).join(' ').includes('failed'))
   await s.ask('execute in oneblock run forceload remove 0 0', 200)
   obA.end(); obB.end(); await sleep(400)
 }
@@ -810,7 +817,7 @@ await s.ask('lp user cracker parent add family', 300); await s.ask('mvtp cracker
 await s.ask('clear cracker', 200); await s.ask('item replace entity cracker armor.chest with iron_chestplate', 300)
 // The chest only opens for a player with a bed in this world, and on a gate that isn't resting from an earlier move.
 const crAt = await flat([cx - 11, cz + 3]); await unrest()
-// Without a finished save a crash rolls back anything gained since the last one, Waystation or not.
+// Without a finished save a crash rolls back anything gained since the last one, Waycave or not.
 await s.ask('save-all flush', 4000)
 const rNow = await rdNow(); const [cdx, cdz] = dir[rNow.facing]
 await s.ask(`execute in meadow run tp cracker ${rNow.x + .5 + cdx * 2} ${rNow.y} ${rNow.z + .5 + cdz * 2}`, 1500)
@@ -824,17 +831,17 @@ await s.start(); await sleep(6000)
 const cr2 = await bot('cracker'); await sleep(2500)
 check('after kill -9: the worn piece is still worn', cr2.inventory.slots[6]?.name === 'iron_chestplate', cr2.inventory.slots[6]?.name)
 check('and the gate did not move', (await rdNow()).x === rNow.x)
-check('no Waystation errors after the crash', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+check('no Waycave errors after the crash', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
 cr2.end(); await sleep(500)
 
 console.log('\n# Shutdown leaves nothing behind')
 const wgg = await gates()
-check('no Waystation errors in the log', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
+check('no Waycave errors in the log', s.errors().length === 0, s.errors()[0]?.slice(0, 160))
 await s.stop(); await sleep(1500)
 rmSync(DIR + '/plugins/' + PLUGIN_JAR, { force: true }); rmSync(DIR + '/plugins/DenyHook.jar', { force: true })
 rmSync(DIR + '/plugins/.paper-remapped/' + PLUGIN_JAR, { force: true, recursive: true }); rmSync(DIR + '/plugins/.paper-remapped/DenyHook.jar', { force: true, recursive: true })
 await s.start()
-for (const [world, gate] of [['waystation', wgg['station-meadow']], ['flatlands', wgg['return-flatlands']]]) {
+for (const [world, gate] of [['waycave', wgg['station-meadow']], ['flatlands', wgg['return-flatlands']]]) {
   await s.ask(`execute in ${world} run forceload add ${gate.x - 32} ${gate.z - 32} ${gate.x + 32} ${gate.z + 32}`, 5000)
   await sleep(2000)
   const n1 = (await s.ask(`execute in ${world} run kill @e[type=minecraft:block_display]`, 800)).join(' ')
@@ -844,15 +851,15 @@ for (const [world, gate] of [['waystation', wgg['station-meadow']], ['flatlands'
 await s.stop()
 // Crash test: kill -9 with the plugin in, then look with it out.
 installJar(); await s.start(); await sleep(8000)
-const crashBot = await bot('nina'); await s.ask('mvtp nina w:waystation', 3000); await sleep(3000)
+const crashBot = await bot('nina'); await s.ask('mvtp nina w:waycave', 3000); await sleep(3000)
 await s.kill9(); await sleep(1500)
 rmSync(DIR + '/plugins/' + PLUGIN_JAR, { force: true }); rmSync(DIR + '/plugins/.paper-remapped/' + PLUGIN_JAR, { force: true, recursive: true })
 await s.start()
-await s.ask(`execute in waystation run forceload add -32 -32 32 32`, 5000); await sleep(2000)
-const after9 = (await s.ask('execute in waystation run kill @e[type=minecraft:block_display]', 800)).join(' ')
+await s.ask(`execute in waycave run forceload add -32 -32 32 32`, 5000); await sleep(2000)
+const after9 = (await s.ask('execute in waycave run kill @e[type=minecraft:block_display]', 800)).join(' ')
 check('after kill -9: no display entities left', /No entity was found/.test(after9), after9.slice(0, 60))
 await s.stop()
-console.log('\nWaystation warnings seen:')
-console.log([...new Set(s.log.filter(l => /WARN.*\[Waystation\]/.test(l)).map(l => l.replace(/^\[[\d:]+ \w+\]: /, '').slice(0, 170)))].join('\n') || '  none')
+console.log('\nWaycave warnings seen:')
+console.log([...new Set(s.log.filter(l => /WARN.*\[Waycave\]/.test(l)).map(l => l.replace(/^\[[\d:]+ \w+\]: /, '').slice(0, 170)))].join('\n') || '  none')
 const ok = summary()
 process.exit(ok ? 0 : 1)

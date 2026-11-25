@@ -1,10 +1,10 @@
-# Waystation. Worlds get gates on their own, so this file can stay as it is.
+# Waycave. Worlds get gates on their own, so this file can stay as it is.
 # Text uses MiniMessage: https://docs.advntr.dev/minimessage/format.html
 # Apply changes with /gate reload. A file with a YAML error is rejected and the old settings stay.
 # Gate positions live in gates.yml, which is also plain YAML you can edit.
 
-# Make two small example worlds, example_survival and example_creative, the first time the station is
-# built. To turn this on, before the plugin has ever started, create plugins/Waystation/config.yml holding
+# Make two small example worlds, example_survival and example_creative, the first time the cave is
+# built. To turn this on, before the plugin has ever started, create plugins/Waycave/config.yml holding
 # only this line, set to true. It does nothing once gates.yml exists, and never removes a world.
 example-worlds: false
 
@@ -28,15 +28,15 @@ looks:
 # can recognise one. varied also changes the outline from world to world. standard keeps it the same.
 world-gates: varied
 
-# Every Multiverse world gets a linked pair automatically: a gate on its world group's
-# platform, and a return gate near the world's spawn. A new world joins its platform and
-# the station lays itself out again. A deleted world's gate goes dark ("dies") and stays
+# Every Multiverse world gets a linked pair automatically: a gate in its world group's
+# chamber, and a return gate near the world's spawn. A new world takes a free place in its chamber,
+# and a new group grows a chamber of its own. A deleted world's gate goes dark ("dies") and stays
 # until an admin runs /gate remove. Nether and End worlds never get gates, unless listed below.
 auto-worlds: true
 exclude-worlds: [TARDIS_*]   # * matches anything
 
 # hand-over: true hands the player to that world's own plugin at the gate, for a world like OneBlock
-# where a plugin decides where each player goes. Waystation moves nobody: it fires WaystationHandOverEvent,
+# where a plugin decides where each player goes. Waycave moves nobody: it fires WaycaveHandOverEvent,
 # and if no plugin takes the player, they stay and are told the world isn't open. Such a world gets no
 # return gate; its plugin brings players back, to the spot LandingService gives. See the README.
 # enter-command: older and simpler: enter by running this command as the player. Also no return gate.
@@ -46,7 +46,7 @@ exclude-worlds: [TARDIS_*]   # * matches anything
 # Closing a world keeps its return gate working, so nobody is trapped. A world listed
 # here always gets a gate, even if exclude-worlds would skip it.
 # price: makes a world's gate show as locked for people without access, until they use
-# /buygate <world>. Any mix of xp-levels, items and money (money needs Vault and an economy plugin).
+# the Trails board menu (/buygate <world> is the hidden fallback). Any mix of xp-levels, items and money (money needs Vault and an economy plugin).
 #   example:          {price: {xp-levels: 30, money: 500, items: {diamond: 5}}}
 worlds: {}
 # worlds:
@@ -58,25 +58,25 @@ worlds: {}
 # Where a label marks a state, it says it in words, so colour is never the only clue.
 label-backing: 75
 
-# The station room is a train station. Each Multiverse-Inventories world group gets its own
-# platform: its gates side by side, a sign, and a floor in a mix of themed materials.
-# Platforms sit in two rows facing each other across an aisle. Everything decorative is a
-# display entity, so no block in the lobby changes, and nothing here can be broken.
-# A platform is hidden from anyone who can't enter any of its worlds.
-station:
-  world: waystation
-  auto-create: true      # make it, flat and empty, through Multiverse if it doesn't exist
+# The Waycave: one lush, glowing cave per server, in a world of its own, grown from this server's world groups. Every
+# group gets a chamber, joined by winding tunnels, and its gates stand in the chamber's walls. Each player sees only
+# their own trails and gates: a loose path of moss and glow lichen from the start chamber to each gate they can use.
+# Everything decorative at a gate is a display entity. The cave itself is built once, from a plan saved in cave.yml,
+# and a group added later grows a new chamber without moving anything already built. Nobody can change a block in it.
+cave:
+  world: waycave
+  auto-create: true      # make it through Multiverse if it doesn't exist
   border: 300            # world border size, so nobody wanders off
-  return-label: "<gold>Central Station"   # "" for no label out in the worlds
-  station-label: "<white><bold>Central Station</bold>"
-  dead-label: "<white><name></white> <gray>(line closed)"   # <name> is the world's name
+  return-label: "<gold>Waycave"   # "" for no label out in the worlds
+  station-label: "<white><bold>Waycave</bold>"   # floats over the start chamber's monument
+  dead-label: "<white><name></white> <gray>(trail closed)"   # <name> is the world's name
   dead-frame: cracked_deepslate_bricks
-  # The seed decides this station's floor plan, platform order, gate designs and themes, so no
-  # two servers match. 0 picks one at random the first time, then keeps it in gates.yml.
-  # /gate reseed rolls a whole new station. Its blocks don't change: only display entities move.
+  # The seed decides the gates' designs and themes, so no two servers match. 0 picks one at random the first time,
+  # then keeps it in gates.yml. /gate reseed rolls new gate designs. It never changes the cave: that is planned once,
+  # from the seed it was made with (set the first one here to get the same cave twice), and saved in cave.yml.
   seed: 0
-  tile-depth: 5          # how far each platform floor reaches out from the gates
-  tile-size: 2           # blocks per floor tile. Bigger means fewer entities
+  tile-depth: 0          # floor tiles in front of each gate. 0 for none: the cave has a floor of its own
+  tile-size: 2           # blocks per floor tile, if there are any
   # Optional, per world group. theme: a fixed theme, not one dealt by the seed. design: a fixed
   # shape: doorway, arch, ring, obelisk, temple, gothic, lozenge, towers, monolith or toy.
   # frame-blocks: "theme" builds frames from the theme, not from blocks found in the world beyond.
@@ -84,7 +84,7 @@ station:
   # platforms:
   #   Survival: {label: "Survival Line"}
   #   Kids:     {label: "Kids Line", design: toy, theme: toybox, frame-blocks: theme}
-  # Floors and accents come from these, a block at random for each piece.
+  # Accents come from these, a block at random for each piece.
   themes:
     toybox:   [red_wool, yellow_wool, blue_wool, lime_wool, orange_wool]
     candy:    [pink_concrete, light_blue_concrete, yellow_concrete, magenta_concrete, lime_concrete]
@@ -96,30 +96,39 @@ station:
     ember:    [nether_bricks, red_nether_bricks, blackstone, crimson_planks, red_terracotta]
     amethyst: [amethyst_block, blue_terracotta, purple_terracotta, deepslate_tiles, smooth_quartz]
     copper:   [cut_copper, weathered_cut_copper, oxidized_cut_copper, waxed_copper_block, tuff_bricks]
-  center: {x: 0, z: 0}   # leave out to centre on the world's spawn
-  y: -60                 # floor level to search around
-  spacing: 7             # least blocks between gates in a row
-  aisle: 14              # least blocks across a walkway
-  # To place each gate yourself, list slots here. They override the floor plan.
-  # slots:
-  #   - {x: 10, y: -60, z: 5, facing: north}
-  slots: []
+  center: {x: 0, z: 0}   # where the start chamber's middle is
+  y: 64                  # floor level of the cave. The world's own ground is far below it
 
-# Nobody can change blocks in the station or around a world's gate: no player, no
+# Trails. Each player sees a path of moss carpet edged with glow lichen from the start chamber to each gate they can
+# use. They are sent to that player only (fake blocks), so another player standing on the same spot sees plain floor.
+trails:
+  enabled: true
+
+# Seeing other players in the cave follows Posse's groups: anyone Posse says a player can't reach is hidden from them
+# while both are in the cave. Without Posse, nobody in the cave sees anyone else. Not configurable on purpose.
+
+# The Wayport gate is off in 0.8.0 (D301): nobody sees it and nobody can use it. It comes back when Wayport has an API
+# for it, in its own release. These settings are kept so nothing needs renaming then.
+wayport:
+  command: wayport
+  permission: wayport.use
+  label: "<gold><bold>To another server</bold>"
+
+# Nobody can change blocks in the cave or around a world's gate: no player, no
 # permission, no operator. Explosions, fire, liquid, pistons and growth are stopped too.
 # To rebuild the room itself, set enabled: false here and run /gate reload.
-# With Rewild installed, tells it to leave the station's world alone and keep every gate in place, so Rewild never
-# rewilds them. Rewild listens once an admin respects Waystation with /rewild plugins. Read at startup.
+# With Rewild installed, tells it to leave the cave's world alone and keep every gate in place, so Rewild never
+# rewilds them. Rewild listens once an admin respects Waycave with /rewild plugins. Read at startup.
 rewild:
   keep-gates: true
 
 protection:
   enabled: true
-  # World-editing commands refused for players anywhere in the station's world, and
+  # World-editing commands refused for players anywhere in the cave's world, and
   # anywhere else if their coordinates touch a gate. The console isn't limited.
   guarded-commands: [fill, setblock, clone, place, fillbiome]
 
-# What /buygate runs, as the console, once the player has paid. If the player doesn't have
+# What a purchase runs, as the console, once the player has paid (from the board menu or /buygate). If the player doesn't have
 # multiverse.access.<world> two seconds later, they get their payment back.
 buy:
   grant-commands:
@@ -134,7 +143,7 @@ bluemap:
 
 # Fargates lead to another server, and look nothing like waygates: see looks.fargate
 # and the label below. Place one with /gate fargate <id> <destination>. It's hidden, and does
-# nothing at all, unless the player has its permission (waystation.fargate.<name> unless set
+# nothing at all, unless the player has its permission (waycave.fargate.<name> unless set
 # below) and their client version is listed in protocols: 775 is Minecraft 26.1, 776 is 26.2, 777 is 26.3.
 # Both servers need accepts-transfers=true in server.properties. If this one doesn't have it,
 # its fargates stay hidden, since nobody could come back.
@@ -153,7 +162,7 @@ fargate-label: "<red><bold>Leaving this server</bold></red>\n<white><name></whit
 
 # Arrival guard. With it on, this server lets in only players arriving through another server's fargate
 # with a valid pass: a direct join is refused before the player reaches any world. Both servers need the
-# same key in plugins/Waystation/transfer.key: at least 32 random bytes, readable only by the server's
+# same key in plugins/Waycave/transfer.key: at least 32 random bytes, readable only by the server's
 # user. To change it, replace the file on both servers and restart both. While the key is missing or
 # unsafe, nobody can join, by design. The whitelist still applies.
 arrival-guard:
@@ -163,46 +172,47 @@ arrival-guard:
   message: "You can only come to this server through its gate on the other server."
 
 # OneBlock gives each player their own island, so each island with someone on it gets a glowing post
-# beside its block. Click it twice to go to the station. It's display entities, so it places no blocks.
+# beside its block. Click it twice to go to the Waycave. It's display entities, so it places no blocks.
 island-posts:
   enabled: true
-  label: "<gold>To the station"
+  label: "<gold>To the Waycave"
 
-# Arriving players. The lobby gate leads from the lobby into the station. It's the lobby world's return
+# Arriving players. The lobby gate leads from the lobby into the Waycave. It's the lobby world's return
 # gate, placed near the lobby instead of the world's spawn, in its own design so nobody mistakes it for
-# a waygate. With WelcomeWagon's lobby set up, Waystation uses that; otherwise the world named here.
+# a waygate. With WelcomeWagon's lobby set up, Waycave uses that; otherwise the world named here.
 arrival:
   lobby-gate: true
   lobby-world: ""            # only used without WelcomeWagon's lobby. "" for no lobby gate
   # lobby-spot: {x: 0, y: 65, z: 0}   # where in lobby-world; leave out for its spawn
-  lobby-label: "<gold><bold>Central Station</bold>"
-  # A short rundown when someone walks into the station for the first time, or after this many days away.
-  # <worlds> is how many worlds they can reach and <groups> the platforms, both counted for that player.
+  lobby-label: "<gold><bold>The Waycave</bold>"
+  # A short rundown when someone walks into the cave for the first time, or after this many days away.
+  # <worlds> is how many worlds they can reach and <groups> the chambers, both counted for that player.
   welcome: true
   welcome-after-days: 30
   welcome-text:
-    - "<gold><bold>Welcome to Central Station.</bold>"
+    - "<gold><bold>Welcome to the Waycave.</bold>"
     - "<gray>From here you can reach <white><worlds></white> on <white><groups></white>."
-    - "<gray>Walk through a lit gate to travel. In any world, <white>/waygate</white> shows the way back."
+    - "<gray>Follow a glowing trail to a gate, and walk through it to travel."
 
-# The Departures Board stands in front of the station's centrepiece. Each player sees their own: only the worlds
-# they can use, grouped by platform like the gates, and it changes as soon as their access does.
-departures-board:
+# The Trails board stands in front of the start chamber's monument. Each player sees their own: a heading for each
+# chamber, the worlds they can use under it, and a line reading (trail closed) for a world they could reach before
+# and can't now. It changes as soon as their access does. It never names a world they have never been able to use.
+trails-board:
   enabled: true
-  title: "<gold><bold>Departures</bold>"
-  empty: "No gates are open to you yet."
-  distance: 5              # blocks from the centrepiece, towards the south
+  title: "<gold><bold>Trails</bold>"
+  empty: "No trails are open to you yet."
+  distance: 5              # blocks from the monument, towards the south
 
-# A top-down map of the station on a wall of maps behind the centrepiece, facing it. Each player sees their own
-# "you are here" marker, and only the gates they can use. The map ids are kept in wallmap.yml so restarts reuse them.
+# A top-down map on a wall of maps behind the centrepiece. It needs a flat wall, which a cave doesn't have, so it's
+# off. Each player would see their own "you are here" marker, and only the gates they can use.
 wall-map:
-  enabled: true
+  enabled: false
   tiles: 2                 # maps across and down: 2 makes a 2x2 wall
   distance: 7              # blocks north of the centrepiece
 
-# Sealed gates. Off: a station gate you can't use isn't there at all, as before. On: you see its frame with the
-# opening walled up in the same stone, no light and no name, so the platform looks whole and the line looks closed on
-# purpose. It still says nothing about where it leads. Platforms listed in hidden-groups always stay hidden.
+# Sealed gates. Off: a gate you can't use isn't there at all. On: you see its frame with the opening walled up in the
+# same stone, no light and no name. It still says nothing about where it leads. Groups listed in hidden-groups always
+# stay hidden.
 sealed-gates:
   enabled: false
   hidden-groups: []
@@ -218,7 +228,7 @@ travel:
 # happen. Hearts can never kill you.
 move:
   enabled: true
-  permission: waystation.move
+  permission: waycave.move
   hearts: 6
   gentle-hearts: 3       # for the worlds listed in gentle-worlds
   gentle-worlds: []
@@ -226,13 +236,14 @@ move:
   search-chunks: 2       # how many chunks out from your bed it may look
   allowed-worlds: []      # empty means no tribute chests or moving anywhere
 
-# A way out for anyone stuck. Set enabled: false to remove the command entirely.
-# The console can always use: mvtp <player> w:waystation
+# A hidden fallback for anyone stuck (D284: players walk, they don't type): to the start chamber. Nothing in the game
+# teaches it. A way in by walking is a return gate. Set enabled: false to remove the command entirely.
+# The console can always use: mvtp <player> w:waycave
 escape:
   enabled: true
-  command: station
+  command: cave
   aliases: [hub]
-  permission: waystation.escape
+  permission: waycave.escape
   cooldown-seconds: 0
 
 # The return command: like walking through a fargate, from anywhere. The player stands still for a few seconds, then
@@ -246,7 +257,7 @@ return:
   destination: ""        # a name from fargate-destinations
   command: return        # what players type, without the slash
   aliases: []
-  permission: waystation.return
+  permission: waycave.return
   countdown-seconds: 5
   sounds: true           # a soft tick each second, a chime on leaving, a low note if it's cancelled
   # Where this server pings to check the destination is up, if that's not the address players use. Empty means the
@@ -261,7 +272,7 @@ messages:
   destination-closed: "<red>That world isn't open right now."
   nearest: "<aqua>Nearest waygate: <white><name></white> at <white><x> <y> <z></white>, <distance> blocks <direction>."
   nearest-none: "<yellow>There's no waygate you can use in this world."
-  nearest-none-escape: "<yellow>There's no waygate you can use in this world. <white><command></white> will take you to Central Station."
+  nearest-none-escape: "<yellow>There's no waygate you can use in this world."
   fargate-leaving: "<red><bold>Leaving this server</bold></red> <gray>for <white><name></white>. See you back here."
   fargate-down: "<red><white><name></white> isn't answering right now. You're staying here, and nothing changed.</red> <gray>Try again in a minute."
   move-disabled: "<red>Waygates can't be moved in this world."
@@ -277,21 +288,40 @@ messages:
   move-spot-gone: "<red>The spot near your bed is no longer safe. Nothing was taken."
   move-answered: "<green>Your tribute is accepted. The waygate moved to <white><x> <y> <z></white>."
   move-announce: "<light_purple>The waygate has moved. Nobody is saying where."
-  station-blocked: "<gold>Waystation:</gold> <red>no safe floor for <white><gates></white>.</red> <gray>Choose: <white>/gate enlarge</white> keeps this station with more room, <white>/gate reseed</white> rolls a new one.</gray>"
-  island-post-confirm: "<gold>Click the post again to go to the station."
-  gate-locked: "<yellow>This line costs <white><cost></white>. Buy it with <white>/buygate <world></white>."
+  station-blocked: "<gold>Waycave:</gold> <red>no room for <white><gates></white>.</red> <gray>Its chamber has no free place. Move a gate by hand with <white>/gate move</white>, or remove one that isn't used.</gray>"
+  island-post-confirm: "<gold>Click the post again to go to the Waycave."
+  gate-locked: "<yellow>This line costs <white><cost></white>. You can buy it at the Trails board in the start chamber. Click the board."
   buy-none: "<gray>There's nothing for sale right now."
   buy-list: "<gray>For sale: <white><list></white>"
   buy-not-for-sale: "<red><world> isn't for sale."
   buy-owned: "<yellow>You already have <world>."
   buy-cost: "<red><world> costs <cost>, and you don't have enough. Nothing was charged."
   buy-done: "<green>The line to <world> is open for you. Spent: <white><cost></white>."
+  # The buying menu: click the Trails board, click a gate, then click Yes. The chat lines are the same menu in words.
+  buy-menu-title: "Buy a trail"
+  buy-menu-confirm-title: "Buy <world>?"
+  buy-menu-none: "<gray>There's nothing for sale right now."
+  buy-menu-no-permission: "<yellow>You can't buy trails right now."
+  buy-menu-intro: "<gold>Trails you can buy. <gray>Click one in the menu, or click its name here. Then click Yes to buy it."
+  buy-menu-line: "<white><world></white><gray>: costs <white><cost></white>. You have <white><have></white>. </gray><choose>"
+  buy-menu-choose-link: "<aqua><underlined>[Choose <world>]</underlined></aqua>"
+  buy-menu-confirm: "<gold>Buy <world>? <gray>It costs <white><cost></white>. You have <white><have></white>. Click Yes to buy it, or No to go back."
+  buy-menu-cant: "<yellow>You don't have enough for <world> yet. <gray>It costs <white><cost></white>. You have <white><have></white>. Nothing was charged."
+  buy-menu-gone: "<yellow><world> isn't for sale to you any more. Nothing was charged."
+  buy-menu-yes: "<green>Yes, buy <world> for <cost>"
+  buy-menu-no: "<red>No, go back"
+  buy-menu-short: "<gray>Not enough yet"
+  buy-menu-item-cost: "<gray>Costs: <white><cost></white>"
+  buy-menu-item-have: "<gray>You have: <white><have></white>"
+  buy-menu-choose: "<yellow>Click to choose this trail"
+  buy-menu-item-ok: "<green>You have enough"
+  buy-menu-item-short: "<gray>You don't have enough yet"
   buy-failed: "<red>That didn't work, so you've been paid back. Please tell an admin."
   gate-dead: "<gray>This line has closed. The world it led to is gone."
   protected: "<red>Nothing can be changed here."
   escape-cooldown: "<yellow>You can do that again in <seconds>s."
-  escape-off: "<yellow><command> is turned off on this server. Walk through a waygate, or ask an admin."
-  escape-no-permission: "<red>You can't use <command>. Walk through a waygate, or ask an admin."
+  escape-off: "<yellow>That is turned off on this server. Walk through a waygate, or ask an admin."
+  escape-no-permission: "<red>You can't use that. Walk through a waygate, or ask an admin."
   # The return command. <destination> is the destination's label, <seconds> the seconds left, <command> the command.
   return-starting: "<gray>Going to <destination><gray> in <seconds> seconds. Stand still, and don't take any damage."
   return-countdown: "<white>Going to <destination><white> in <bold><seconds></bold>…"
@@ -307,4 +337,4 @@ messages:
   return-wrong-version: "<red>Your game version can't join <destination><red>.</red> <gray>Ask an admin which version to use."
   return-unavailable: "<red><destination><red> can't take you right now. You're staying here, and nothing changed.</red> <gray>Let an admin know if it keeps happening."
   return-not-set-up: "<red>This command isn't set up yet.</red> <gray>Let an admin know."
-  return-not-set-up-admin: "<red>The return command isn't set up: <problem>.</red> <gray>Fix it in plugins/Waystation/config.yml, then /gate reload."
+  return-not-set-up-admin: "<red>The return command isn't set up: <problem>.</red> <gray>Fix it in plugins/Waycave/config.yml, then /gate reload."

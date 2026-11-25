@@ -1,6 +1,65 @@
 # Test audit
 
-What Waystation promises, and the tests that prove it. Newest first.
+What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
+
+## 2026-11-25: the older suites brought to the cave, Posse, and the Wayport gate off (K649)
+
+| Promise | Proved by |
+| --- | --- |
+| Nobody in the cave sees anyone without Posse, or when Posse can't answer | `CaveCrowdTest` (null answers are a no); `cave` bots, last section: Posse's jar removed, two players who shared a circle see nobody |
+| The cave asks the plugin named Posse and reads `posse.circle.*` | `cave` bots: the shared circle shows two players to each other, and leaving the circle hides them |
+| The Wayport gate is off: never placed, none in `gates.yml`, none sent to a player holding `wayport.use` and `wayport.admin`, nothing runs `/wayport` for her (D301) | `cave` bots, "The Wayport gate stays off" |
+| Operators can't change the cave floor, `/setblock` or `/fill` in the cave | `acceptance`, read from the server, with the survival-world control in the `cave` suite |
+| Gates, permissions, inventories, protection, tribute and buying still hold in the cave | `acceptance` 166/169 on 26.1.2: the three that remain need the real server's creative permissions, portals and BlueMap's first render |
+| Fargates: who sees one, coming back, and that a destination that doesn't answer sends nobody | `fargate` on 26.1.2 (an older client only where ViaVersion is), `hop` on two servers, `arrival-guard` |
+| The lobby gate, the welcome and sealed gates | `arrival` on all three versions. The Departures Board and wall map checks are gone with those features; the Trails board is in the `cave` suite |
+
+Gaps and why: `acceptance`, `fargate` and `hop` walk through gates, which bots can't do on 26.2 and 26.3, so they stay on 26.1.2.
+The live install step (`design/waycave` in the server kit) is rehearsed on a made-up server, not on a copy of the live one by this suite.
+
+## 2026-11-24: the Waycave rebuild (K649)
+
+What the cave promises, and what proves it. Counts and versions are in the CHANGELOG and the PR.
+
+| Promise | Proved by |
+| --- | --- |
+| The same seed and groups give the same cave; another seed a different one | `CaveTest`: same seed, another seed |
+| A group added later adds a chamber and moves no chamber, tunnel or gate place | `CaveTest`: added later (20 seeds); `cave` bots: every gate where it was, a chamber more, the sampled blocks unchanged |
+| Every chamber, tunnel point and gate front can be walked to from the start, and no walkable ground is cut off | `CaveTest`: 200 seeds with 1 to 7 groups; `cave` bots: the plugin's walk over the real blocks passed |
+| No dead chamber: each has gates or a feature | `CaveTest`: no dead chambers (40 seeds) |
+| Floors step at most one block, two blocks of headroom everywhere | `CaveTest`: floors and headroom |
+| Every walkable block is at light 9 or more (so nothing spawns) | `CaveTest`: light (25 seeds, simulated light) |
+| Tunnels are 3 to 5 blocks wide and wind; gate places are spaced, clear of doors, face the middle, and fit | `CaveTest`: widths, sockets, capacity |
+| Each player sees only their own gates | `cave` bots: two bots, 13 gates, 26 checks, at the same coordinates |
+| Each player sees only their own trails, and another player on the same spot sees plain floor; nothing is placed in the world | `cave` bots: carpet at the end of every trail, 26 checks; real block is not carpet; `TrailRouteTest` for the shape |
+| A trail is walkable ground, connected, starts by the monument and ends in front of its gate; stable per player, different between players | `TrailRouteTest` (25 seeds, every gate place) |
+| Players see each other only where Posse allows; fails closed without Posse | `CaveCrowdTest` (rule, null answers); `cave` bots: shared circle (control), no shared circle, joining and leaving a circle, and a run without Posse |
+| A lost access closes the trail, the gate and reads (trail closed); a regained one reopens; a world never held is never named | `TrailsBoardTest`; `cave` bots: board text, trail and gate gone and back, bob's board |
+| Nobody can change a block in the cave | `cave` bots: a survival bot's break is refused. Control: the same break works in a survival world |
+| Arrival is at the end of the last trail, else the start chamber | `CaveCrowdTest` (every reason to fall back); `cave` bots (26.1.2 only): lands two blocks in front of the gate; with the gate removed, in the start chamber |
+| The Wayport gate exists only with Wayport, and only a player who may use it sees it | `cave` bots: absent without, present with, seen by one player and not another, walking in runs Wayport's command (26.1.2 only) |
+| Old gates from an older install are re-pointed at the new world | Not tested yet (see gaps) |
+| Buying is two clicks: the first only asks, only Yes buys, nothing else does | `BuyMenuTest` (click map, every other slot); `buymenu` bots: opening, choosing, an empty and a picture square, No, then Yes; balance and access read after each |
+| Nothing is offered or bought for a gate the player's group can't see; `/buygate` agrees | `BuyMenuTest` (the rule); `buymenu` bots: finn (Legacy denied) lacks it in menu and chat and is refused by `/buygate`, gus (control) buys it the same way |
+| A price in money with no Vault or economy is not offered | `buymenu` bots: a run without Vault offers the XP-priced gate only; `/buygate` is refused, nothing granted |
+| Someone who can't afford it is told and charged nothing | `buymenu` bots: 0 levels, the Yes square says "Not enough yet", a click takes nothing; with 5 levels (control) she buys |
+| Nobody opens another player's board | `buymenu` bots: finn's right and left click on dora's click spot open nothing; `waycave.buy` false opens nothing and says so |
+| No text a player reads teaches a command | `BuyMenuTest`: every `buy-menu-*` message, `gate-locked` and the gate label |
+
+### Gaps
+
+- **Walking on 26.2 and 26.3.** A 26.1 bot that moves is disconnected there, so those runs skip arrival and the Wayport walk. Arrival's rule is unit tested and was walked on 26.1.2.
+- **A real client.** Nothing about how it looks, reads or feels is checked.
+- **The upgrade.** The re-pointing of a Waystation install's return gates (`repointStale`) and the rename steps have not been run against a copy of a real install. The rehearsal on a stopped copy is the Head's.
+- **Trails across a chunk reload.** The resend when a chunk reaches a player (`PlayerChunkLoadEvent`) isn't exercised by a bot: the bots stay in range.
+- **The older suites** (`acceptance`, `fargate`, `defaults`, `hop`, `economy`, `return`, `handover`) were renamed mechanically and not run. Several assert the old platforms, floor tiles and `/gate enlarge`. K24's last checks are still to run against Waycave on a stopped real copy.
+- **The buying menu's real look.** A bot reads item names and lore from the packets; how it looks and reads in a client, and a click on the chat names (an Adventure callback), are not exercised.
+- **Hand-placed gates in the cave** get no trail: a trail follows the plan to a gate place.
+
+### Skipped as overkill
+
+- The shape of the wall noise and the exact blocks of walls and ceilings: only that the result is connected, lit and the same each time.
+- Posse's own rules: Posse tests those. Waycave tests only what it does with the answer.
 
 ## 2026-11-11: the older suites' failures on the stand-in (K24)
 

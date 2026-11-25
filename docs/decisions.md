@@ -26,8 +26,24 @@ Dates are when the decision was made. Those marked "by" were made while the firs
 
 ## 2026-11-14
 
-- **Other plugins' new names (owner, D194, D196, D197, D198):** Waystation reads WelcomeWagon's lobby and arrival event by their new names, and its docs and tests use OneVoid, Mayor, Sheriff and the other new names. Waystation itself keeps its name until the Waycave rebuild (K649), as the owner chose. Released as 0.7.2.
+- **Other plugins' new names (owner, D194, D196, D197, D198):** Waystation reads WelcomeWagon's lobby and arrival event by their new names, and its docs and tests use OneVoid, Posse, Sheriff and the other new names. Waystation itself keeps its name until the Waycave rebuild (K649), as the owner chose. Released as 0.7.2.
 
 ## 2026-11-22
 
-- **Waycave answers (owner, Simon's dialogs, 2026-11-22, relayed by the chief of staff):** cave shape "organic tunnels and chambers that are unique to each instance"; trails "Moss and glow lichen (Recommended)", visible only to that player; seeing other players in the cave "Follow Mayor's groups (Recommended)"; arrival "End of their last trail", falling back to the start chamber when that spot is gone or unsafe (the lead's pick); the old station world "throw it away, was never used", moved to the Trash at the switch once a backup exists in the normal backup set, with no hold. Generated caves must always connect, with no dead chambers, and tests prove it. Details in `docs/waycave-design.md` (K649).
+- **Waycave answers (owner, Simon's dialogs, 2026-11-22, relayed by the chief of staff):** cave shape "organic tunnels and chambers that are unique to each instance"; trails "Moss and glow lichen (Recommended)", visible only to that player; seeing other players in the cave "Follow Posse's groups (Recommended)"; arrival "End of their last trail", falling back to the start chamber when that spot is gone or unsafe (the lead's pick); the old station world "throw it away, was never used", moved to the Trash at the switch once a backup exists in the normal backup set, with no hold. Generated caves must always connect, with no dead chambers, and tests prove it. Details in `docs/waycave-design.md` (K649).
+
+## 2026-11-24
+
+- **Waycave build (K649).** Decisions the design notes didn't cover, made while building, for the owner to confirm:
+  the world is a flat Multiverse world with the cave built high above its ground, because Multiverse loads worlds before a
+  generator plugin is up on restart; the cave is planned once and `/gate reseed` leaves it alone; `/gate enlarge` is gone,
+  since a chamber is sized for its group's gates plus spares; a world with no place left in its chamber is reported to
+  admins and not squeezed in; the Trails board names a world as (trail closed) only to a player who once had a trail to
+  it; Posse must list `waycave` as a circle-only world for the cave to follow circles; the Wayport gate runs Wayport's
+  command and Waycave's own fargate transfer code is untouched (to retire separately).
+- **Cave chat (owner, D287, 2026-11-24):** "Circle-only (Recommended)". The cave world goes in Posse's `circle-only-worlds`, so players there see and chat only with their circles; a player with no circle can't chat in the cave.
+- **D284 (owner, 2026-11-24):** "Players never need to type a command in game where a walk-in portal, sign, book, menu or NPC can do the job. Commands stay for admins and as a hidden fallback." Applied: no text teaches a player command. Buying is a menu on the Trails board (below); `/buygate` stays as a hidden fallback.
+- **Buying menu (K649, built under D284, for the owner to confirm).** Players click the Trails board, which they already meet in the start chamber and which already lists what is for sale, rather than a sign or lectern at each locked gate (those would be more things to place and look after in a cave that grows). The menu shows only gates the player can see and pay for, asks "Buy it?" on a second screen, and is also written out in chat for screen readers. `/buygate` now refuses a world the player has no visible gate to, as the menu does.
+- **Posse, not Mayor (D295, 2026-11-25):** Mayor became Posse 0.11.0 and no old name is read. Waycave asks the plugin named `Posse` (method `mayReach`), the circle permissions are `posse.circle.<name>`, and the cave still fails closed: with no Posse, or one that can't answer, nobody in the cave sees anyone.
+- **Install in step with OneVoid (K649, 2026-11-25):** OneVoid 0.2.0 compiles against `com.extantape.waystation` classes and can't load without them, so a server with OneVoid takes a OneVoid release built for Waycave in the same install step. WelcomeWagon needs nothing: Waycave reads it by name.
+- **Wayport gate off in 0.8.0 (owner, D301, 2026-11-25):** "Wayport API, gate off till then (Recommended)". Wayport 0.4.0 made `/wayport` admin-only, so the start chamber's gate to another server can't work for players. It is hidden from everyone: never placed, an old one removed, nobody sent it, nobody can walk into it. Waycave never runs `/wayport` with borrowed rights. It returns when Wayport has an API, in its own release. The `cave` suite checks that nobody sees or can use it, even a player holding `wayport.use` and `wayport.admin`.

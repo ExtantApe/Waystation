@@ -4,17 +4,17 @@
 // real server. Worlds: the main world and the station share a "Lobby" inventory group; "skyblock", made here, is its
 // own group and hands over.
 //
-// WAYSTATION_HANDOVER_VERSION is 26.1.2 (default), 26.2 or 26.3. On 26.3 a bot behind ViaVersion is disconnected when
+// WAYCAVE_HANDOVER_VERSION is 26.1.2 (default), 26.2 or 26.3. On 26.3 a bot behind ViaVersion is disconnected when
 // it walks, so there the walk-through checks are skipped and said so; everything else runs.
 //
 // ./gradlew shadowJar hookJar, then:
-// WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> node test/handover.mjs
+// WAYCAVE_TEST_JARS=<folder> WAYCAVE_TEST_EULA=accept WAYCAVE_TEST_JAVA=<java 25> node test/handover.mjs
 import { JAR, freshServer, writeConfig, pluginJar, Server, bot, settle, sleep, check, summary, BASE } from './return-harness.mjs'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-const V = process.env.WAYSTATION_HANDOVER_VERSION ?? '26.1.2'
-if (!['26.1.2', '26.2', '26.3'].includes(V)) throw new Error('WAYSTATION_HANDOVER_VERSION must be 26.1.2, 26.2 or 26.3')
+const V = process.env.WAYCAVE_HANDOVER_VERSION ?? '26.1.2'
+if (!['26.1.2', '26.2', '26.3'].includes(V)) throw new Error('WAYCAVE_HANDOVER_VERSION must be 26.1.2, 26.2 or 26.3')
 const PORT = 25651, PHYS = V !== '26.3'
 const HOOK = path.join(path.dirname(JAR), '../test-hook/DenyHook.jar')
 if (!existsSync(HOOK)) throw new Error('Run ./gradlew hookJar first')
@@ -27,16 +27,16 @@ const group = (name, worlds) => `  ${name}:\n    worlds:\n${worlds.map(w => `   
 console.log(`Hand-over suite on Paper ${V}, port ${PORT}, bots ${PHYS ? 'walking' : 'standing still (26.3)'}; servers in ${BASE}`)
 const folder = freshServer('handover', { version: V, port: PORT, plugins: [JAR, pluginJar('multiverse-core'), pluginJar('multiverse-inventories'), pluginJar('Vault'), HOOK] })
 mkdirSync(path.join(folder, 'plugins/Multiverse-Inventories'), { recursive: true })
-writeFileSync(path.join(folder, 'plugins/Multiverse-Inventories/groups.yml'), 'groups:\n' + group('Lobby', ['world', 'waystation']) + group('Skyblock', [W]))
+writeFileSync(path.join(folder, 'plugins/Multiverse-Inventories/groups.yml'), 'groups:\n' + group('Lobby', ['world', 'waycave']) + group('Skyblock', [W]))
 const SETTINGS = [['worlds: {}', `worlds:\n  ${W}: {label: "<aqua>Skyblock", hand-over: true}`]]
 writeConfig(folder, SETTINGS)
-const cfgFile = path.join(folder, 'plugins/Waystation/config.yml')
+const cfgFile = path.join(folder, 'plugins/Waycave/config.yml')
 
 const s = new Server(folder, V, PORT)
 await s.start()
 const made = (await s.ask(`mv create ${W} normal --world-type flat`, 12000)).join(' ')
 console.log('  mv create: ' + made.slice(0, 160))
-for (const p of ['multiverse.access.world', 'multiverse.access.waystation', `multiverse.access.${W}`]) await s.ask(`lp group default permission set ${p} true`, 400)
+for (const p of ['multiverse.access.world', 'multiverse.access.waycave', `multiverse.access.${W}`]) await s.ask(`lp group default permission set ${p} true`, 400)
 for (const r of ['keepInventory true', 'keep_inventory true']) s.send(`execute in ${W} run gamerule ${r}`)
 
 async function gates() {
@@ -77,7 +77,7 @@ async function landing(world) {
 /** Stands the bot three blocks out from the gate, then walks it in by its own physics. */
 async function walkThrough(b) {
   const [dx, dz] = dir[gate.facing]
-  await s.ask(`execute in waystation run tp ${b.username} ${gate.x + 0.5 + dx * 3} ${gate.y} ${gate.z + 0.5 + dz * 3}`, 900)
+  await s.ask(`execute in waycave run tp ${b.username} ${gate.x + 0.5 + dx * 3} ${gate.y} ${gate.z + 0.5 + dz * 3}`, 900)
   await settle(b)
   const end = Date.now() + 5000
   b.setControlState('forward', true)
@@ -99,21 +99,21 @@ const spot = await landing(W)
 const [dx, dz] = dir[gate.facing]
 check('it answers for the hand-over world', typeof spot === 'object', JSON.stringify(spot))
 if (typeof spot === 'object') {
-  check('two blocks in front of the gate, in the station', spot.world === 'waystation' && spot.x === gate.x + 0.5 + dx * 2 && spot.z === gate.z + 0.5 + dz * 2 && spot.y === gate.y,
+  check('two blocks in front of the gate, in the station', spot.world === 'waycave' && spot.x === gate.x + 0.5 + dx * 2 && spot.z === gate.z + 0.5 + dz * 2 && spot.y === gate.y,
     `gate ${gate.x} ${gate.y} ${gate.z} ${gate.facing}, spot ${spot.x} ${spot.y} ${spot.z}`)
   check('facing away from the gate', ((spot.yaw % 360) + 360) % 360 === yawOf[gate.facing], `yaw ${spot.yaw}, gate faces ${gate.facing}`)
 }
 check('empty for a world that has no gate', (await landing('nowhere')) === 'none')
-check('empty for the station itself, which has no gate to itself', (await landing('waystation')) === 'none')
+check('empty for the station itself, which has no gate to itself', (await landing('waycave')) === 'none')
 
 const ana = await bot('ana', { port: PORT, physics: PHYS })
-await s.ask('mvtp ana w:waystation', 2500); await s.ask('clear ana', 300)
+await s.ask('mvtp ana w:waycave', 2500); await s.ask('clear ana', 300)
 await s.ask('give ana apple 3', 800)
 if (typeof spot === 'object') {
   const from = s.log.length
-  await s.ask(`execute in waystation run tp ana ${spot.x} ${spot.y} ${spot.z} ${spot.yaw} 0`, 1000)
+  await s.ask(`execute in waycave run tp ana ${spot.x} ${spot.y} ${spot.z} ${spot.yaw} 0`, 1000)
   await settle(ana); await sleep(3000)
-  check('standing on the landing spot doesn\'t trigger the gate', await inWorld('ana', 'waystation', 1500) && logged(from, /HANDOVER ana/).length === 0)
+  check('standing on the landing spot doesn\'t trigger the gate', await inWorld('ana', 'waycave', 1500) && logged(from, /HANDOVER ana/).length === 0)
 }
 
 console.log('\n# Walking through')
@@ -125,13 +125,13 @@ if (PHYS) {
   check('positive control: walking in fires the hand-over', seen.length >= 1, seen[0])
   check('with the gate and world it was for', /gate station-skyblock dest skyblock/.test(seen[0] ?? ''), seen[0])
   check('unhandled at first, and the inventory screen closed', /handled-before false screen-open false/.test(seen[0] ?? ''), seen[0])
-  check('nobody handles it: the player stays in the station', await inWorld('ana', 'waystation', 1500))
+  check('nobody handles it: the player stays in the station', await inWorld('ana', 'waycave', 1500))
   check('and is told the world isn\'t open', ana.chat_log.some(m => /isn't open right now/.test(m)), ana.chat_log.at(-1))
   check('and the console says why', logged(from, new RegExp(`Nothing took ana into ${W}`)).length > 0)
   check('nothing changed in their inventory', count(ana, 'apple') === 3)
 
   await s.ask('hookhandover on', 400)
-  await s.ask(`execute in waystation run tp ana ${spot.x} ${spot.y} ${spot.z}`, 2500) // wait out the gate's cooldown
+  await s.ask(`execute in waycave run tp ana ${spot.x} ${spot.y} ${spot.z}`, 2500) // wait out the gate's cooldown
   from = s.log.length
   await walkThrough(ana); await sleep(3000)
   const handled = logged(from, /HANDOVER ana/)
@@ -160,7 +160,7 @@ await s.ask(PHYS ? 'kill ana' : 'hookkill ana', 2000) // on 26.3 /kill doesn't t
 ana.respawn() // mineflayer misses the death screen through ViaVersion on 26.3; asking again when alive does nothing
 await sleep(2000); await settle(ana); await sleep(1500)
 const after = ana.entity.position
-const respawned = check('respawns in the station', await inWorld('ana', 'waystation', 3000), logged(before, /RESPAWN ana/)[0])
+const respawned = check('respawns in the station', await inWorld('ana', 'waycave', 3000), logged(before, /RESPAWN ana/)[0])
 if (!respawned) console.log('  server, since the kill:\n    ' + [...s.since(before), ...(await s.ask('list', 600))].filter(l => /ana|RESPAWN|DEATH|DenyHook|Killed|died|players online/i.test(l)).slice(0, 20).join('\n    '))
 if (typeof spot === 'object') check('on the landing spot, despite the spawn point', Math.hypot(after.x - spot.x, after.z - spot.z) < 0.6, after.toString())
 check('with the station\'s inventory, as it was', count(ana, 'apple') === 3, `apples ${count(ana, 'apple')}`)
@@ -178,7 +178,7 @@ check('hand-over with enter-command is refused, saying why', /has a problem|both
 check('and the running settings stay', typeof (await landing(W)) === 'object')
 writeFileSync(cfgFile, good); await s.ask('gate reload', 1500)
 
-check('no Waystation errors', s.errors().length === 0, s.errors()[0]?.slice(0, 200))
+check('no Waycave errors', s.errors().length === 0, s.errors()[0]?.slice(0, 200))
 ana.end()
 await s.stop()
 rmSync(folder, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 })

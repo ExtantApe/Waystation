@@ -1,1 +1,1 @@
-{ "name": "waystation-tests", "private": true, "type": "module", "dependencies": { "mineflayer": "^4.39.0" } }
+{ "name": "waycave-tests", "private": true, "type": "module", "dependencies": { "mineflayer": "^4.39.0" } }

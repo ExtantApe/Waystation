@@ -1,13 +1,13 @@
 // The arrival guard (owner, 2026-11-10, D42), and fargates checking their destination answers first (K366). Two fresh
 // Paper servers on 127.0.0.1, one at a time where it matters: A (25617) sends players through a fargate and the return
 // command with a signed pass; B (25618) has the arrival guard on and lets in only transfers carrying a valid one.
-// Both share a made-up key in plugins/Waystation/transfer.key. Nothing here is a copy of a real server.
+// Both share a made-up key in plugins/Waycave/transfer.key. Nothing here is a copy of a real server.
 //
 // The bots are 26.1 clients and keep transfer cookies across connections, as a real client does. A bot can't follow
 // a transfer by itself, so it records the transfer packet and reconnects with intent 3.
 //
 // ./gradlew shadowJar, then:
-// WAYSTATION_TEST_JARS=<folder> WAYSTATION_TEST_EULA=accept WAYSTATION_TEST_JAVA=<java 25> node test/arrival-guard.mjs
+// WAYCAVE_TEST_JARS=<folder> WAYCAVE_TEST_EULA=accept WAYCAVE_TEST_JAVA=<java 25> node test/arrival-guard.mjs
 import { freshServer, writeConfig, Server, bot, sleep, said, check, summary, BASE, JAR } from './return-harness.mjs'
 import { copyFileSync, writeFileSync, chmodSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
@@ -17,13 +17,13 @@ import path from 'node:path'
 const V = '26.1.2', A_PORT = 25617, B_PORT = 25618
 const PROTOCOL = minecraftData('26.1').version.version
 const KEY = randomBytes(32)
-const PASS = 'waystation:pass'
+const PASS = 'waycave:pass'
 const g = { x: 20, y: -60, z: 0 }
 
 function setUp(dir, replacements) {
   writeConfig(dir, replacements)
   copyFileSync(JAR, path.join(dir, 'plugins', path.basename(JAR)))
-  const key = path.join(dir, 'plugins/Waystation/transfer.key')
+  const key = path.join(dir, 'plugins/Waycave/transfer.key')
   writeFileSync(key, KEY)
   chmodSync(key, 0o600)
 }
@@ -40,7 +40,7 @@ let b = await new Server(bDir, V, B_PORT).start()
 await sleep(2000)
 check('B says the arrival guard is on', b.log.some(l => /Arrival guard on: only players coming through a fargate to "second"/.test(l)))
 await a.ask(`gate fargate fm second world ${g.x} ${g.y} ${g.z} south`, 1200)
-await a.ask('lp group default permission set waystation.fargate.second true', 600)
+await a.ask('lp group default permission set waycave.fargate.second true', 600)
 
 /** Tries to join B. Resolves to the bot if it spawned, or null if it was refused. */
 async function join(name, opts) {
@@ -108,8 +108,8 @@ check('with B down, nobody is transferred', w3.transfers.length === 0, JSON.stri
 check('and they are told, kindly', said(w3, /Test Second isn't answering right now/), w3.chat_log.join(' | '))
 w3.quit()
 
-check('no Waystation errors on A', a.errors().length === 0, a.errors()[0]?.slice(0, 200))
-check('no Waystation errors on B', b.errors().length === 0, b.errors()[0]?.slice(0, 200))
+check('no Waycave errors on A', a.errors().length === 0, a.errors()[0]?.slice(0, 200))
+check('no Waycave errors on B', b.errors().length === 0, b.errors()[0]?.slice(0, 200))
 await a.stop()
 summary()
 console.log('servers were in ' + BASE)
