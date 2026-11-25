@@ -7,7 +7,7 @@
 //   - nobody can change a block in the cave,
 //   - arrival is at the end of the last trail, or the start chamber once that gate is gone,
 //   - a group added later grows a new chamber and moves nothing,
-//   - the Wayport gate exists only with Wayport, and only a player allowed to use it sees it.
+//   - the Wayport gate is off (D301): with Wayport installed, nobody is sent it and nothing runs Wayport's command.
 // Needs WAYCAVE_TEST_BASE (made by test/prepare-small.mjs), the Waycave jar, and WAYCAVE_TEST_POSSE_JAR and
 // WAYCAVE_TEST_WAYPORT_JAR for the two optional plugins. Bots can't see crouching or use blocks on 26.3; neither is used.
 import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -16,7 +16,7 @@ import { Vec3 } from 'vec3'
 import { Server, freshCopy, installJar, sleep, bot as joinBot, near, walkTo, check, summary, DIR, RUN } from './harness.mjs'
 
 // On 26.2 and 26.3 a 26.1 bot that moves is disconnected (ViaBackwards), so there the bots stand still, with physics off, and
-// the two checks that need a walk (arrival, and walking into the Wayport gate) are skipped. Set WAYCAVE_TEST_NOWALK=1.
+// the two checks that need a walk (arrival) are skipped. Set WAYCAVE_TEST_NOWALK=1.
 const NOWALK = process.env.WAYCAVE_TEST_NOWALK === '1'
 const bot = name => joinBot(name, { physics: !NOWALK })
 
@@ -243,8 +243,11 @@ console.log('\n# A group added later grows a chamber and moves nothing')
   await s.ask('mv create zeta normal --world-type flat --no-structures', 6000)
   await s.ask('lp group default permission set multiverse.access.zeta true', 300)
   await s.waitFor(/The cave is built/, 90000, Math.max(0, s.log.length - 40)).catch(() => {})
-  await sleep(12000)
-  const after = await gates()
+  // The world is made and the cave grows in the background; how long that takes differs by version, so wait for the new gate (up to 2 minutes).
+  let after = await gates()
+  for (let i = 0; i < 40 && !after['station-zeta']; i++) { await sleep(3000); after = await gates() }
+  await sleep(3000)
+  after = await gates()
   const moved = Object.values(before).filter(g => g.world === 'waycave').filter(g => { const a = after[g.id]; return !a || a.x !== g.x || a.y !== g.y || a.z !== g.z })
   check('every gate that was in the cave is where it was', moved.length === 0, moved.map(g => g.id).join(','))
   check('the new world has a gate in the cave', !!after['station-zeta'] && after['station-zeta'].world === 'waycave')
@@ -293,7 +296,7 @@ console.log('\n# Gates from before the cave was in this world are put right')
 }
 
 // ---------- Wayport ----------
-console.log('\n# The Wayport gate')
+console.log('\n# The Wayport gate stays off (D301)')
 copyFileSync(WAYPORT, path.join(DIR, 'plugins', 'Wayport.jar'))
 await s.start(); await sleep(14000)
 G = await caveGates()
@@ -302,22 +305,22 @@ G = await caveGates()
   check('the return gate that led to the old cave now leads to this one', all['return-meadow']?.dest === 'waycave', all['return-meadow']?.dest)
   check('and the cave gate that stood in the old world is placed again in this one', all['station-meadow']?.world === 'waycave', all['station-meadow']?.world)
 }
-const wp = G.find(g => g.id === 'wayport')
-check('with Wayport installed there is one gate to another server, in the start chamber', !!wp && Math.hypot(wp.x, wp.z) < 17, wp ? `${wp.x} ${wp.z}` : 'none')
-if (wp) {
+// The gate to another server is off in 0.8.0 (D301): with Wayport installed and a player holding wayport.use and
+// wayport.admin, there is still no gate, none is sent to anyone, and nothing runs Wayport's command.
+check('with Wayport installed there is still no gate to another server', !G.some(g => g.id === 'wayport') && !(await gates()).wayport)
+check('and none is written to gates.yml', !/wayport/.test(readFileSync(path.join(DIR, 'plugins/Waycave/gates.yml'), 'utf8')))
+{
   await s.ask('lp user alice permission set wayport.use true', 300)
-  const a3 = await bot('alice'), b3 = await bot('bob')
-  await s.ask('mvtp alice w:waycave', 2500); await s.ask('mvtp bob w:waycave', 2500)
-  check('a player allowed to use Wayport sees the gate', await seesGate(a3, wp))
-  check('one who isn\'t allowed does not (positive control above)', !(await seesGate(b3, wp)))
-  if (NOWALK) console.log('  skipped on this version: walking into the Wayport gate')
-  else {
-    a3.chat_log.length = 0
-    await walkThrough(a3, wp); await sleep(2500)
-    check('walking into it runs Wayport\'s command (which says it isn\'t set up, with no destination configured)', has(a3, /isn't set up|set up/i), a3.chat_log.join(' | ').slice(0, 200))
-    check('and she is still in the cave', await isIn('alice', 'waycave', 3000))
-  }
-  a3.end(); b3.end()
+  await s.ask('lp user alice permission set wayport.admin true', 300)
+  const a3 = await bot('alice')
+  a3.chat_log.length = 0
+  await s.ask('mvtp alice w:waycave', 2500); await sleep(4000)
+  const sees = JSON.stringify(Object.values(a3.entities).map(e => e.metadata ?? null))
+  check('a player allowed to use Wayport, even an admin of it, is sent no gate to another server', !/another server/i.test(sees))
+  const test = (await s.ask('gate test wayport alice', 700)).join(' ')
+  check('gate test finds no such gate', !/can enter true/.test(test), test.slice(0, 100))
+  check('nothing ran Wayport\'s command for her', !a3.chat_log.some(m => /Wayport|isn't set up|Going to/i.test(m)), a3.chat_log.join(' | ').slice(0, 120))
+  a3.end()
 }
 check('no errors from Waycave in the log (Wayport run)', s.errors().length === 0, s.errors().slice(0, 3).join(' | '))
 await s.stop()

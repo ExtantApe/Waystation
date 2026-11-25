@@ -2,7 +2,9 @@
 // WAYCAVE_TEST_ECONOMY_JAR: an economy plugin jar such as EssentialsX.
 import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { Server, freshCopy, installJar, sleep, bot, check, summary, DIR } from './harness.mjs'
+import { Server, freshCopy, installJar, sleep, bot as joinBot, check, summary, DIR } from './harness.mjs'
+// On 26.2 and 26.3 a bot that moves is disconnected, and buying needs no walking, so those runs keep the bots still.
+const bot = name => joinBot(name, { physics: process.env.WAYCAVE_TEST_NOWALK !== '1' })
 
 const eco = process.env.WAYCAVE_TEST_ECONOMY_JAR
 if (!eco) throw new Error('Set WAYCAVE_TEST_ECONOMY_JAR')

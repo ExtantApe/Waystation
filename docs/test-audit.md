@@ -18,7 +18,7 @@ What the cave promises, and what proves it. Counts and versions are in the CHANG
 | Each player sees only their own gates | `cave` bots: two bots, 13 gates, 26 checks, at the same coordinates |
 | Each player sees only their own trails, and another player on the same spot sees plain floor; nothing is placed in the world | `cave` bots: carpet at the end of every trail, 26 checks; real block is not carpet; `TrailRouteTest` for the shape |
 | A trail is walkable ground, connected, starts by the monument and ends in front of its gate; stable per player, different between players | `TrailRouteTest` (25 seeds, every gate place) |
-| Players see each other only where Mayor allows; fails closed without Mayor | `CaveCrowdTest` (rule, null answers); `cave` bots: shared circle (control), no shared circle, joining and leaving a circle, and a run without Mayor |
+| Players see each other only where Posse allows; fails closed without Posse | `CaveCrowdTest` (rule, null answers); `cave` bots: shared circle (control), no shared circle, joining and leaving a circle, and a run without Posse |
 | A lost access closes the trail, the gate and reads (trail closed); a regained one reopens; a world never held is never named | `TrailsBoardTest`; `cave` bots: board text, trail and gate gone and back, bob's board |
 | Nobody can change a block in the cave | `cave` bots: a survival bot's break is refused. Control: the same break works in a survival world |
 | Arrival is at the end of the last trail, else the start chamber | `CaveCrowdTest` (every reason to fall back); `cave` bots (26.1.2 only): lands two blocks in front of the gate; with the gate removed, in the start chamber |
@@ -44,7 +44,7 @@ What the cave promises, and what proves it. Counts and versions are in the CHANG
 ### Skipped as overkill
 
 - The shape of the wall noise and the exact blocks of walls and ceilings: only that the result is connected, lit and the same each time.
-- Mayor's own rules: Mayor tests those. Waycave tests only what it does with the answer.
+- Posse's own rules: Posse tests those. Waycave tests only what it does with the answer.
 
 ## 2026-11-11: the older suites' failures on the stand-in (K24)
 

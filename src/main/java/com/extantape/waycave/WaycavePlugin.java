@@ -495,10 +495,13 @@ public final class WaycavePlugin extends JavaPlugin {
         return canEnter(player, p) ? "nothing: allowed" : "a waycave.* node set to false, or another plugin";
     }
 
-    /** Wayport is installed and running, so the start chamber's gate to another server has something to run. */
+    /**
+     * The start chamber's gate to another server is off in 0.8.0 (owner, D301): Wayport 0.4.0 made its command
+     * admin-only, and Waycave never runs it with borrowed rights. The gate comes back when Wayport has an API. While
+     * this says no, the gate is never placed, an old one is removed, nobody is sent it, and nobody can walk into it.
+     */
     boolean wayportReady() {
-        org.bukkit.plugin.Plugin wayport = getServer().getPluginManager().getPlugin("Wayport");
-        return wayport != null && wayport.isEnabled();
+        return false;
     }
 
     /** A dead gate leads to a world that's been deleted or unloaded. It stays until an admin removes it. */

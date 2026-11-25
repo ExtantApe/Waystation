@@ -89,10 +89,12 @@ const lobby = list.join('\n').match(/station-lobby: waycave (-?\d+) (-?\d+) (-?\
 // Three blocks in front of the gate, on the side it faces: the cave's gates don't all face south.
 const [fx, fz] = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }[lobby[4]]
 await s.ask(`execute in waycave run tp yes ${+lobby[1] + .5 + fx * 3} ${lobby[2]} ${+lobby[3] + .5 + fz * 3}`, 1000)
+check('control: she stands in the cave in front of the lobby gate', (await s.ask('execute in waycave if entity @a[name=yes,distance=0..]', 500)).some(l => /Test passed/.test(l)))
 await walkTo(back, +lobby[1] + .5, +lobby[3] + .5, 4000); await sleep(2500)
-let lobbyOk = false
-for (let i = 0; i < 20 && !lobbyOk; i++) { lobbyOk = (await s.ask('execute in lobby if entity @a[name=yes,distance=0..]', 300)).some(l => /Test passed/.test(l)); if (!lobbyOk) await sleep(300) }
-check('a waygate still works, and sends no transfer', lobbyOk && back.transfers.length === 0, `gate ${lobby.slice(1).join(' ')}; bot at ${back.entity?.position}; transfers ${back.transfers.length}`)
+// The gate leads out of the cave: wait until the server no longer has the player in it.
+let leftCave = false
+for (let i = 0; i < 20 && !leftCave; i++) { leftCave = !(await s.ask('execute in waycave if entity @a[name=yes,distance=0..]', 300)).some(l => /Test passed/.test(l)); if (!leftCave) await sleep(300) }
+check('a waygate still works, and sends no transfer', leftCave && back.transfers.length === 0, `gate ${lobby.slice(1).join(' ')}; bot at ${back.entity?.position} in ${back.game?.dimension}; transfers ${back.transfers.length}`)
 back.chat_log.length = 0; back.chat('/waygate'); await sleep(800)
 check('/waygate gives a waygate, not the fargate', has(back, /Nearest waygate/) && !has(back, /Leaving/), back.chat_log.at(-1))
 

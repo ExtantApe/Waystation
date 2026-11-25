@@ -20,8 +20,8 @@ Needs a real client, still untested:
 
 Paper 26.1 or later, Java 25. Multiverse-Core 5 runs the cave and the automatic waygates. Without it, Waycave still does
 fargates, gates you place yourself and the return command, for a server with one world. Optional: Multiverse-Inventories,
-LuckPerms, GriefPrevention, Vault with an economy plugin, BlueMap, [Posse](https://github.com/ExtantApe/Posse) (who sees
-whom in the cave) and [Wayport](https://github.com/ExtantApe/Wayport) (the gate to another server).
+LuckPerms, GriefPrevention, Vault with an economy plugin, BlueMap and [Posse](https://github.com/ExtantApe/Posse) (who sees
+whom in the cave).
 
 ## How it behaves
 
@@ -89,9 +89,9 @@ blocks and is never left behind when OneBlock reuses an island.
   their own group's), for a price in money without Vault and an economy plugin, or without `waycave.buy`; each click
   checks all of it again, and a player who can't afford it is told so and charged nothing. The board's click spot belongs
   to one player: nobody else is sent it, and a click on someone else's is ignored. The words are in `messages:` under `buy-menu-*`.
-- **Wayport gate.** With [Wayport](https://github.com/ExtantApe/Wayport) installed, the start chamber has one gate to
-  another server, shown only to players with `wayport.use`. Walking into it runs Wayport's command (`wayport.command`),
-  which counts down, checks the other server and sends. Waycave has no transfer code for it.
+- **No Wayport gate yet (D301).** The start chamber's gate to another server is off in 0.8.0: nobody sees it and nobody can walk into it,
+  even with Wayport installed. Wayport 0.4.0 made its command admin-only, and Waycave never runs it with borrowed rights. The gate returns when
+  Wayport has an API for it.
 - **No wall map.** The old wall of maps needs a flat wall. It's off in a cave (`wall-map.enabled: false`).
 
 ## Moving a waygate
@@ -286,7 +286,7 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew shadowJar hookJar` and
 | Suite | What it covers | Needs |
 | --- | --- | --- |
 | `acceptance` | gates, permissions, inventories, protection, tribute, buying, crashes | |
-| `cave` | the cave, its trails, who sees whom, arrival, growth, Wayport | `WAYCAVE_TEST_POSSE_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` |
+| `cave` | the cave, its trails, who sees whom, arrival, growth, and that the Wayport gate stays off | `WAYCAVE_TEST_POSSE_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` |
 | `fargate` | who sees a fargate, and coming back | |
 | `defaults` | the default config and `example-worlds` | |
 | `hop` | two servers, there and back through fargates | |

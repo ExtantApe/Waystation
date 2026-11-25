@@ -107,12 +107,11 @@ trails:
 # Seeing other players in the cave follows Posse's groups: anyone Posse says a player can't reach is hidden from them
 # while both are in the cave. Without Posse, nobody in the cave sees anyone else. Not configurable on purpose.
 
-# The Wayport gate. With Wayport installed, one gate in the start chamber runs its command for a player who may use
-# it (wayport.use). Waycave has no transfer code of its own for it: Wayport counts down, checks the other server and
-# sends. Without Wayport there is no such gate.
+# The Wayport gate is off in 0.8.0 (D301): nobody sees it and nobody can use it. It comes back when Wayport has an API
+# for it, in its own release. These settings are kept so nothing needs renaming then.
 wayport:
-  command: wayport                      # Wayport's command, without the slash
-  permission: wayport.use               # who sees and may use the gate
+  command: wayport
+  permission: wayport.use
   label: "<gold><bold>To another server</bold>"
 
 # Nobody can change blocks in the cave or around a world's gate: no player, no
