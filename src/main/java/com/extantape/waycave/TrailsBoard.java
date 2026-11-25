@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
@@ -37,6 +38,8 @@ final class TrailsBoard implements Listener {
     private final WaycavePlugin plugin;
     private final Map<UUID, TextDisplay> boards = new HashMap<>();
     private final Map<UUID, String> shown = new HashMap<>();
+    /** The click spot over each board, shown only to the board's owner. Clicking it opens the buying menu. */
+    private final Map<UUID, Interaction> hits = new HashMap<>();
 
     TrailsBoard(WaycavePlugin plugin) { this.plugin = plugin; }
 
@@ -66,6 +69,8 @@ final class TrailsBoard implements Listener {
                 boards.put(p.getUniqueId(), board);
                 shown.remove(p.getUniqueId());
             }
+            Interaction hit = hits.get(p.getUniqueId());
+            if (hit == null || !hit.isValid()) hits.put(p.getUniqueId(), spawnHit(at, p));
             if (!text.equals(shown.get(p.getUniqueId()))) {
                 board.text(MiniMessage.miniMessage().deserialize(text));
                 shown.put(p.getUniqueId(), text);
@@ -91,7 +96,7 @@ final class TrailsBoard implements Listener {
     static Line lineFor(String name, State state) {
         return switch (state) {
             case OPEN -> new Line(false, name);
-            case FOR_SALE -> new Line(false, name + " <gray>(buy at the gate)");
+            case FOR_SALE -> new Line(false, name + " <gray>(for sale: click the board)");
             case CLOSED -> new Line(false, name + " <gray>(trail closed)");
             case HIDDEN -> null;
         };
@@ -109,7 +114,7 @@ final class TrailsBoard implements Listener {
                 if (g.leavesServer()) continue;
                 String name = plugin.station().labelOf(g.destination);
                 boolean enter = plugin.canEnter(p, g);
-                boolean sale = !enter && plugin.isActive(g) && plugin.isForSale(p, g.destination) && plugin.canSee(p, g);
+                boolean sale = !enter && plugin.canBuy(p, g.destination) && plugin.payments().available(plugin.settings().worlds.get(g.destination).price());
                 if (enter) open.add(g.destination);
                 Line line = lineFor(name, stateOf(enter, sale, had.contains(g.destination), hiddenGroup));
                 if (line != null) worlds.add(line);
@@ -153,7 +158,25 @@ final class TrailsBoard implements Listener {
         return board;
     }
 
+    /** A box over the board, big enough for a child to hit. Not saved, and only its owner is sent it. */
+    private Interaction spawnHit(Location at, Player viewer) {
+        Location base = at.clone().subtract(0, 1.8, 0);
+        Interaction hit = at.getWorld().spawn(base, Interaction.class, e -> {
+            e.setPersistent(false);
+            e.setVisibleByDefault(false);
+            e.addScoreboardTag(Renderer.TAG);
+            e.addScoreboardTag(BuyMenu.TAG + ":" + viewer.getUniqueId());
+            e.setInteractionWidth(4f);
+            e.setInteractionHeight(4f);
+            e.setResponsive(true);
+        });
+        viewer.showEntity(plugin, hit);
+        return hit;
+    }
+
     private void drop(UUID id) {
+        Interaction hit = hits.remove(id);
+        if (hit != null) hit.remove();
         TextDisplay board = boards.remove(id);
         shown.remove(id);
         if (board != null) board.remove();

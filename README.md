@@ -53,7 +53,7 @@ whom in the cave) and [Wayport](https://github.com/ExtantApe/Wayport) (the gate 
   walked through, facing into the cave. If that gate is gone, you can't use it now, or the spot isn't safe, you arrive in
   the start chamber. Nobody arrives at a gate they can't use.
 - **Players walk and click; they don't type.** Everything a player does in the cave is walking to a gate, reading the
-  Trails board or (for buying) the gate's label. The few player commands left are a hidden fallback that no text in the
+  Trails board (which is also where a player buys a trail, below). The few player commands left are a hidden fallback that no text in the
   game teaches.
 - **Deleted world:** the gate goes dark and stays until `/gate remove <id>`: a cracked grey frame with nothing inside,
   labelled "(trail closed)". If the world is only unloaded, the gate lights up again when it's back.
@@ -81,6 +81,14 @@ blocks and is never left behind when OneBlock reuses an island.
   worlds they can use under it. A world they could reach before and can't now stays on it, reading **(trail closed)**. A
   world they have never been able to use is never named. The worlds a player has had a trail to are kept in `players.yml`,
   shown to nobody else. It changes within a second when their access does.
+- **Buying menu.** A world with a price reads **(for sale: click the board)** on the board. Right-clicking the board (or
+  left-clicking it) opens a menu of the gates that player could buy, each with its price and what they have. Clicking one
+  asks "Buy it?" on a screen with a **Yes** and a **No** square, and only a second click on Yes buys. The same offers are
+  also written in chat, with the price and balance spelled out and a name to click, so a screen reader or narrator can
+  follow it. Locked gates say where to go. Nothing is offered for a world the player can't see a gate to (a child sees only
+  their own group's), for a price in money without Vault and an economy plugin, or without `waycave.buy`; each click
+  checks all of it again, and a player who can't afford it is told so and charged nothing. The board's click spot belongs
+  to one player: nobody else is sent it, and a click on someone else's is ignored. The words are in `messages:` under `buy-menu-*`.
 - **Wayport gate.** With [Wayport](https://github.com/ExtantApe/Wayport) installed, the start chamber has one gate to
   another server, shown only to players with `wayport.use`. Walking into it runs Wayport's command (`wayport.command`),
   which counts down, checks the other server and sends. Waycave has no transfer code for it.
@@ -101,7 +109,7 @@ can't lose anything. Each tribute is written to the server log.
 |---|---|---|
 | `/waygate` | everyone | Hidden fallback: coordinates of the closest waygate you can use |
 | `/cave`, `/hub` | everyone | Hidden fallback: straight to the start chamber. Name and on/off in config |
-| `/buygate [world]` | everyone | Buy access to a priced world. Still typed: no menu for it yet |
+| `/buygate [world]` | everyone | Hidden fallback: buy access to a priced world. Players buy from the Trails board menu, and no text teaches this command |
 | `/return` | with `waycave.return` | To the other server after a countdown, if it's turned on. Name in config |
 | `/gate list, station, create, fargate, move, link, remove, test, addworld, relayout, reseed, reload, describe` | admins | Admin |
 
@@ -203,8 +211,8 @@ not the chambers. The map also shows every gate to anyone with the link, whoever
 ### Prices (optional)
 
 Add `price: {xp-levels: 30, money: 500, items: {diamond: 5}}` to a world under `worlds:`. Its gate shows
-as locked to people without access. `/buygate` charges, runs `buy.grant-commands`, and refunds if the
-access doesn't show up. Money prices need Vault and an economy plugin. A purchase grants that one world, so add commands if it should bring the
+as locked to people without access, and it appears in the buying menu on the Trails board. A purchase charges, runs
+`buy.grant-commands`, and refunds if the access doesn't show up. `/buygate <world>` does the same as the hidden fallback. Money prices need Vault and an economy plugin. A purchase grants that one world, so add commands if it should bring the
 world's nether and End along.
 
 ### GriefPrevention (optional)
@@ -283,6 +291,7 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew shadowJar hookJar` and
 | `defaults` | the default config and `example-worlds` | |
 | `hop` | two servers, there and back through fargates | |
 | `economy` | buying with a real economy plugin | `WAYCAVE_TEST_ECONOMY_JAR` |
+| `buymenu` | the buying menu: choose, confirm, who is offered what, no Vault, nobody else's board | a Vault jar in `WAYCAVE_TEST_JARS/plugins` when making the small copy |
 | `return` | the return command, and running without Multiverse-Core, on a fresh empty server | see below |
 | `handover` | `hand-over`, `LandingService`, and a death that respawns at the landing spot, on a small made-up server | see below |
 

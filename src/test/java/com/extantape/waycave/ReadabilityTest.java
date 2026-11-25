@@ -45,7 +45,7 @@ class ReadabilityTest {
         all.put("fargate-label", c.getString("fargate-label").replace("<name>", "Example Server"));
         all.put("wayport label", c.getString("wayport.label"));
         all.put("island-posts.label", c.getString("island-posts.label"));
-        all.put("price", Labels.price("3 XP levels and $40", "legacy"));
+        all.put("price", Labels.price("3 XP levels and $40"));
         all.put("platform sign", Labels.platform(1, "Survival"));
         all.put("tribute", Labels.TRIBUTE);
         all.put("example world label", "<aqua>OneBlock");
@@ -77,7 +77,7 @@ class ReadabilityTest {
         assertTrue(plain(l.get("dead-label")).contains("trail closed"), l.get("dead-label"));
         assertTrue(plain(l.get("fargate-label")).startsWith("Leaving this server"), l.get("fargate-label"));
         assertTrue(plain(l.get("price")).startsWith("Locked:"), l.get("price"));
-        assertTrue(plain(l.get("price")).contains("/buygate legacy"), l.get("price"));
+        assertTrue(plain(l.get("price")).contains("Trails board"), l.get("price"));
     }
 
     @Test

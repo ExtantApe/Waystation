@@ -77,7 +77,7 @@ final class Renderer implements Listener {
             if (entry != null && !entry.price().free()) {
                 Location tag = new Location(world, p.x + 0.5, p.y + 1.5, p.z + 0.5);
                 scenes.put("price:" + p.id, new Scene("price:" + p.id, tag, player -> plugin.isForSale(player, p.destination) && plugin.canSee(player, p),
-                    list -> list.add(spawnText(tag, Labels.price(plugin.payments().text(entry.price()), p.destination), 1f, Display.Billboard.CENTER))));
+                    list -> list.add(spawnText(tag, Labels.price(plugin.payments().text(entry.price())), 1f, Display.Billboard.CENTER))));
             }
             Location anchor = new Location(world, p.x + 0.5, p.y, p.z + 0.5);
             scenes.put("gate:" + p.id, new Scene("gate:" + p.id, anchor, player -> plugin.canSee(player, p), list -> spawnGate(p, platform, list, false)));

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **Buying menu (D284).** Players buy a gate by clicking the Trails board, not by typing `/buygate`. A priced world reads
+  "(for sale: click the board)". Right or left click opens a menu of the gates they could buy, with price and balance;
+  clicking one asks "Buy it?"; a second click on Yes buys it. The same offers are said in chat, each with a name to click,
+  for screen readers. Locked gates now say "Buy it at the Trails board". `/buygate` stays as the hidden fallback.
+- **Fails closed.** Nothing is offered or bought for a world the player has no visible gate to (so a child never buys
+  another group's gate, by the menu or by `/buygate`, which now refuses it too), for a price in money with no Vault and
+  economy plugin, or without `waycave.buy`. A second purchase can't start while one is still being granted.
+- New messages `buy-menu-*` in `config.yml`; the `gate-locked` message and the gate label changed. Nothing bumped.
+
+Tested: 92 unit tests pass (10 new, in `BuyMenuTest`). The new `buymenu` bot suite is in the test run notes of the PR. Not
+tested: a real game client (how the menu looks and reads, the chat names being clicked, which uses a callback); the
+`acceptance` and `economy` suites after this change; a board with more than 54 things for sale.
+
 ## 0.8.0 (unreleased)
 
 Waystation is now Waycave, rebuilt as a cave (K649, D194, D196). Not released and not on any live server.

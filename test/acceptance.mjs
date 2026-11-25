@@ -705,7 +705,7 @@ await s.ask('mvtp buyer w:waycave', 2500); await sleep(2000)
 const sl = (await gates())['station-legacy']
 check('priced gate shows as locked to someone without access', await sees(buyer, sl))
 clearChat(buyer); await walkThrough(buyer, sl); await sleep(1000)
-check('walking in says the price and how to buy', has(buyer, /costs .*\/buygate legacy/) && await isIn(buyer, 'waycave', 800), buyer.chat_log.at(-1))
+check('walking in says the price and how to buy', has(buyer, /costs .*Trails board/) && await isIn(buyer, 'waycave', 800), buyer.chat_log.at(-1))
 clearChat(buyer); buyer.chat('/buygate legacy'); await sleep(1500)
 check("can't afford: refused, nothing charged", has(buyer, /don't have enough/) && (await s.ask('fakebalance buyer', 400)).join(' ').includes('100.0'))
 // waycave.buy false: no buying, nothing charged; then the positive control below.

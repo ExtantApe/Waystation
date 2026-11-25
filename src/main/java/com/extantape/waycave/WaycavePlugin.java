@@ -44,6 +44,8 @@ public final class WaycavePlugin extends JavaPlugin {
     private Cave cave;
     private Trails trails;
     private CaveCrowd crowd;
+    private BuyMenu buyMenu;
+    private final java.util.Set<java.util.UUID> buying = new java.util.HashSet<>();
 
     Cave cave() { return cave; }
     Trails trails() { return trails; }
@@ -69,6 +71,7 @@ public final class WaycavePlugin extends JavaPlugin {
         cave = new Cave(this, new File(getDataFolder(), "cave.yml"));
         trails = new Trails(this);
         crowd = new CaveCrowd(this);
+        buyMenu = new BuyMenu(this);
 
         try {
             settings = new Settings(getConfig());
@@ -100,11 +103,12 @@ public final class WaycavePlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(board, this);
         getServer().getPluginManager().registerEvents(trails, this);
         getServer().getPluginManager().registerEvents(crowd, this);
+        getServer().getPluginManager().registerEvents(buyMenu, this);
 
         registerCommand("gate", "Create, move, link, list, remove and test gates.", new AdminCommand(this));
         registerCommand("waygate", "Shows the coordinates of the closest gate you can use.", List.of("nearestgate", "findgate"), playerCommand("waycave.find",
             "Only players can ask for the nearest gate.", (player, args) -> nearest(player)));
-        registerCommand("buygate", "Buy access to a world's gate.", playerCommand("waycave.buy", "Only players can buy gates.", this::buy));
+        registerCommand("buygate", "Hidden fallback: buy access to a world's gate. Players use the Trails board.", playerCommand("waycave.buy", "Only players can buy gates.", this::buy));
         registerEscapeCommand(travel);
         registerReturnCommand();
         this.travel = travel;
@@ -205,6 +209,7 @@ public final class WaycavePlugin extends JavaPlugin {
         getServer().getServicesManager().unregisterAll(this);
         if (returns != null) returns.cancelAll();
         if (mover != null) mover.closeAll();
+        if (buyMenu != null) buyMenu.closeAll();
         if (markers != null) markers.removeAll();
         if (renderer != null) renderer.removeAll();
         if (board != null) board.removeAll();
@@ -214,17 +219,21 @@ public final class WaycavePlugin extends JavaPlugin {
         if (bluemap != null) bluemap.close();
     }
 
-    /** /buygate <world>: pay, then have the permission granted. If the grant doesn't take, pay it back. */
+    /** /buygate <world>, the hidden fallback. Players buy from the Trails board menu, which ends in {@link #purchase}. */
     private void buy(Player player, String[] args) {
         if (args.length == 0) {
             List<String> forSale = new ArrayList<>();
             for (Settings.WorldEntry entry : settings.worlds.values()) {
-                if (isForSale(player, entry.name())) forSale.add(entry.name() + " (" + payments.text(entry.price()) + ")");
+                if (canBuy(player, entry.name())) forSale.add(entry.name() + " (" + payments.text(entry.price()) + ")");
             }
             player.sendMessage(settings.message(forSale.isEmpty() ? "buy-none" : "buy-list", "list", String.join(", ", forSale)));
             return;
         }
-        String world = args[0];
+        purchase(player, args[0]);
+    }
+
+    /** Pay, then have the permission granted. If the grant doesn't take, pay it back. Both the menu and /buygate end here. */
+    void purchase(Player player, String world) {
         Settings.WorldEntry entry = settings.worlds.get(world);
         if (entry == null || entry.price().free()) {
             player.sendMessage(settings.message("buy-not-for-sale", "world", world));
@@ -234,7 +243,13 @@ public final class WaycavePlugin extends JavaPlugin {
             player.sendMessage(settings.message("buy-owned", "world", world));
             return;
         }
+        if (!canBuy(player, world)) { // no gate they can see: it isn't there for them, so it isn't for sale
+            player.sendMessage(settings.message("buy-not-for-sale", "world", world));
+            return;
+        }
+        if (!buying.add(player.getUniqueId())) return; // the last purchase hasn't finished
         if (!payments.canPay(player, entry.price())) {
+            buying.remove(player.getUniqueId());
             player.sendMessage(settings.message("buy-cost", "world", world, "cost", payments.text(entry.price())));
             return;
         }
@@ -243,6 +258,7 @@ public final class WaycavePlugin extends JavaPlugin {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("<player>", player.getName()).replace("<world>", world));
         }
         Bukkit.getScheduler().runTaskLater(this, () -> {
+            buying.remove(player.getUniqueId());
             if (!player.isOnline()) return;
             if (hasAccess(player, world)) {
                 renderer.refresh(player);
@@ -253,6 +269,20 @@ public final class WaycavePlugin extends JavaPlugin {
                 player.sendMessage(settings.message("buy-failed", "world", world));
             }
         }, 40L);
+    }
+
+    /**
+     * Could this player buy their way into this world? It must be for sale and have a gate in the cave they can see,
+     * which is the rule the board and the locked gates use, so nobody buys a line they were never shown.
+     */
+    boolean canBuy(Player player, String world) {
+        if (!isForSale(player, world)) return false;
+        for (Station.Platform platform : station.platforms()) {
+            for (Gate g : platform.gates()) {
+                if (!g.leavesServer() && g.destination.equals(world) && isActive(g) && canSee(player, g)) return true;
+            }
+        }
+        return false;
     }
 
     /** Is this a world the player could buy their way into? Hooks that say no still say no. */
@@ -600,6 +630,7 @@ public final class WaycavePlugin extends JavaPlugin {
     PlayerData data() { return data; }
     SafeSpots safeSpots() { return safeSpots; }
     Payments payments() { return payments; }
+    BuyMenu buyMenu() { return buyMenu; }
     Station station() { return station; }
     Renderer renderer() { return renderer; }
 }

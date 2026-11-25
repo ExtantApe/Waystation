@@ -61,6 +61,38 @@ final class Payments {
         return true;
     }
 
+    /** Can this price be paid at all on this server? Money needs Vault and an economy plugin; without them it can't. */
+    boolean available(Settings.Cost cost) {
+        return cost.money() <= 0 || economy() != null;
+    }
+
+    /** What the player has toward this price, in the same words as {@link #text}: "3 ender pearl and 7 XP levels and $85". */
+    String haveText(Player player, Settings.Cost cost) {
+        List<String> parts = new ArrayList<>();
+        cost.items().forEach((material, amount) -> parts.add(count(player, material) + " " + material.name().toLowerCase(Locale.ROOT).replace('_', ' ')));
+        if (cost.xpLevels() > 0) parts.add(player.getLevel() + " XP levels");
+        if (cost.money() > 0) {
+            Object economy = economy();
+            String shown = "no money";
+            if (economy != null) {
+                try {
+                    double balance = (double) call(economy, "getBalance", player);
+                    shown = String.valueOf(economyType().getMethod("format", double.class).invoke(economy, balance));
+                } catch (ReflectiveOperationException | RuntimeException e) {
+                    plugin.getLogger().warning("Couldn't ask the economy plugin for a balance: " + e);
+                }
+            }
+            parts.add(shown);
+        }
+        return parts.isEmpty() ? "nothing" : String.join(" and ", parts);
+    }
+
+    private static int count(Player player, Material material) {
+        int n = 0;
+        for (ItemStack stack : player.getInventory().getContents()) if (stack != null && stack.getType() == material) n += stack.getAmount();
+        return n;
+    }
+
     /** Call canPay first. */
     void pay(Player player, Settings.Cost cost) {
         if (cost.xpLevels() > 0) player.giveExpLevels(-cost.xpLevels());

@@ -15,10 +15,10 @@ class TrailsBoardTest {
             new TrailsBoard.Line(true, "Survival Line"),
             new TrailsBoard.Line(false, "<green>Meadow"),
             new TrailsBoard.Line(true, "Creative Line"),
-            new TrailsBoard.Line(false, "<aqua>Flatlands <gray>(buy at the gate)")), "none");
+            new TrailsBoard.Line(false, "<aqua>Flatlands <gray>(for sale: click the board)")), "none");
         assertTrue(text.startsWith("<gold>Trails"));
         assertTrue(text.indexOf("Survival Line") < text.indexOf("Meadow") && text.indexOf("Meadow") < text.indexOf("Creative Line"));
-        assertTrue(text.contains("(buy at the gate)"), "a locked world says how to open it, in words");
+        assertTrue(text.contains("(for sale: click the board)"), "a locked world says how to open it, in words");
     }
 
     @Test void anEmptyBoardSaysSoInWords() {

@@ -24,6 +24,12 @@ What the cave promises, and what proves it. Counts and versions are in the CHANG
 | Arrival is at the end of the last trail, else the start chamber | `CaveCrowdTest` (every reason to fall back); `cave` bots (26.1.2 only): lands two blocks in front of the gate; with the gate removed, in the start chamber |
 | The Wayport gate exists only with Wayport, and only a player who may use it sees it | `cave` bots: absent without, present with, seen by one player and not another, walking in runs Wayport's command (26.1.2 only) |
 | Old gates from an older install are re-pointed at the new world | Not tested yet (see gaps) |
+| Buying is two clicks: the first only asks, only Yes buys, nothing else does | `BuyMenuTest` (click map, every other slot); `buymenu` bots: opening, choosing, an empty and a picture square, No, then Yes; balance and access read after each |
+| Nothing is offered or bought for a gate the player's group can't see; `/buygate` agrees | `BuyMenuTest` (the rule); `buymenu` bots: finn (Legacy denied) lacks it in menu and chat and is refused by `/buygate`, gus (control) buys it the same way |
+| A price in money with no Vault or economy is not offered | `buymenu` bots: a run without Vault offers the XP-priced gate only; `/buygate` is refused, nothing granted |
+| Someone who can't afford it is told and charged nothing | `buymenu` bots: 0 levels, the Yes square says "Not enough yet", a click takes nothing; with 5 levels (control) she buys |
+| Nobody opens another player's board | `buymenu` bots: finn's right and left click on dora's click spot open nothing; `waycave.buy` false opens nothing and says so |
+| No text a player reads teaches a command | `BuyMenuTest`: every `buy-menu-*` message, `gate-locked` and the gate label |
 
 ### Gaps
 
@@ -32,7 +38,7 @@ What the cave promises, and what proves it. Counts and versions are in the CHANG
 - **The upgrade.** The re-pointing of a Waystation install's return gates (`repointStale`) and the rename steps have not been run against a copy of a real install. The rehearsal on a stopped copy is the Head's.
 - **Trails across a chunk reload.** The resend when a chunk reaches a player (`PlayerChunkLoadEvent`) isn't exercised by a bot: the bots stay in range.
 - **The older suites** (`acceptance`, `fargate`, `defaults`, `hop`, `economy`, `return`, `handover`) were renamed mechanically and not run. Several assert the old platforms, floor tiles and `/gate enlarge`. K24's last checks are still to run against Waycave on a stopped real copy.
-- **`/buygate`** is still typed (D284 asks for a portal or menu). Not built.
+- **The buying menu's real look.** A bot reads item names and lore from the packets; how it looks and reads in a client, and a click on the chat names (an Adventure callback), are not exercised.
 - **Hand-placed gates in the cave** get no trail: a trail follows the plan to a gate place.
 
 ### Skipped as overkill

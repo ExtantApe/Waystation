@@ -15,8 +15,8 @@ final class Labels {
 
     private Labels() {}
 
-    static String price(String cost, String destination) {
-        return "<yellow>Locked: " + cost + "\n<white>/buygate " + destination;
+    static String price(String cost) {
+        return "<yellow>Locked: " + cost + "\n<white>Buy it at the Trails board";
     }
 
     /** A chamber's sign: its name, the group's label. */

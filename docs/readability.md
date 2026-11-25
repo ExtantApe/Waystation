@@ -11,7 +11,7 @@ No, after this review. Each state has a word, and gates also differ in shape or 
 | What | Colour | Also |
 | --- | --- | --- |
 | Open gate | coloured glass in the opening | Labelled with where it goes |
-| Locked gate (for sale) | yellow text | "Locked: <price>" and "/buygate <world>" |
+| Locked gate (for sale) | yellow text | "Locked: <price>" and "Buy it at the Trails board" |
 | Closed line (world deleted) | grey | Cracked frame, nothing inside, no light, "(line closed)" |
 | Fargate | yellow, black and red | Striped frame, its own shape, "Leaving this server" |
 | Platforms | glass colour per platform | "Platform 1", "Platform 2" and so on, with the group's name |

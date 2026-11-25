@@ -46,7 +46,7 @@ exclude-worlds: [TARDIS_*]   # * matches anything
 # Closing a world keeps its return gate working, so nobody is trapped. A world listed
 # here always gets a gate, even if exclude-worlds would skip it.
 # price: makes a world's gate show as locked for people without access, until they use
-# /buygate <world>. Any mix of xp-levels, items and money (money needs Vault and an economy plugin).
+# the Trails board menu (/buygate <world> is the hidden fallback). Any mix of xp-levels, items and money (money needs Vault and an economy plugin).
 #   example:          {price: {xp-levels: 30, money: 500, items: {diamond: 5}}}
 worlds: {}
 # worlds:
@@ -129,7 +129,7 @@ protection:
   # anywhere else if their coordinates touch a gate. The console isn't limited.
   guarded-commands: [fill, setblock, clone, place, fillbiome]
 
-# What /buygate runs, as the console, once the player has paid. If the player doesn't have
+# What a purchase runs, as the console, once the player has paid (from the board menu or /buygate). If the player doesn't have
 # multiverse.access.<world> two seconds later, they get their payment back.
 buy:
   grant-commands:
@@ -291,13 +291,32 @@ messages:
   move-announce: "<light_purple>The waygate has moved. Nobody is saying where."
   station-blocked: "<gold>Waycave:</gold> <red>no room for <white><gates></white>.</red> <gray>Its chamber has no free place. Move a gate by hand with <white>/gate move</white>, or remove one that isn't used.</gray>"
   island-post-confirm: "<gold>Click the post again to go to the Waycave."
-  gate-locked: "<yellow>This line costs <white><cost></white>. Buy it with <white>/buygate <world></white>."
+  gate-locked: "<yellow>This line costs <white><cost></white>. You can buy it at the Trails board in the start chamber. Click the board."
   buy-none: "<gray>There's nothing for sale right now."
   buy-list: "<gray>For sale: <white><list></white>"
   buy-not-for-sale: "<red><world> isn't for sale."
   buy-owned: "<yellow>You already have <world>."
   buy-cost: "<red><world> costs <cost>, and you don't have enough. Nothing was charged."
   buy-done: "<green>The line to <world> is open for you. Spent: <white><cost></white>."
+  # The buying menu: click the Trails board, click a gate, then click Yes. The chat lines are the same menu in words.
+  buy-menu-title: "Buy a trail"
+  buy-menu-confirm-title: "Buy <world>?"
+  buy-menu-none: "<gray>There's nothing for sale right now."
+  buy-menu-no-permission: "<yellow>You can't buy trails right now."
+  buy-menu-intro: "<gold>Trails you can buy. <gray>Click one in the menu, or click its name here. Then click Yes to buy it."
+  buy-menu-line: "<white><world></white><gray>: costs <white><cost></white>. You have <white><have></white>. </gray><choose>"
+  buy-menu-choose-link: "<aqua><underlined>[Choose <world>]</underlined></aqua>"
+  buy-menu-confirm: "<gold>Buy <world>? <gray>It costs <white><cost></white>. You have <white><have></white>. Click Yes to buy it, or No to go back."
+  buy-menu-cant: "<yellow>You don't have enough for <world> yet. <gray>It costs <white><cost></white>. You have <white><have></white>. Nothing was charged."
+  buy-menu-gone: "<yellow><world> isn't for sale to you any more. Nothing was charged."
+  buy-menu-yes: "<green>Yes, buy <world> for <cost>"
+  buy-menu-no: "<red>No, go back"
+  buy-menu-short: "<gray>Not enough yet"
+  buy-menu-item-cost: "<gray>Costs: <white><cost></white>"
+  buy-menu-item-have: "<gray>You have: <white><have></white>"
+  buy-menu-choose: "<yellow>Click to choose this trail"
+  buy-menu-item-ok: "<green>You have enough"
+  buy-menu-item-short: "<gray>You don't have enough yet"
   buy-failed: "<red>That didn't work, so you've been paid back. Please tell an admin."
   gate-dead: "<gray>This line has closed. The world it led to is gone."
   protected: "<red>Nothing can be changed here."
