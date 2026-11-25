@@ -92,7 +92,7 @@ check('and makes no station world', !(await src.ask('gate list', 800)).some(l =>
   const b = await player('noperm', { allowed: false })
   await sleep(1000)
   check("a player without waycave.return doesn't see the command", !b.commands.has('wayport'), [...b.commands].filter(c => /gate|return|station/.test(c)).join(', '))
-  check('there is no /station without a station to go to', !b.commands.has('station') && !b.commands.has('hub'))
+  check('there is no /cave without a cave to go to', !b.commands.has('cave') && !b.commands.has('hub'))
   b.chat('/wayport')
   await sleep(AFTER)
   check('a player without the permission is refused', !said(b, STARTED) && b.transfers.length === 0, b.chat_log.join(' | '))

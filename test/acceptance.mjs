@@ -86,12 +86,12 @@ installJar()
 console.log('\n# Phase 1: generation')
 await s.start()
 let g = await gates()
-for (let i = 0; i < 40 && (!g._lines.some(l => /^Platform/.test(l)) || !g['return-quiet_survival']); i++) { await sleep(3000); g = await gates() }
+for (let i = 0; i < 40 && (!g._lines.some(l => /^Chamber/.test(l)) || !g['return-quiet_survival']); i++) { await sleep(3000); g = await gates() }
 const live = ['lobby', 'quiet_survival', 'quiet_flatlands', 'meadow', 'survival', 'creative', 'flatlands', 'legacy', 'kids_survival', 'kids_flatlands', 'friends_survival', 'friends_flatlands']
 check('every world has a station gate', live.every(w => g['station-' + w]), Object.keys(g).filter(k => k.startsWith('station-')).join(','))
 check('every world has a return gate', live.every(w => g['return-' + w]), Object.keys(g).filter(k => k.startsWith('return-')).join(','))
 check('nether, End and TARDIS worlds have no gate', !g['station-meadow_nether'] && !g['station-TARDIS_TimeVortex'] && !g['station-survival_the_end'])
-const platformLines = g._lines.filter(l => /^Platform \d+/.test(l))
+const platformLines = g._lines.filter(l => /^Chamber \d+/.test(l))
 console.log('  ' + platformLines.join('\n  '))
 const groupsWithGates = new Set()
 { const text = readFileSync(groupsPath, 'utf8'); let group = null
@@ -99,11 +99,11 @@ const groupsWithGates = new Set()
     const m = line.match(/^  (\w+):$/); if (m) group = m[1]
     const w = line.match(/^    - (\w+)$/); if (w && group && g['station-' + w[1]]) groupsWithGates.add(group)
   } }
-check('one platform per world group', platformLines.length === groupsWithGates.size, `${platformLines.length} platforms`)
-check('a group shares a platform', platformLines.some(l => /\(Survival\).*station-meadow.*station-survival|\(Survival\).*station-survival.*station-meadow/.test(l)))
-console.log('  ' + g._lines.find(l => /^Station seed/.test(l)))
+check('one chamber per world group', platformLines.length === groupsWithGates.size, `${platformLines.length} chambers`)
+check('a group shares a chamber', platformLines.some(l => /\(Survival\).*station-meadow.*station-survival|\(Survival\).*station-survival.*station-meadow/.test(l)))
+console.log('  ' + g._lines.find(l => /^Gate seed/.test(l)))
 const sameWall = (p, q) => (p.x === q.x && Math.abs(p.z - q.z) <= 18) || (p.z === q.z && Math.abs(p.x - q.x) <= 18)
-check('group members stand next to each other', sameWall(g['station-meadow'], g['station-survival']))
+check('group members stand in the same chamber, close together', Math.hypot(g['station-meadow'].x - g['station-survival'].x, g['station-meadow'].z - g['station-survival'].z) <= 40)
 
 // bots
 const alice = await bot('alice'), amy = await bot('amy'), nina = await bot('nina'), carl = await bot('carl'), boss = await bot('boss'), oppy = await bot('oppy'), hooky = await bot('hooky')
@@ -208,7 +208,7 @@ for (const x of Object.values(g)) if (x?.world === 'waycave' && x.id && !(await 
 check('control: some station gates are hidden from amy', amyHidden.length > 0, amyHidden.join(', '))
 check("waygate never reveals a gate you can't use", !!amyGate && await sees(amy, amyGate), amyGate?.id ?? 'no gate at those coordinates')
 await s.ask('mvtp alice w:meadow_nether', 2500); clearChat(alice); alice.chat('/waygate'); await sleep(800)
-check('waygate in a world with no gates says so and offers the way out', has(alice, /no waygate you can use/) && has(alice, /\/station/), alice.chat_log.at(-1))
+check('waygate in a world with no gates says so (and teaches no command, D284)', has(alice, /no waygate you can use/) && !has(alice, /\/cave|\/station/), alice.chat_log.at(-1))
 await s.ask('mvtp alice w:waycave', 2000)
 
 // ---------- travel, inventories, XP, last spot ----------
@@ -531,22 +531,24 @@ check('shoving entities is undone within seconds', (await live2('return-flatland
 console.log('\n# Nobody can edit: operators too')
 const opb = await bot('oppy')
 await s.ask('mvtp oppy w:waycave', 2500); await s.ask('gamemode creative oppy', 800)
-await s.ask('execute in waycave run tp oppy 0 -60 0', 1500)
-const floor = opb.blockAt(new Vec3(1, -61, 1))
+// The cave's floor is at y 63, with the player's feet at 64 (the same spot the cave suite uses).
+await s.ask('execute in waycave run tp oppy 0.5 64 -11.5', 1500)
+const floor = opb.blockAt(new Vec3(0, 63, -12))
 await opb.lookAt(floor.position.offset(.5, .5, .5), true)
 await opb.dig(floor, 'ignore').catch(() => {}); await sleep(1000)
 // The server's view, not the bot's: a refused dig can still show as air on the client until the correction arrives.
-const floorGone = (await s.ask('execute in waycave if block 1 -61 1 minecraft:air', 800)).join(' ')
-check('op in creative can\'t break the station floor', /Test failed/.test(floorGone), floorGone.slice(0, 120))
-clearChat(opb); opb.chat('/setblock 1 -60 1 stone'); await sleep(800)
-check('op /setblock in the station refused', has(opb, /Nothing can be changed|cannot/i) || (await s.ask('execute in waycave if block 1 -60 1 minecraft:air', 400)).some(l => /Test passed/.test(l)))
-opb.chat('/fill -5 -60 -5 5 -58 5 stone'); await sleep(800)
-check('op /fill in the station refused', (await s.ask('execute in waycave if block 2 -59 2 minecraft:air', 400)).some(l => /Test passed/.test(l)))
+const floorGone = (await s.ask('execute in waycave if block 0 63 -12 minecraft:air', 800)).join(' ')
+check('op in creative can\'t break the cave floor', /Test failed/.test(floorGone), floorGone.slice(0, 120))
+clearChat(opb); opb.chat('/setblock 0 64 -12 stone'); await sleep(800)
+check('op /setblock in the cave refused', has(opb, /Nothing can be changed|cannot/i) || (await s.ask('execute in waycave if block 0 64 -12 minecraft:air', 400)).some(l => /Test passed/.test(l)))
+opb.chat('/fill -5 64 -17 5 66 -7 stone'); await sleep(800)
+check('op /fill in the cave refused', (await s.ask('execute in waycave if block 2 65 -10 minecraft:air', 400)).some(l => /Test passed/.test(l)))
 await s.ask('mvtp oppy w:flatlands', 2500); await s.ask('gamemode creative oppy', 800)
 await s.ask(`execute in flatlands run tp oppy ${wx + 3} ${wy} ${wz}`, 1500)
 const zb = opb.blockAt(new Vec3(wx, wy - 1, wz))
 await opb.lookAt(zb.position.offset(.5, .5, .5), true); await opb.dig(zb, 'ignore').catch(() => {}); await sleep(1000)
-check('op can\'t break ground at a world gate', opb.blockAt(new Vec3(wx, wy - 1, wz)).name !== 'air')
+// The server's view, as above: the bot's own view can show air until the server's correction arrives.
+check('op can\'t break ground at a world gate', /Test failed/.test((await s.ask(`execute in flatlands if block ${wx} ${wy - 1} ${wz} minecraft:air`, 800)).join(' ')))
 opb.chat(`/setblock ${wx} ${wy} ${wz} stone`); await sleep(800)
 check('op /setblock on a world gate refused', await groundAt(wx, wy, wz))
 const far = opb.blockAt(new Vec3(wx + 3, wy - 1, wz + 12))
@@ -567,9 +569,12 @@ const chief = await bot('chief')
 await s.ask('lp user chief parent add admin', 500); await s.ask('lp user chief parent add family', 500); await s.ask('mvtp chief w:waycave', 2000)
 chief.chat('/mvtp alice w:creative'); await sleep(2000)
 check('positive control: before the setup, an admin can /mvtp someone else', await isIn(a, 'creative', 2000))
+// The set-up file names a group for admins, admin-family: the real server has it, the small made-up copy doesn't, so it is made here.
+await s.ask('lp creategroup admin-family', 300)
 for (const line of readFileSync(new URL('./luckperms-gates-only.txt', import.meta.url), 'utf8').split('\n')) {
   if (line.trim() && !line.startsWith('#')) await s.ask(line, 120)
 }
+await s.ask('lp user chief parent add admin-family', 300)
 await sleep(1000)
 chief.chat('/mvtp w:creative'); await sleep(2000)
 check('admins keep /mvtp', await isIn(chief, 'creative', 1500), chief.chat_log.at(-1))
@@ -588,6 +593,7 @@ await s.ask('mvtp carl w:creative', 2500)
 carl3.chat('/mvtp e:creative:10,80,10'); await sleep(1500)
 const carlPos = carl3.entity.position
 check('creative: /mvtp e: is refused too', Math.hypot(carlPos.x - 10, carlPos.z - 10) > 2)
+await s.ask('lp user carl permission set minecraft.command.tp true', 300) // the real server's creative group grants this; the small copy has none
 carl3.chat('/tp 40 80 40'); await sleep(1500)
 check('creative: vanilla /tp still works', Math.hypot(carl3.entity.position.x - 40, carl3.entity.position.z - 40) < 2)
 await s.ask('lp user carl permission check tardis.timetravel world=meadow', 300)
@@ -609,8 +615,8 @@ check('console can always move a player', await isIn(nina2, 'kids_flatlands', 15
 
 // ---------- escape ----------
 console.log('\n# Escape')
-clearChat(nina2); nina2.chat('/station'); await sleep(2500)
-check('/station takes you to the station', await isIn(nina2, 'waycave', 1500))
+clearChat(nina2); nina2.chat('/cave'); await sleep(2500)
+check('/cave takes you to the cave', await isIn(nina2, 'waycave', 1500))
 await s.ask('mvtp nina w:kids_flatlands', 2000)
 nina2.chat('/hub'); await sleep(2500)
 check('/hub alias works too', await isIn(nina2, 'waycave', 1500))
@@ -618,13 +624,13 @@ const cfg = DIR + '/plugins/Waycave/config.yml'
 const originalCfg = readFileSync(cfg, 'utf8')
 writeFileSync(cfg, originalCfg.replace(/escape:\n  enabled: true/, 'escape:\n  enabled: false'))
 await s.ask('gate reload', 1500)
-await s.ask('mvtp nina w:kids_flatlands', 2000); nina2.chat('/station'); await sleep(2000)
-check('turned off: /station is gone', await isIn(nina2, 'kids_flatlands', 1000))
+await s.ask('mvtp nina w:kids_flatlands', 2000); nina2.chat('/cave'); await sleep(2000)
+check('turned off: /cave is gone', await isIn(nina2, 'kids_flatlands', 1000))
 writeFileSync(cfg, originalCfg.replace('escape:\n  enabled: true', 'escape:\n  enabled: true') + '\nbad: [yaml')
 const badOut = await s.ask('gate reload', 1200)
 check('a broken config is refused and keeps running', badOut.join(' ').includes('has a problem'))
 writeFileSync(cfg, originalCfg); await s.ask('gate reload', 1500)
-nina2.chat('/station'); await sleep(2500)
+nina2.chat('/cave'); await sleep(2500)
 check('turned back on: works', await isIn(nina2, 'waycave', 1500))
 
 // ---------- worlds appear and die ----------
@@ -633,18 +639,19 @@ await s.ask('mv create newsurvival normal --world-type flat', 8000)
 await sleep(5000)
 let g2 = await gates()
 check('a new world gets a pair by itself', !!g2['station-newsurvival'] && !!g2['return-newsurvival'], Object.keys(g2).length)
-const pl = g2._lines.filter(l => /^Platform/.test(l))
+const pl = g2._lines.filter(l => /^Chamber/.test(l))
 console.log('  ' + pl.join('\n  '))
-check('it joins its group\'s platform', pl.some(l => /\(Survival\).*station-newsurvival/.test(l)))
-check('it stands with its group', sameWall(g2['station-newsurvival'], g2['station-meadow']))
+check('it joins its group\'s chamber', pl.some(l => /\(Survival\).*station-newsurvival/.test(l)))
+check('it stands with its group', Math.hypot(g2['station-newsurvival'].x - g2['station-meadow'].x, g2['station-newsurvival'].z - g2['station-meadow'].z) <= 40)
 check('the station made room: no gates overlap', Object.values(g2).filter(x => x.world === 'waycave').every((p, i, all) => all.every((q, j) => i === j || Math.hypot(p.x - q.x, p.z - q.z) >= 7)))
 await s.ask('mv create elsewhere normal --world-type flat', 8000); await sleep(5000)
 let g3 = await gates()
-check('a world in no group gets its own platform', g3._lines.some(l => /^Platform \d+ \(Other\).*station-elsewhere/.test(l)))
+check('a world in no group gets its own chamber', g3._lines.some(l => /^Chamber \d+ \(Other\).*station-elsewhere/.test(l)))
 await s.ask('lp user boss permission set multiverse.access.newsurvival true', 500)
 const boss2 = await bot('boss'); await s.ask('mvtp boss w:waycave', 2500); await sleep(1500)
 const sn = g3['station-newsurvival']
 check('new gate visible to someone with access', await sees(boss2, sn))
+await s.ask(`execute in waycave run tp boss ${sn.x + .5} ${sn.y} ${sn.z + 4.5}`, 2000); await sleep(1500)
 const entitiesLive = near(boss2, sn.x, sn.z, 5).length
 const confirmDelete = async world => {
   const out = await s.ask(`mv delete ${world}`, 1000)
@@ -750,7 +757,7 @@ check('Quiet never appears on the map', !Object.keys(ms?.['waycave-gates']?.mark
 check('the station world has its own map with its gates', Object.keys(ms?.['waycave-gates']?.markers ?? {}).length >= 9, `${Object.keys(ms?.['waycave-gates']?.markers ?? {}).length} markers`)
 await confirmDelete('elsewhere'); await sleep(2000)
 const deadMarkers = await markers('waycave')
-check('dead gates are labelled on the map', /line closed/.test(deadMarkers?.['waycave-gates']?.markers?.['station-elsewhere']?.label ?? ''), deadMarkers?.['waycave-gates']?.markers?.['station-elsewhere']?.label)
+check('dead gates are labelled on the map', /trail closed/.test(deadMarkers?.['waycave-gates']?.markers?.['station-elsewhere']?.label ?? ''), deadMarkers?.['waycave-gates']?.markers?.['station-elsewhere']?.label)
 
 // ---------- shutdown ----------
 console.log('\n# OneBlock')
@@ -795,8 +802,8 @@ else {
   }
   obA.chat('/oneblock leave'); await sleep(2500)
   check('/oneblock leave still works', await isIn(obA, 'lobby', 1500))
-  obB.chat('/station'); await sleep(2500)
-  check('/station works from an island', await isIn(obB, 'waycave', 1500))
+  obB.chat('/cave'); await sleep(2500)
+  check('/cave works from an island', await isIn(obB, 'waycave', 1500))
   await sleep(2000)
   await s.ask('execute in oneblock run forceload add 0 0', 800)
   check('the post is gone once nobody is there', (await s.ask('execute in oneblock if entity @e[tag=waycave-island-post]', 500)).join(' ').includes('failed'))

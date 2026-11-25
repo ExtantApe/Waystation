@@ -8,13 +8,14 @@
 // WAYCAVE_TEST_JARS=<folder> WAYCAVE_TEST_EULA=accept WAYCAVE_TEST_JAVA=<java 25> WELCOMEWAGON_JAR=<jar> node test/arrival.mjs
 import { JAR, freshServer, writeConfig, pluginJar, Server, bot, sleep, check, summary, BASE } from './return-harness.mjs'
 import { existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
 const V = process.env.WAYCAVE_ARRIVAL_VERSION ?? '26.1.2'
 if (!['26.1.2', '26.2', '26.3'].includes(V)) throw new Error('WAYCAVE_ARRIVAL_VERSION must be 26.1.2, 26.2 or 26.3')
 const WELCOMEWAGON = process.env.WELCOMEWAGON_JAR
-if (!WELCOMEWAGON || !existsSync(WELCOMEWAGON)) throw new Error('Set WELCOMEWAGON_JAR to a WelcomeWagon 0.3.0 jar')
-const PORT = 25653, LABEL = '<gold><bold>Central Station</bold>'
+if (!WELCOMEWAGON || !existsSync(WELCOMEWAGON)) throw new Error('Set WELCOMEWAGON_JAR to a WelcomeWagon jar')
+const PORT = 25653, LABEL = '<gold><bold>The Waycave</bold>'
 
 /** One gate from gates.yml, read as plain text, so the test doesn't trust the plugin's own reader. */
 function gate(folder, id) {
@@ -54,46 +55,27 @@ console.log(`Arrival suite on Paper ${V}, port ${PORT}; servers in ${BASE}`)
 
     const b = await bot('Newcomer', { port: PORT, physics: V !== '26.3' })
     await s.ask('mvtp Newcomer waycave', 2500)
-    const welcome = b.chat_log.filter(m => /Central Station|reach|waygate/.test(m))
-    check('walking into the station for the first time, they get the welcome', welcome.some(m => m.includes('Welcome to Central Station.')), welcome.join(' | '))
-    check('it counts what this player can reach', welcome.some(m => /From here you can reach (no worlds yet|\d+ worlds?) on (no platforms yet|\d+ platforms?)\./.test(m)), welcome.join(' | '))
+    const welcome = b.chat_log.filter(m => /Waycave|reach|glowing trail/.test(m))
+    check('walking into the station for the first time, they get the welcome', welcome.some(m => m.includes('Welcome to the Waycave.')), welcome.join(' | '))
+    check('it counts what this player can reach', welcome.some(m => /From here you can reach (no worlds yet|\d+ worlds?) on (no chambers yet|\d+ chambers?)\./.test(m)), welcome.join(' | '))
     const before = b.chat_log.length
     await s.ask('mvtp Newcomer world', 2000)
     await s.ask('mvtp Newcomer waycave', 2500)
-    check('coming back soon after, they aren\'t welcomed again', !b.chat_log.slice(before).some(m => m.includes('Welcome to Central Station.')))
+    check('coming back soon after, they aren\'t welcomed again', !b.chat_log.slice(before).some(m => m.includes('Welcome to the Waycave.')))
     b.quit(); await sleep(1500)
     const b2 = await bot('Newcomer', { port: PORT, physics: V !== '26.3' })
     await sleep(1500)
-    check('nor when they log back in inside the station', !b2.chat_log.some(m => m.includes('Welcome to Central Station.')))
+    check('nor when they log back in inside the station', !b2.chat_log.some(m => m.includes('Welcome to the Waycave.')))
     b2.quit(); await sleep(1000)
 
-    // The Departures Board: each player sees their own, listing only what they can use, and it follows access.
+    // Who sees what on the Trails board, and the welcome, is covered by the cave suite. The old Departures Board and wall map are gone.
     await s.ask('mv create meadow normal --world-type flat --no-structures', 10000)
     await s.ask('lp user Newcomer permission set multiverse.access.meadow true', 800)
     await until(() => gate(folder, 'station-meadow'), 60000)
-    const boardOf = bb => Object.values(bb.entities).filter(e => e.name === 'text_display' && Math.hypot(e.position.x - 0.5, e.position.z - 5.5) < 1.5)
-    const textOf = bb => JSON.stringify(boardOf(bb).map(e => e.metadata))
     const nb = await bot('Newcomer', { port: PORT, physics: false })
     const ob = await bot('Other', { port: PORT, physics: false })
-    // The wall map: every map packet each bot receives, by map id.
-    for (const bb of [nb, ob]) { bb.maps = {}; bb._client.on('map', d => { const m = (bb.maps[d.itemDamage ?? d.mapId] ??= { icons: [], data: null }); m.icons = d.icons ?? []; if (d.data) m.data = Buffer.from(d.data).toString('hex') }) }
     for (const n of ['Newcomer', 'Other']) await s.ask(`mvtp ${n} waycave`, 2000)
-    await s.ask('execute in waycave run tp Newcomer 0.5 -60 9.5', 800); await s.ask('execute in waycave run tp Other 1.5 -60 9.5', 800)
     await sleep(3000)
-    check('each player sees exactly one board', boardOf(nb).length === 1 && boardOf(ob).length === 1, `${boardOf(nb).length} and ${boardOf(ob).length}`)
-    check('it lists the worlds they can use, under their platform', /Departures/.test(textOf(nb)) && /Meadow/.test(textOf(nb)) && /Platform \d/.test(textOf(nb)), textOf(nb).slice(0, 300))
-    check('and not worlds they can\'t', /Departures/.test(textOf(ob)) && !/Meadow/.test(textOf(ob)), textOf(ob).slice(0, 300))
-    // Stand them in front of the wall map, apart, and give the maps a moment to be sent.
-    await s.ask('execute in waycave run tp Newcomer -3.5 -60 -3.5 0 0', 600); await s.ask('execute in waycave run tp Other 4.5 -60 -2.5 0 0', 600)
-    await sleep(4000)
-    const ids = path.join(folder, 'plugins/Waycave/wallmap.yml')
-    check('the wall map\'s ids are saved for reuse', existsSync(ids) && (readFileSync(ids, 'utf8').match(/^- \d+$/mg) ?? []).length === 4, existsSync(ids) ? readFileSync(ids, 'utf8') : 'missing')
-    const icons = bb => Object.values(bb.maps).flatMap(m => m.icons)
-    check('each player is sent the wall map, with exactly one marker: their own', icons(nb).length === 1 && icons(ob).length === 1, `${icons(nb).length} and ${icons(ob).length} markers on ${Object.keys(nb.maps).length} maps`)
-    const where = bb => { const i = icons(bb)[0]; return i ? `${i.x},${i.z ?? i.y}` : '' }
-    check('the markers are where each player stands, so they differ', where(nb) && where(ob) && where(nb) !== where(ob), `${where(nb)} vs ${where(ob)}`)
-    const pixels = bb => Object.keys(bb.maps).sort().map(k => bb.maps[k].data).join('|')
-    check('each player\'s picture shows only their own gates, so it differs with access', pixels(nb) && pixels(ob) && pixels(nb) !== pixels(ob))
     // Sealed gates: off by default, so a gate you can't use isn't sent to you at all. The station's layout is random,
     // so the platform's own sign may stand beside this gate; the checks look at the gate's own parts and its name.
     const sm = gate(folder, 'station-meadow')
@@ -112,20 +94,9 @@ console.log(`Arrival suite on Paper ${V}, port ${PORT}; servers in ${BASE}`)
     check('while someone who can use it still sees it open, with its name', named(atGate(nb)))
     writeFileSync(cfgS, readFileSync(cfgS, 'utf8').replace('  hidden-groups: []', `  hidden-groups: ["${sm.group}"]`))
     await s.ask('gate reload', 1500); await sleep(3000)
-    check('a platform in hidden-groups stays hidden even with sealing on', !named(atGate(ob)) && blocks(ob) === baseBlocks, `${blocks(ob)} block parts vs ${baseBlocks} before, group ${sm.group}`)
+    check('a chamber in hidden-groups stays hidden even with sealing on', !named(atGate(ob)) && blocks(ob) === baseBlocks, `${blocks(ob)} block parts vs ${baseBlocks} before, group ${sm.group}`)
     writeFileSync(cfgS, readFileSync(cfgS, 'utf8').replace('sealed-gates:\n  enabled: true', 'sealed-gates:\n  enabled: false').replace(`  hidden-groups: ["${sm.group}"]`, '  hidden-groups: []'))
     await s.ask('gate reload', 1500)
-    await s.ask('lp user Other permission set multiverse.access.meadow true', 3000)
-    check('a new grant shows on their board within seconds', /Meadow/.test(textOf(ob)), textOf(ob).slice(0, 200))
-    const boards = async () => {
-      const out = (await s.ask('execute in waycave if entity @e[type=minecraft:text_display,x=-1,y=-60,z=4,dx=3,dy=4,dz=3]', 800)).join(' ')
-      if (process.env.ARRIVAL_DEBUG) console.log('  console: ' + out.slice(0, 300))
-      return Number(/count: (\d+)/i.exec(out)?.[1] ?? 0)
-    }
-    const boardsBefore = await boards()
-    await s.ask('mvtp Other world', 2500); await sleep(1500)
-    const boardsAfter = await boards()
-    check('one board per player in the station, and leaving takes yours away', boardsBefore === 2 && boardsAfter === 1, `${boardsBefore} -> ${boardsAfter}`)
     nb.quit(); ob.quit(); await sleep(1500)
 
     const cfg = path.join(folder, 'plugins/Waycave/config.yml')
@@ -160,7 +131,7 @@ console.log(`Arrival suite on Paper ${V}, port ${PORT}; servers in ${BASE}`)
     check('a player without waycave.admin gets no-permission, and no list', pb.chat_log.some(m => m.includes('ea-result w11') && m.includes('"code":"no-permission"')) && !pb.chat_log.some(m => m.includes('"items"')), pb.chat_log.join(' | ').slice(0, 200))
     pb.quit(); await sleep(1000)
     const human = (await s.ask('gate list', 1500)).join('\n')
-    check('without --json, gate list reads as before', /Station seed -?\d+, plan/.test(human) && /return-world: world /.test(human) && !/ea-result/.test(human), human.slice(0, 200))
+    check('without --json, gate list reads as before', /Gate seed -?\d+, cave of/.test(human) && /return-world: world /.test(human) && !/ea-result/.test(human), human.slice(0, 200))
     check('no Waycave errors', s.errors().length === 0, s.errors().slice(0, 2).join(' | '))
   } catch (e) { check('the run without WelcomeWagon finished', false, e.message) } finally { await s.stop(); rmSync(folder, { recursive: true, force: true }) }
 }
@@ -172,7 +143,7 @@ console.log(`Arrival suite on Paper ${V}, port ${PORT}; servers in ${BASE}`)
   mkdirSync(path.join(folder, 'plugins/WelcomeWagon'), { recursive: true })
   const lk = path.join(folder, 'plugins/WelcomeWagon/config.yml')
   const lkConfig = spot => {
-    const shipped = readFileSync(path.join(path.dirname(WELCOMEWAGON), '../../src/main/resources/config.yml'), 'utf8')
+    const shipped = execFileSync('unzip', ['-p', WELCOMEWAGON, 'config.yml'], { encoding: 'utf8' }) // the jar's own default config, wherever the jar is kept
     writeFileSync(lk, shipped.slice(0, shipped.indexOf('\nlobby:')) + `\nlobby:\n  world: hub\n  spawn: {x: ${spot[0]}, y: -60, z: ${spot[1]}}\n  send: always\n`)
   }
   lkConfig([30.5, 30.5])

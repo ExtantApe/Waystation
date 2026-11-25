@@ -1,7 +1,7 @@
 // Fargates. Bots can't follow a real transfer, so this checks what the server sends and what it
 // does when the player comes back. Hopping between two servers needs a real client.
 import { Server, freshCopy, installJar, sleep, bot, near, walkTo, check, summary, DIR, PORT, CLIENT_PROTOCOL } from './harness.mjs'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import mineflayer from 'mineflayer'
 
 const props = DIR + '/server.properties'
@@ -19,7 +19,7 @@ const has = (b, re) => b.chat_log.some(m => re.test(m))
 freshCopy(); installJar(); setTransfers(true)
 await s.start(); await sleep(12000)
 const cfg = DIR + '/plugins/Waycave/config.yml'
-writeFileSync(cfg, readFileSync(cfg, 'utf8') + `\nfargate-destinations:\n  testserver:\n    label: "Test Server"\n    host: 127.0.0.1\n    port: 25600\n    protocols: [${CLIENT_PROTOCOL}]\n`)
+writeFileSync(cfg, readFileSync(cfg, 'utf8') + `\nfargate-destinations:\n  testserver:\n    label: "Test Server"\n    host: 127.0.0.1\n    port: 25600\n    check-port: ${PORT}\n    protocols: [${CLIENT_PROTOCOL}]\n`) // the status check asks this server itself, which answers, since nothing listens on 25600
 await s.ask('gate reload', 1500)
 console.log((await s.ask(`gate fargate tg testserver waycave ${g.x} ${g.y} ${g.z} south`, 1000)).join(' '))
 await s.ask('lp group default permission set multiverse.access.waycave true', 300)
@@ -36,7 +36,7 @@ check('permitted, matching client: sees the fargate', near(yes, g.x + .5, g.z + 
 check('no permission: sent no entities for it', near(no, g.x + .5, g.z + .5, 3).length === 0)
 const test = (await s.ask('gate test tg yes', 700)).join(' ')
 check('it sits on no platform', /platform none/.test(test), test.slice(0, 110))
-check('and is not on the platform list', !(await s.ask('gate list', 800)).some(l => /^Platform.*\btg\b/.test(l)))
+check('and is on no chamber list', !(await s.ask('gate list', 800)).some(l => /^Chamber.*\btg\b/.test(l)))
 
 console.log('\n# No permission does nothing')
 no.chat_log.length = 0
@@ -46,19 +46,23 @@ check('and says nothing at all', no.chat_log.length === 0, no.chat_log.join('|')
 check('and they stay online', !!no.entity && (await s.ask('list', 400)).join(' ').includes('nope'))
 
 console.log('\n# Client version must match')
-const old = watch(mineflayer.createBot({ host: '127.0.0.1', port: PORT, username: 'oldclient', version: '1.21.8', auth: 'offline' }))
-old.chat_log = []; old.on('messagestr', m => old.chat_log.push(m)); old.on('error', e => console.log('  [old] ' + e.message))
-await new Promise((res, rej) => { old.once('spawn', res); setTimeout(() => rej(new Error('old client spawn timeout')), 60000) })
-await sleep(1500)
-await s.ask('lp user oldclient permission set waycave.fargate.testserver true', 400)
-await s.ask('mvtp oldclient w:waycave', 2500); await sleep(2000)
-const oldTest = (await s.ask('gate test tg oldclient', 700)).join(' ')
-console.log('  ' + oldTest.slice(-70))
-check('permitted but older client: not offered the gate', /can enter false/.test(oldTest) && near(old, g.x + .5, g.z + .5, 3).length === 0)
-await s.ask(`execute in waycave run tp oldclient ${g.x + .5} ${g.y} ${g.z + 3.5}`, 900)
-old.setControlState('forward', true); await old.lookAt(old.entity.position.offset(0, 1.6, -5), true); await sleep(1500); old.setControlState('forward', false)
-check('and walking in does nothing', old.transfers.length === 0)
-old.end()
+// An older client can only reach this server through ViaVersion and ViaBackwards, which only 26.2 and later have in the small copy.
+if (!readdirSync(DIR + '/plugins').some(f => /^ViaVersion/i.test(f))) console.log('  skipped: no ViaVersion on this server, so an older client cannot join it (run this on 26.2 or 26.3)')
+else {
+  const old = watch(mineflayer.createBot({ host: '127.0.0.1', port: PORT, username: 'oldclient', version: '1.21.8', auth: 'offline' }))
+  old.chat_log = []; old.on('messagestr', m => old.chat_log.push(m)); old.on('error', e => console.log('  [old] ' + e.message))
+  await new Promise((res, rej) => { old.once('spawn', res); setTimeout(() => rej(new Error('old client spawn timeout')), 60000) })
+  await sleep(1500)
+  await s.ask('lp user oldclient permission set waycave.fargate.testserver true', 400)
+  await s.ask('mvtp oldclient w:waycave', 2500); await sleep(2000)
+  const oldTest = (await s.ask('gate test tg oldclient', 700)).join(' ')
+  console.log('  ' + oldTest.slice(-70))
+  check('permitted but older client: not offered the gate', /can enter false/.test(oldTest) && near(old, g.x + .5, g.z + .5, 3).length === 0)
+  await s.ask(`execute in waycave run tp oldclient ${g.x + .5} ${g.y} ${g.z + 3.5}`, 900)
+  old.setControlState('forward', true); await old.lookAt(old.entity.position.offset(0, 1.6, -5), true); await sleep(1500); old.setControlState('forward', false)
+  check('and walking in does nothing', old.transfers.length === 0)
+  old.end()
+}
 
 console.log('\n# Leaving and coming back')
 await s.ask('give yes diamond 9', 300); await s.ask('xp set yes 6 levels', 800)
@@ -81,10 +85,14 @@ check('the return spot is used once', !/fargate-return/.test(readFileSync(DIR + 
 
 console.log('\n# Regular waygates alongside')
 const list = await s.ask('gate list', 800)
-const lobby = list.join('\n').match(/station-lobby: waycave (-?\d+) (-?\d+) (-?\d+)/)
-await s.ask(`execute in waycave run tp yes ${+lobby[1] + .5} ${lobby[2]} ${+lobby[3] + 3.5}`, 1000)
+const lobby = list.join('\n').match(/station-lobby: waycave (-?\d+) (-?\d+) (-?\d+) (north|south|east|west)/)
+// Three blocks in front of the gate, on the side it faces: the cave's gates don't all face south.
+const [fx, fz] = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }[lobby[4]]
+await s.ask(`execute in waycave run tp yes ${+lobby[1] + .5 + fx * 3} ${lobby[2]} ${+lobby[3] + .5 + fz * 3}`, 1000)
 await walkTo(back, +lobby[1] + .5, +lobby[3] + .5, 4000); await sleep(2500)
-check('a waygate still works, and sends no transfer', (await s.ask('execute in lobby if entity @a[name=yes,distance=0..]', 500)).some(l => /Test passed/.test(l)) && back.transfers.length === 0)
+let lobbyOk = false
+for (let i = 0; i < 20 && !lobbyOk; i++) { lobbyOk = (await s.ask('execute in lobby if entity @a[name=yes,distance=0..]', 300)).some(l => /Test passed/.test(l)); if (!lobbyOk) await sleep(300) }
+check('a waygate still works, and sends no transfer', lobbyOk && back.transfers.length === 0, `gate ${lobby.slice(1).join(' ')}; bot at ${back.entity?.position}; transfers ${back.transfers.length}`)
 back.chat_log.length = 0; back.chat('/waygate'); await sleep(800)
 check('/waygate gives a waygate, not the fargate', has(back, /Nearest waygate/) && !has(back, /Leaving/), back.chat_log.at(-1))
 

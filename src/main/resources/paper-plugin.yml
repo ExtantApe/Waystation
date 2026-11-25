@@ -20,7 +20,7 @@ dependencies:
     # Optional: its lobby places the lobby gate. Read by name, so Waycave builds and runs without it.
     WelcomeWagon: {load: BEFORE, required: false, join-classpath: false}
     # Optional: who can see whom in the cave follows its groups. Read by name. Without it nobody in the cave sees anyone.
-    Mayor: {load: BEFORE, required: false, join-classpath: false}
+    Posse: {load: BEFORE, required: false, join-classpath: false}
     # Optional: with it the start chamber has a gate to another server. Read by name.
     Wayport: {load: BEFORE, required: false, join-classpath: false}
 permissions:

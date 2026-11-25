@@ -19,21 +19,21 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 
 /**
- * Who sees whom in the cave (D194, kids first): players in the cave see each other only where Mayor's groups say they
- * may. Anyone Mayor won't connect to a player is hidden from them while both are in the cave, and shown again when
- * either leaves. If Mayor isn't installed, isn't running or gives anything but a plain yes, nobody sees anyone: the
+ * Who sees whom in the cave (D194, kids first): players in the cave see each other only where Posse's groups say they
+ * may. Anyone Posse won't connect to a player is hidden from them while both are in the cave, and shown again when
+ * either leaves. If Posse isn't installed, isn't running or gives anything but a plain yes, nobody sees anyone: the
  * answer fails closed.
  *
  * <p>It uses {@code hideEntity}, so nothing else about a player changes. A player is hidden at the moment they teleport
  * in, before the cave's own pass could, so nobody flashes into view for a moment first. Each pass puts right anything
- * that's changed (a new circle, a new group). Mayor is called by method name, so Waycave builds and runs without it.
+ * that's changed (a new circle, a new group). Posse is called by method name, so Waycave builds and runs without it.
  */
 final class CaveCrowd implements Listener {
     private final WaycavePlugin plugin;
     /** Pairs this class hid: viewer, then the player they can't see. */
     private final Map<UUID, Set<UUID>> hidden = new HashMap<>();
     private Method mayReach;
-    private Plugin mayor;
+    private Plugin posse;
 
     CaveCrowd(WaycavePlugin plugin) {
         this.plugin = plugin;
@@ -47,14 +47,14 @@ final class CaveCrowd implements Listener {
         return Boolean.TRUE.equals(aReachesB) && Boolean.TRUE.equals(bReachesA);
     }
 
-    /** Mayor's answer for one direction, or null when it can't give one. */
-    Boolean askMayor(Player from, Player to) {
-        Plugin m = Bukkit.getPluginManager().getPlugin("Mayor");
+    /** Posse's answer for one direction, or null when it can't give one. */
+    Boolean askPosse(Player from, Player to) {
+        Plugin m = Bukkit.getPluginManager().getPlugin("Posse");
         if (m == null || !m.isEnabled()) return null;
         try {
-            if (mayor != m || mayReach == null) {
+            if (posse != m || mayReach == null) {
                 mayReach = m.getClass().getMethod("mayReach", Player.class, Player.class);
-                mayor = m;
+                posse = m;
             }
             Object answer = mayReach.invoke(m, from, to);
             return answer instanceof Boolean b ? b : null;
@@ -64,14 +64,14 @@ final class CaveCrowd implements Listener {
     }
 
     boolean visible(Player a, Player b) {
-        return mayBeSeen(askMayor(a, b), askMayor(b, a));
+        return mayBeSeen(askPosse(a, b), askPosse(b, a));
     }
 
     private World cave() {
         return Bukkit.getWorld(plugin.settings().stationWorld);
     }
 
-    /** Hides or shows every pair in the cave to match Mayor now, and shows anyone who has left. */
+    /** Hides or shows every pair in the cave to match Posse now, and shows anyone who has left. */
     void pass() {
         World cave = cave();
         for (UUID viewer : new java.util.ArrayList<>(hidden.keySet())) {

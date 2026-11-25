@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 /** The two rules that keep kids safe in the cave, and where people arrive, without a server. */
 class CaveCrowdTest {
     @Test
-    void twoPlayersSeeEachOtherOnlyWhenMayorSaysYesBothWays() {
+    void twoPlayersSeeEachOtherOnlyWhenPosseSaysYesBothWays() {
         assertTrue(CaveCrowd.mayBeSeen(true, true));
         assertFalse(CaveCrowd.mayBeSeen(true, false));
         assertFalse(CaveCrowd.mayBeSeen(false, true));
@@ -15,8 +15,8 @@ class CaveCrowdTest {
     }
 
     @Test
-    void whenMayorCantAnswerNobodySeesAnybody() {
-        assertFalse(CaveCrowd.mayBeSeen(null, null), "no Mayor, or one that isn't running");
+    void whenPosseCantAnswerNobodySeesAnybody() {
+        assertFalse(CaveCrowd.mayBeSeen(null, null), "no Posse, or one that isn't running");
         assertFalse(CaveCrowd.mayBeSeen(true, null));
         assertFalse(CaveCrowd.mayBeSeen(null, true));
     }

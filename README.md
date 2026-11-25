@@ -20,7 +20,7 @@ Needs a real client, still untested:
 
 Paper 26.1 or later, Java 25. Multiverse-Core 5 runs the cave and the automatic waygates. Without it, Waycave still does
 fargates, gates you place yourself and the return command, for a server with one world. Optional: Multiverse-Inventories,
-LuckPerms, GriefPrevention, Vault with an economy plugin, BlueMap, [Mayor](https://github.com/ExtantApe/Mayor) (who sees
+LuckPerms, GriefPrevention, Vault with an economy plugin, BlueMap, [Posse](https://github.com/ExtantApe/Posse) (who sees
 whom in the cave) and [Wayport](https://github.com/ExtantApe/Wayport) (the gate to another server).
 
 ## How it behaves
@@ -39,8 +39,8 @@ whom in the cave) and [Wayport](https://github.com/ExtantApe/Wayport) (the gate 
 - **Trails are fake blocks, sent to one player.** Moss carpet edged with glow lichen from the start chamber to each gate
   that player can use. Another player on the same spot sees plain floor. Nothing is placed in the world. A gate you lose
   access to loses its trail within a second.
-- **Seeing other players follows Mayor's groups.** In the cave, anyone Mayor won't connect to you is hidden from you.
-  Without Mayor, or if Mayor can't answer, nobody sees anyone. Add `waycave` to Mayor's `circle-only-worlds`: otherwise
+- **Seeing other players follows Posse's groups.** In the cave, anyone Posse won't connect to you is hidden from you.
+  Without Posse, or if Posse can't answer, nobody sees anyone. Add `waycave` to Posse's `circle-only-worlds`: otherwise
   everyone in the same world group hears, and so sees, each other.
 - **You see a gate only if you can use it.** Otherwise there's nothing there, and walking through it does nothing.
   Servers can turn on `sealed-gates` instead, off by default, since even a sealed gate tells a player a line exists.
@@ -163,7 +163,7 @@ With the server stopped:
    `plugins/Multiverse-Inventories/groups.yml`, then run `mvinv reload`. The server warns at startup until this is done.
 4. To make gates the only way to travel, edit `setup/luckperms-gates-only.txt` for your worlds and groups, then
    paste it into the console. It takes `/mvtp` away from everyone but admins. The console keeps it.
-5. If you use Mayor, add `waycave` to `circle-only-worlds` in its `config.yml` and run `/mayor reload`. That is what makes
+5. If you use Posse, add `waycave` to `circle-only-worlds` in its `config.yml` and run `/posse reload`. That is what makes
    players in the cave see only the people their circles allow.
 
 ### Upgrading from Waystation
@@ -190,7 +190,7 @@ and nothing half-works.
 4. Multiverse-Inventories `groups.yml`: replace the `waystation` world with `waycave` in the lobby's group.
 5. BlueMap: rename `maps/waystation.conf` to `maps/waycave.conf` and use the new `setup/bluemap-waycave.conf`.
 6. `plugins/Waystation/transfer.key`, if the arrival guard is on, moves with the folder.
-7. Add `waycave` to Mayor's `circle-only-worlds`.
+7. Add `waycave` to Posse's `circle-only-worlds`.
 8. Other plugins that read Waystation by name (OneVoid, WelcomeWagon) release in step with this one: OneVoid compiles
    against `WaycaveHandOverEvent` and `LandingService`.
 9. The old `waystation` world is never used again. After a backup exists in your normal backup set, move it to the Trash.
@@ -286,7 +286,7 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew shadowJar hookJar` and
 | Suite | What it covers | Needs |
 | --- | --- | --- |
 | `acceptance` | gates, permissions, inventories, protection, tribute, buying, crashes | |
-| `cave` | the cave, its trails, who sees whom, arrival, growth, Wayport | `WAYCAVE_TEST_MAYOR_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` |
+| `cave` | the cave, its trails, who sees whom, arrival, growth, Wayport | `WAYCAVE_TEST_POSSE_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` |
 | `fargate` | who sees a fargate, and coming back | |
 | `defaults` | the default config and `example-worlds` | |
 | `hop` | two servers, there and back through fargates | |
@@ -303,7 +303,7 @@ If your copy's differ, `WAYCAVE_TEST_NAMES` points at a file mapping them, kept 
 `test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.
 
 `cave` runs on the small made-up server `test/prepare-small.mjs` makes (no copy of a real one), on 127.0.0.1 only. It
-also needs `WAYCAVE_TEST_MAYOR_JAR` and `WAYCAVE_TEST_WAYPORT_JAR`. On 26.2 and 26.3 set `WAYCAVE_TEST_NOWALK=1`: bots
+also needs `WAYCAVE_TEST_POSSE_JAR` and `WAYCAVE_TEST_WAYPORT_JAR`. On 26.2 and 26.3 set `WAYCAVE_TEST_NOWALK=1`: bots
 that move are disconnected there, so those runs keep them still and skip the two checks that need a walk.
 
 **A test cave to walk in a real client.** `test/test-cave.mjs` starts a throwaway server from that same small copy, builds the

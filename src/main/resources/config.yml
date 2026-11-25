@@ -104,8 +104,8 @@ cave:
 trails:
   enabled: true
 
-# Seeing other players in the cave follows Mayor's groups: anyone Mayor says a player can't reach is hidden from them
-# while both are in the cave. Without Mayor, nobody in the cave sees anyone else. Not configurable on purpose.
+# Seeing other players in the cave follows Posse's groups: anyone Posse says a player can't reach is hidden from them
+# while both are in the cave. Without Posse, nobody in the cave sees anyone else. Not configurable on purpose.
 
 # The Wayport gate. With Wayport installed, one gate in the start chamber runs its command for a player who may use
 # it (wayport.use). Waycave has no transfer code of its own for it: Wayport counts down, checks the other server and

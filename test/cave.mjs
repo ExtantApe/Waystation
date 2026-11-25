@@ -2,13 +2,13 @@
 //
 // Each safety rule has a positive control (the thing that must happen next to the thing that must not):
 //   - each bot sees only its own gates and trails, with two bots looking at the same blocks,
-//   - bots outside each other's Mayor circles don't see each other in the cave, and without Mayor nobody does,
+//   - bots outside each other's Posse circles don't see each other in the cave, and without Posse nobody does,
 //   - a lost access closes the trail and the board says (trail closed), and a regained access opens it again,
 //   - nobody can change a block in the cave,
 //   - arrival is at the end of the last trail, or the start chamber once that gate is gone,
 //   - a group added later grows a new chamber and moves nothing,
 //   - the Wayport gate exists only with Wayport, and only a player allowed to use it sees it.
-// Needs WAYCAVE_TEST_BASE (made by test/prepare-small.mjs), the Waycave jar, and WAYCAVE_TEST_MAYOR_JAR and
+// Needs WAYCAVE_TEST_BASE (made by test/prepare-small.mjs), the Waycave jar, and WAYCAVE_TEST_POSSE_JAR and
 // WAYCAVE_TEST_WAYPORT_JAR for the two optional plugins. Bots can't see crouching or use blocks on 26.3; neither is used.
 import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -20,8 +20,8 @@ import { Server, freshCopy, installJar, sleep, bot as joinBot, near, walkTo, che
 const NOWALK = process.env.WAYCAVE_TEST_NOWALK === '1'
 const bot = name => joinBot(name, { physics: !NOWALK })
 
-const MAYOR = process.env.WAYCAVE_TEST_MAYOR_JAR, WAYPORT = process.env.WAYCAVE_TEST_WAYPORT_JAR
-if (!MAYOR || !existsSync(MAYOR)) throw new Error('Set WAYCAVE_TEST_MAYOR_JAR to a Mayor jar')
+const POSSE = process.env.WAYCAVE_TEST_POSSE_JAR, WAYPORT = process.env.WAYCAVE_TEST_WAYPORT_JAR
+if (!POSSE || !existsSync(POSSE)) throw new Error('Set WAYCAVE_TEST_POSSE_JAR to a Posse jar')
 if (!WAYPORT || !existsSync(WAYPORT)) throw new Error('Set WAYCAVE_TEST_WAYPORT_JAR to a Wayport jar')
 
 const s = new Server()
@@ -65,23 +65,23 @@ async function frontBlock(b, g) {
   return blockName(b, fx, fy, fz)
 }
 
-// ---------- Boot: Waycave, Mayor, no Wayport ----------
-console.log('\n# Boot: Waycave and Mayor on a small made-up server, no Wayport')
+// ---------- Boot: Waycave, Posse, no Wayport ----------
+console.log('\n# Boot: Waycave and Posse on a small made-up server, no Wayport')
 freshCopy()
 // A bot with physics off floats, which a survival-mode player is kicked for. This copy is throwaway and 127.0.0.1 only.
 if (NOWALK) writeFileSync(path.join(DIR, 'server.properties'), readFileSync(path.join(DIR, 'server.properties'), 'utf8') + 'allow-flight=true\n')
-copyFileSync(MAYOR, path.join(DIR, 'plugins', 'Mayor.jar'))
+copyFileSync(POSSE, path.join(DIR, 'plugins', 'Posse.jar'))
 installJar()
 await s.start()
 await s.waitFor(/The cave is built|failed its walk-through|plan has a flaw/, 240000)
 check('the cave built, and a walk over its real blocks reached every chamber and gate place', s.log.some(l => /The cave is built and every chamber and gate can be walked to/.test(l)))
 await sleep(8000) // gates and return gates are placed once the cave stands
-await s.ask('lp group family permission set mayor.circle.family true', 300)
-await s.ask('lp group kids permission set mayor.circle.kids true', 300)
-const mayorConfig = path.join(DIR, 'plugins/Mayor/config.yml')
-writeFileSync(mayorConfig, readFileSync(mayorConfig, 'utf8').replace(/^circles: \[\]/m, 'circles: [family, kids]').replace(/^circle-only-worlds: \[\]/m, 'circle-only-worlds: [waycave]'))
-await s.ask('mayor reload', 800)
-check('Mayor reads the cave as a circle-only world', (await s.ask('mayor status', 800)).join(' ').includes('family'))
+await s.ask('lp group family permission set posse.circle.family true', 300)
+await s.ask('lp group kids permission set posse.circle.kids true', 300)
+const posseConfig = path.join(DIR, 'plugins/Posse/config.yml')
+writeFileSync(posseConfig, readFileSync(posseConfig, 'utf8').replace(/^circles: \[\]/m, 'circles: [family, kids]').replace(/^circle-only-worlds: \[\]/m, 'circle-only-worlds: [waycave]'))
+await s.ask('posse reload', 800)
+check('Posse reads the cave as a circle-only world', (await s.ask('posse status', 800)).join(' ').includes('family'))
 
 let G = await caveGates()
 const station = G.filter(g => g.id.startsWith('station-'))
@@ -146,15 +146,15 @@ check('nothing is placed in the world: the real block under both is not carpet',
 }
 
 // ---------- Who sees whom ----------
-console.log('\n# Seeing other players follows Mayor')
+console.log('\n# Seeing other players follows Posse')
 await tpTo('alice', 0, 64, -9); await tpTo('carol', 3, 64, -9); await tpTo('bob', -3, 64, -9)
 await sleep(3500)
 const seen = (viewer, other) => Object.values(viewer.entities).some(e => e.type === 'player' && e.username === other)
 check('alice and carol share a circle, so each sees the other (positive control)', seen(alice, 'carol') && seen(carol, 'alice'))
 check('bob shares no circle with them, so neither side sees the other', !seen(bob, 'alice') && !seen(bob, 'carol') && !seen(alice, 'bob') && !seen(carol, 'bob'))
-await s.ask('lp user bob permission set mayor.circle.family true', 300); await sleep(3500)
+await s.ask('lp user bob permission set posse.circle.family true', 300); await sleep(3500)
 check('once bob joins their circle they see each other', seen(bob, 'alice') && seen(alice, 'bob'))
-await s.ask('lp user bob permission unset mayor.circle.family', 300); await sleep(3500)
+await s.ask('lp user bob permission unset posse.circle.family', 300); await sleep(3500)
 check('and when he leaves it they stop', !seen(bob, 'alice') && !seen(alice, 'bob'))
 
 // ---------- Closed trail ----------
@@ -263,14 +263,14 @@ check('no errors from Waycave in the log', s.errors().length === 0, s.errors().s
 for (const b of [alice, bob, carol]) b.end()
 await s.stop()
 
-// ---------- Without Mayor, nobody sees anyone ----------
-console.log('\n# Without Mayor nobody sees anyone')
-rmSync(path.join(DIR, 'plugins/Mayor.jar'))
+// ---------- Without Posse, nobody sees anyone ----------
+console.log('\n# Without Posse nobody sees anyone')
+rmSync(path.join(DIR, 'plugins/Posse.jar'))
 await s.start(); await sleep(8000)
 const a2 = await bot('alice'), c2 = await bot('carol')
 await s.ask('mvtp alice w:waycave', 2500); await s.ask('mvtp carol w:waycave', 2500)
 await tpTo('alice', 0, 64, -9); await tpTo('carol', 3, 64, -9); await sleep(4000)
-check('alice and carol, who shared a circle, now see nobody: Mayor can\'t answer, so the answer is no', !seen(a2, 'carol') && !seen(c2, 'alice'))
+check('alice and carol, who shared a circle, now see nobody: Posse can\'t answer, so the answer is no', !seen(a2, 'carol') && !seen(c2, 'alice'))
 await s.ask('mvtp carol w:lobby', 2500); await sleep(2500)
 check('control: carol is still online, just not seen', (await s.ask('list', 400)).join(' ').includes('carol'))
 a2.end(); c2.end()
