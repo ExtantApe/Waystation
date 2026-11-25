@@ -2,6 +2,21 @@
 
 What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
 
+## 2026-11-25: the older suites brought to the cave, Posse, and the Wayport gate off (K649)
+
+| Promise | Proved by |
+| --- | --- |
+| Nobody in the cave sees anyone without Posse, or when Posse can't answer | `CaveCrowdTest` (null answers are a no); `cave` bots, last section: Posse's jar removed, two players who shared a circle see nobody |
+| The cave asks the plugin named Posse and reads `posse.circle.*` | `cave` bots: the shared circle shows two players to each other, and leaving the circle hides them |
+| The Wayport gate is off: never placed, none in `gates.yml`, none sent to a player holding `wayport.use` and `wayport.admin`, nothing runs `/wayport` for her (D301) | `cave` bots, "The Wayport gate stays off" |
+| Operators can't change the cave floor, `/setblock` or `/fill` in the cave | `acceptance`, read from the server, with the survival-world control in the `cave` suite |
+| Gates, permissions, inventories, protection, tribute and buying still hold in the cave | `acceptance` 166/169 on 26.1.2: the three that remain need the real server's creative permissions, portals and BlueMap's first render |
+| Fargates: who sees one, coming back, and that a destination that doesn't answer sends nobody | `fargate` on 26.1.2 (an older client only where ViaVersion is), `hop` on two servers, `arrival-guard` |
+| The lobby gate, the welcome and sealed gates | `arrival` on all three versions. The Departures Board and wall map checks are gone with those features; the Trails board is in the `cave` suite |
+
+Gaps and why: `acceptance`, `fargate` and `hop` walk through gates, which bots can't do on 26.2 and 26.3, so they stay on 26.1.2.
+The live install step (`design/waycave` in the server kit) is rehearsed on a made-up server, not on a copy of the live one by this suite.
+
 ## 2026-11-24: the Waycave rebuild (K649)
 
 What the cave promises, and what proves it. Counts and versions are in the CHANGELOG and the PR.

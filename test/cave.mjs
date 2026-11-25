@@ -236,7 +236,8 @@ else {
 console.log('\n# A group added later grows a chamber and moves nothing')
 {
   const before = await gates()
-  const floorSample = [[0, 63, 0], [20, 63, 3], [-30, 62, 20], [40, 64, -10], [5, 70, 5]]
+  // More spots than needed: some land in a block type that isn't in the list below, whatever the seed makes.
+  const floorSample = [[0, 63, 0], [20, 63, 3], [-30, 62, 20], [40, 64, -10], [5, 70, 5], [0, 63, -12], [-9, 63, 0], [9, 63, 9], [0, 66, 0], [12, 62, -20], [-20, 63, -9], [30, 63, 20]]
   const samples = []
   const names = ['moss_block', 'rooted_dirt', 'stone', 'tuff', 'dripstone_block', 'clay', 'amethyst_block', 'air']
   for (const [x, y, z] of floorSample) { for (const n of names) if (await realBlock(n, x, y, z)) { samples.push([x, y, z, n]); break } }

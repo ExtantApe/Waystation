@@ -193,7 +193,10 @@ and nothing half-works.
 7. Add `waycave` to Posse's `circle-only-worlds`.
 8. Other plugins that read Waystation by name (OneVoid, WelcomeWagon) release in step with this one: OneVoid compiles
    against `WaycaveHandOverEvent` and `LandingService`.
-9. The old `waystation` world is never used again. After a backup exists in your normal backup set, move it to the Trash.
+9. Add the old `waystation` world to `exclude-worlds` in `plugins/Waycave/config.yml`. It stays on the server until you trash it, and without
+   this it gets its own chamber and gate. Other plugins' configs that name the old world or `Waystation` (Rewild, MobSquad, Packmule,
+   Posse and the like) change to `waycave`.
+10. The old `waystation` world is never used again. After a backup exists in your normal backup set, move it to the Trash.
    Waycave re-points its return gates to the new world by itself and places the cave's gates again.
 
 Players see the welcome once more, since the "last visit" stamp is stored under the plugin's own name.

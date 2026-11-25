@@ -28,19 +28,45 @@ Waystation is now Waycave, rebuilt as a cave (K649, D194, D196). Not released an
   place can be walked to, or nothing is built into use. Lit by glowing berry vines to at least light 9.
 - **Trails.** Moss carpet edged with glow lichen from the start chamber to each gate a player can use, sent to that
   player only.
-- **Who sees whom.** In the cave, players see each other only where Mayor allows, and nobody does without Mayor.
+- **Who sees whom.** In the cave, players see each other only where Posse allows, and nobody does without Posse.
 - **Arrival** at the end of the last trail, or in the start chamber when that gate is gone, unusable or unsafe.
 - **Trails board** replaces the Departures Board. A world a player lost access to reads (trail closed).
-- **Wayport gate** in the start chamber when Wayport is installed.
+- **Wayport gate**: built, then switched off for 0.8.0 (see below).
 - **Players don't type (D284).** The welcome, the escape messages and `/waygate` no longer teach commands. `/cave`
   (was `/station`), `/waygate` and `/return` stay as hidden fallbacks. `/buygate` is still typed.
 - Removed: `/gate enlarge` and `waycave.admin.enlarge`, the floor plans, `cave.spacing`, `cave.aisle`, `cave.slots`, the
   wall map (off by default), and `station.mjs`.
 - Changed defaults: `cave.y` 64, `cave.tile-depth` 0, `wall-map.enabled` false, `escape.command` `cave`.
 
-Tested, on throwaway servers on 127.0.0.1 with made-up worlds: 82 unit tests pass. The new `cave` bot suite passed on
-Paper 26.1.2 (47/47, bots walking, Mayor 0.8.0 and Wayport 0.3.0 installed), 26.2 (40/40) and 26.3 (40/40). On 26.2 and
-26.3 the bots stand still, so arrival and walking into the Wayport gate weren't run there. The 26.1.2 run was made before
-the last small change to the suite's "its gate is gone" check, which now also asks the server. Not tested: a real game
-client; the older bot suites (`acceptance`, `fargate`, `defaults`, `hop`, `economy`, `return`, `handover`), which weren't
-updated or rerun; an upgrade of a real install; trails after a chunk reload.
+Posse, not Mayor (D295, 2026-11-25): the cave crowd asks the plugin named `Posse`, the dependency and the circle nodes
+(`posse.circle.*`) follow, and no old name is read. With no Posse, nobody in the cave sees anyone (unit test, and the
+`cave` suite's run without it).
+
+Tested, on throwaway servers on 127.0.0.1 with made-up worlds, Paper 26.1.2, 26.2 and 26.3, with Posse 0.11.0, Wayport
+0.4.0, WelcomeWagon 0.7.0 and EssentialsX 2.22.0: unit tests pass (`./gradlew build`).
+
+| Suite | 26.1.2 | 26.2 | 26.3 |
+| --- | --- | --- | --- |
+| `cave` | 47/47 | 42/42 | 42/42 |
+| `buymenu` | 33/33 | 33/33 | 33/33 |
+| `economy` | 10/10 | 10/10 | 10/10 |
+| `defaults` | 17/17 | 17/17 | 17/17 |
+| `return` | 53/53 | 53/53 | 50/50 |
+| `arrival` | 30/30 | 30/30 | 30/30 |
+| `arrival-guard` | 18/18 | 18/18 | 18/18 |
+| `handover` | 28/28 | 28/28 | 19/19 |
+| `acceptance` | 166/169 | not run | not run |
+| `fargate` | 22/22 | not run | not run |
+| `hop` | 12/12 | not run | not run |
+
+- **Wayport gate off (D301).** Wayport 0.4.0 made `/wayport` admin-only, so the cave's gate to another server did nothing
+  for players. It is hidden from everyone in 0.8.0 and Waycave never runs `/wayport` with borrowed rights. The `cave` suite
+  checks that nobody sees it, even a player holding `wayport.use` and `wayport.admin`. It returns when Wayport has an API.
+- `acceptance` 166/169: the three that remain depend on what the small made-up copy lacks: vanilla `/tp` in creative,
+  nether portals and BlueMap's first render (the same three as before the cave).
+- On 26.2 and 26.3 the bots stand still, so those runs skip the checks that walk (arrival, the walks in
+  `handover`). `acceptance`, `fargate` and `hop` walk through gates and stay on 26.1.2.
+- The older suites were brought up to the cave: chambers instead of platforms, `/cave`, operator checks on the cave floor
+  read from the server, the Departures Board and wall map checks dropped (gone), `fargate` checks that its destination
+  answers, `economy` runs with still bots on 26.3.
+- Not tested: a real game client; an upgrade of a real install (the live install step is rehearsed on a made-up server, 24 checks pass, outside this repo); trails after a chunk reload. The 26.2 and 26.3 `cave` runs are on the final jar; the other suites there ran on the jar before the Wayport gate was switched off, which touches nothing they check.
