@@ -35,7 +35,7 @@ final class Gate {
         return destination.startsWith(FARGATE_PREFIX);
     }
 
-    /** The gate in the start chamber that runs Wayport's command. It has this destination and the id below. */
+    /** The gate in the start chamber that hands players to Wayport's API. It has this destination and the id below. */
     static final String WAYPORT_DESTINATION = "wayport:", WAYPORT_ID = "wayport";
 
     boolean isWayport() {

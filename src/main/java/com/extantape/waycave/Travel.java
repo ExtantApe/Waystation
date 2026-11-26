@@ -155,7 +155,7 @@ final class Travel implements Listener {
         if (inFlight.contains(id) || System.currentTimeMillis() < readyAt.getOrDefault(id, 0L)) return;
 
         if (gate.isWayport()) {
-            if (plugin.canEnter(player, gate)) wayportOut(player);
+            if (plugin.canEnter(player, gate)) plugin.walkIn().begin(player);
             return; // otherwise it does nothing at all: no message, so it stays hidden
         }
         if (gate.isFargate()) {
@@ -238,14 +238,6 @@ final class Travel implements Listener {
         boolean last = CaveArrival.choose(plugin.data().lastTrail(player.getUniqueId()) != null, there, canUse, safe) == CaveArrival.Spot.LAST_TRAIL;
         if (last) return front;
         return plugin.cave().exists() ? plugin.cave().spawn(cave) : plugin.spawnOf(cave);
-    }
-
-    /** Walking into the Wayport gate runs Wayport's own command, which counts down, checks the other server and sends. */
-    private void wayportOut(Player player) {
-        UUID id = player.getUniqueId();
-        readyAt.put(id, System.currentTimeMillis() + Math.max(plugin.settings().travelCooldownTicks, 100) * 50L);
-        player.closeInventory();
-        player.performCommand(plugin.settings().wayport.command());
     }
 
     /**
@@ -473,6 +465,7 @@ final class Travel implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
         mustStepClear.remove(id);
+        plugin.walkIn().forget(id);
         lastGround.remove(id);
         lastMessage.remove(id);
         readyAt.remove(id);

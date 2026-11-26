@@ -107,11 +107,11 @@ trails:
 # Seeing other players in the cave follows Posse's groups: anyone Posse says a player can't reach is hidden from them
 # while both are in the cave. Without Posse, nobody in the cave sees anyone else. Not configurable on purpose.
 
-# The Wayport gate is off in 0.8.0 (D301): nobody sees it and nobody can use it. It comes back when Wayport has an API
-# for it, in its own release. These settings are kept so nothing needs renaming then.
+# The start chamber's gate to another server, through Wayport (0.5.0 or newer). There is nothing to turn on here: the
+# gate stands only while that Wayport is installed and running, and each player sees and can use it only when Wayport
+# itself would let them use one of its portals (it is set up, and they hold wayport.use). Waycave has no setting that
+# opens it to anyone else. A player who walks in and stops is handed to Wayport, which counts down and sends them.
 wayport:
-  command: wayport
-  permission: wayport.use
   label: "<gold><bold>To another server</bold>"
 
 # Nobody can change blocks in the cave or around a world's gate: no player, no
@@ -273,6 +273,7 @@ messages:
   nearest: "<aqua>Nearest waygate: <white><name></white> at <white><x> <y> <z></white>, <distance> blocks <direction>."
   nearest-none: "<yellow>There's no waygate you can use in this world."
   nearest-none-escape: "<yellow>There's no waygate you can use in this world."
+  wayport-enter: "<gray>This gate leads to another server. Stand still here to go. Walk out to stay."
   fargate-leaving: "<red><bold>Leaving this server</bold></red> <gray>for <white><name></white>. See you back here."
   fargate-down: "<red><white><name></white> isn't answering right now. You're staying here, and nothing changed.</red> <gray>Try again in a minute."
   move-disabled: "<red>Waygates can't be moved in this world."

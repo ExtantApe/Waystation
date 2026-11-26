@@ -485,8 +485,9 @@ final class Station implements Listener {
     private boolean caveFailed;
 
     /**
-     * The one gate in the start chamber, to another server through Wayport. It exists only while Wayport is installed:
-     * without it the gate is removed, and the socket stands empty. Walking into it runs Wayport's own command.
+     * The one gate in the start chamber, to another server through Wayport. It exists only while a Wayport with its API
+     * is installed and running: without one the gate is removed, and the socket stands empty. A player Wayport allows
+     * who stops inside it is handed to Wayport's API, which counts down and sends them.
      */
     private void placeWayport(World station, List<String> problems) {
         Gate existing = plugin.store().get(Gate.WAYPORT_ID);

@@ -1,6 +1,33 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
+
+- **The gate to another server is back, through Wayport's API (D301).** With Wayport 0.5.0 or newer installed and
+  running, the start chamber has its gate. Waycave asks Wayport's API about each player, and Wayport answers from that
+  player's own `wayport.use` and its own config. A player Wayport allows sees the gate, walks in, is told to stand still
+  (`messages.wayport-enter`), and once they have stopped Wayport counts down and sends them. Waycave runs no command and
+  lends no rights.
+- **Fails closed.** No Wayport, a Wayport that is off, one older than 0.5.0, an API older than version 1, a Wayport that
+  isn't set up, or any answer other than a plain yes: the gate is shown to nobody and sends nobody. A player Wayport
+  doesn't allow is sent no gate and gets no message at the place it stands.
+- A visit starts only by walking in, and Wayport is asked once per visit, so a canceled trip doesn't restart until the
+  player steps out and back in, and a player who logs in inside the gate isn't sent anywhere.
+- Removed `wayport.command` and `wayport.permission` from `config.yml`: who may use the gate is Wayport's to say. Only
+  `wayport.label` is left. `/gate test wayport <player>` says when Wayport is missing, too old or says no.
+
+Tested: 95 unit tests pass (`./gradlew build`), 13 of them new in `WayportLinkTest`. The `cave` bot suite, on throwaway
+servers on 127.0.0.1 with made-up worlds, Posse 0.11.0, Wayport 0.4.0 (no API) and Wayport 0.5.0: 62/62 on Paper 26.2,
+62/62 on 26.3, 67/68 on 26.1.2. Every Wayport gate check passes on all three: no gate with no Wayport or with
+0.4.0, none shown while Wayport isn't set up, a player holding only `wayport.use` is sent the gate and transferred by
+Wayport, a player without it at the same spot is sent nothing, told nothing and goes nowhere, and no command is run. The
+bot walks in on 26.1.2; on 26.2 and 26.3 a test-only hook reports the step, since bots can't walk there. The miss on
+26.1.2 is the older check "and so is its gate" (a lost world's gate: the server says hidden, the bot still lists the
+entities). It failed in two of three runs and passed in one, so it is a flaky check to fix separately.
+Not tested: a real game client at the gate; every other bot suite (`acceptance`, `buymenu`, `economy`, `defaults`,
+`return`, `arrival`, `arrival-guard`, `fargate`, `hop`, `handover`) was not rerun for 0.9.0; a full trip to a second
+server from this gate (the bots record the transfer packet; Wayport's own suites cover the arrival).
+
+## 0.8.0, the buying menu
 
 - **Buying menu (D284).** Players buy a gate by clicking the Trails board, not by typing `/buygate`. A priced world reads
   "(for sale: click the board)". Right or left click opens a menu of the gates they could buy, with price and balance;
@@ -15,9 +42,9 @@ Tested: 92 unit tests pass (10 new, in `BuyMenuTest`). The new `buymenu` bot sui
 tested: a real game client (how the menu looks and reads, the chat names being clicked, which uses a callback); the
 `acceptance` and `economy` suites after this change; a board with more than 54 things for sale.
 
-## 0.8.0 (unreleased)
+## 0.8.0
 
-Waystation is now Waycave, rebuilt as a cave (K649, D194, D196). Not released and not on any live server.
+Waystation is now Waycave, rebuilt as a cave (K649, D194, D196). Not on any live server.
 
 - **Renamed.** Plugin, jar, `rootProject.name`, package (`com.extantape.waycave`), permissions (`waycave.*`),
   `WaycaveAccessEvent`, `WaycaveHandOverEvent`, the data folder and the world (`waycave`). No old names, commands,

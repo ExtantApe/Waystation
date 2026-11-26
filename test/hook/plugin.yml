@@ -10,3 +10,4 @@ commands:
   hooklanding: {}
   hookforcerespawn: {}
   hookkill: {}
+  hookstep: {}
