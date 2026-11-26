@@ -15,7 +15,7 @@
 - Removed `wayport.command` and `wayport.permission` from `config.yml`: who may use the gate is Wayport's to say. Only
   `wayport.label` is left. `/gate test wayport <player>` says when Wayport is missing, too old or says no.
 
-Tested: 95 unit tests pass (`./gradlew build`), 13 of them new in `WayportLinkTest`. The `cave` bot suite, on throwaway
+Tested: 105 unit tests pass (`./gradlew build`), 13 of them new in `WayportLinkTest`. The `cave` bot suite, on throwaway
 servers on 127.0.0.1 with made-up worlds, Posse 0.11.0, Wayport 0.4.0 (no API) and Wayport 0.5.0: 62/62 on Paper 26.2,
 62/62 on 26.3, 67/68 on 26.1.2. Every Wayport gate check passes on all three: no gate with no Wayport or with
 0.4.0, none shown while Wayport isn't set up, a player holding only `wayport.use` is sent the gate and transferred by
