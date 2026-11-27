@@ -2,6 +2,40 @@
 
 What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
 
+## 2026-11-26: the Wayport gate through Wayport's API (0.9.0, D301, K771)
+
+| Promise | Proved by |
+| --- | --- |
+| No gate with no Wayport, or with a Wayport that has no API (0.4.0): never placed, none in `gates.yml`, none sent even to a player holding `wayport.use` and `wayport.admin` | `cave` bots, first boot and "A Wayport without the API" |
+| An API that is too old, missing a call, of another shape, or that throws is treated as no API or a no | `WayportLinkTest` |
+| With the API but Wayport not set up, nobody is sent the gate or can use it, a player holding `wayport.use` included | `cave` bots, "no destination set up" |
+| A player Wayport allows (her own `wayport.use`, no op, no `wayport.admin`) is sent the gate, told to stand still, counted down by Wayport and transferred once to Wayport's destination | `cave` bots, "Wayport set up" (walked on 26.1.2; by the test hook's step on 26.2 and 26.3) |
+| A player Wayport doesn't allow, at the same spot, is sent nothing, told nothing and goes nowhere | `cave` bots: bob next to alice, by the server's answer, by what his game holds, and by stepping in |
+| Taking `wayport.use` away hides the gate again and closes it | `cave` bots, last Wayport checks |
+| Wayport's log names no player and gives no address during the gate checks | `cave` bots |
+| Waycave runs no command for anyone and lends no rights | `cave` bots: no `/wayport` command issued in the server log, Wayport logs the transfer itself; the code path is gone (`performCommand` removed) |
+| Walking through never counts as stopping; stopping is noticed once per visit, so a canceled trip doesn't restart | `WayportLinkTest` (the `Still` cases) |
+| Wayport's service is looked up for every answer: a replaced provider, a withdrawn one and an older one are each noticed on the next call, and a lookup that fails is a no | `WayportLinkTest` (`theServiceIsLookedUpEveryTimeAndNeverKept` failed against the first version, which kept the provider per plugin instance) |
+| Only `STARTED` or `ALREADY_COUNTING` from Wayport counts as sent, and an answer added later is a refusal | `WayportLinkTest` |
+
+Run on the 0.9.0 build, 2026-11-26: `cave` 69/69 on 26.1.2, 63/63 on 26.2 and 26.3; `buymenu`, `economy`, `defaults`,
+`return`, `arrival`, `arrival-guard` and `handover` all pass on 26.3; `fargate` 22/22 and `hop` 12/12 on 26.1.2;
+`acceptance` 166/169 on 26.1.2 with the same three misses as before.
+
+Flaky checks found, to fix on their own (neither is about the Wayport gate):
+
+- "and so is its gate" on 26.1.2: the server says the gate is hidden and the bot still lists its entities. It also misses
+  on `main` at 0.8.0 (46/47 in one run on 26.1.2), so it is older than this change.
+- "bob, on the same spot, sees none of it where her trail ends": missed once on 26.3 and once on 26.2 in ten runs. Each
+  run builds a different cave, and the check counts trail blocks within two blocks of the end of alice's trail, where a
+  kids' trail in a shared tunnel can pass. It didn't miss in the 0.8.0 logs kept from before, so whether it is the same
+  on 0.8.0 is not shown. The per-gate trail checks (the end of each trail is carpet for its own player and plain floor
+  for the other, 26 checks a run) passed every time.
+
+Gaps skipped, and why: a real client at the gate (batched with the other real-client checks); logging in inside the gate
+(the visit starts only on a move event that crosses into it, the same edge every other gate uses and `acceptance`
+covers).
+
 ## 2026-11-25: the older suites brought to the cave, Posse, and the Wayport gate off (K649)
 
 | Promise | Proved by |

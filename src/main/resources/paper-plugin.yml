@@ -21,7 +21,8 @@ dependencies:
     WelcomeWagon: {load: BEFORE, required: false, join-classpath: false}
     # Optional: who can see whom in the cave follows its groups. Read by name. Without it nobody in the cave sees anyone.
     Posse: {load: BEFORE, required: false, join-classpath: false}
-    # Optional: with it the start chamber has a gate to another server. Read by name.
+    # Optional: with 0.5.0 or newer the start chamber has a gate to another server, for players Wayport allows. Its API
+    # is found by name and asked per player.
     Wayport: {load: BEFORE, required: false, join-classpath: false}
 permissions:
   # default: false everywhere an admin is concerned: operators get nothing for free.

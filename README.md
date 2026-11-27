@@ -11,6 +11,16 @@ and read is unchecked, and so is how the Trails board reads. It is not on any li
 Paper 26.3 can't be tested with bots (Paper 26.3 disconnects older clients that move behind ViaVersion), so the 26.3 run
 covers what a bot can do without walking. The older suites were not rerun for 0.8.0 (see `docs/test-audit.md`).
 
+0.9.0 brings back the start chamber's gate to another server, through Wayport 0.5.0's API. On the 0.9.0 build
+(2026-11-26) the `cave` bot suite passed 69 of 69 on Paper 26.1.2 and 63 of 63 on 26.2 and 26.3, with every Wayport gate
+check passing on all three. A bot walks into the Wayport gate on 26.1.2; on 26.2 and 26.3, where bots can't walk, a
+test-only hook reports the step. The other suites passed too: `buymenu`, `economy`, `defaults`, `return`, `arrival`,
+`arrival-guard` and `handover` on 26.3, and `fargate` and `hop` on 26.1.2, where their bots can walk. `acceptance` on
+26.1.2 passed 166 of 169, missing the same three checks as before, which need a real server's creative permissions,
+portals and BlueMap's first render. Two older `cave` checks are flaky and missed in some runs: "and so is
+its gate" on 26.1.2, which also misses on 0.8.0, and "bob, on the same spot, sees none of it where her trail ends",
+which depends on how that run's cave is laid out. No real game client has walked into the gate.
+
 Needs a real client, still untested:
 
 - How the cave looks: its shape, light, moss, plants and vines, and the glow of the fake lichen along a trail.
@@ -89,9 +99,16 @@ blocks and is never left behind when OneBlock reuses an island.
   their own group's), for a price in money without Vault and an economy plugin, or without `waycave.buy`; each click
   checks all of it again, and a player who can't afford it is told so and charged nothing. The board's click spot belongs
   to one player: nobody else is sent it, and a click on someone else's is ignored. The words are in `messages:` under `buy-menu-*`.
-- **No Wayport gate yet (D301).** The start chamber's gate to another server is off in 0.8.0: nobody sees it and nobody can walk into it,
-  even with Wayport installed. Wayport 0.4.0 made its command admin-only, and Waycave never runs it with borrowed rights. The gate returns when
-  Wayport has an API for it.
+- **A gate to another server, through Wayport (D301).** With Wayport 0.5.0 or newer installed and running, the start
+  chamber has one gate to Wayport's destination. Wayport decides who it is for: Waycave asks Wayport's API about each
+  player, and Wayport answers from that player's own `wayport.use` and its own config. A player Wayport allows sees the
+  gate, walks in, is told to stand still, and once they have stopped Wayport runs its usual countdown and sends them.
+  Anyone else is sent no gate, and walking through the place it stands does nothing and says nothing, so a child never
+  gets a way to anything Wayport wouldn't give them directly. Waycave runs no command for anyone and lends no rights,
+  and it has no setting that could open the gate wider. It fails closed: with no Wayport, a Wayport that is off or older
+  than 0.5.0, one that isn't set up, or any answer that isn't a plain yes, the gate is hidden from everyone. Stepping
+  out and back in starts a new try after a canceled one, and logging in inside the gate sends nobody. Wayport is looked
+  up afresh for every answer, so one that was just disabled or replaced is never asked and its last yes is never reused.
 - **No wall map.** The old wall of maps needs a flat wall. It's off in a cave (`wall-map.enabled: false`).
 
 ## Moving a waygate
@@ -165,6 +182,11 @@ With the server stopped:
    paste it into the console. It takes `/mvtp` away from everyone but admins. The console keeps it.
 5. If you use Posse, add `waycave` to `circle-only-worlds` in its `config.yml` and run `/posse reload`. That is what makes
    players in the cave see only the people their circles allow.
+6. For the gate to another server, install Wayport 0.5.0 or newer in the same step as Waycave 0.9.0: the two go
+   together, and an older Wayport leaves the gate hidden. Then give `wayport.use` only to the groups meant to travel.
+   That one permission is the only guard on the gate. Wayport doesn't consult Posse, and Waycave adds no rule of its own,
+   so a kids' group that holds `wayport.use` can leave for the other server, and one that doesn't never sees the gate.
+   `wayport.use` defaults to ops only. Check it with `/gate test wayport <player>`.
 
 ### Upgrading from Waystation
 
@@ -289,7 +311,7 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew shadowJar hookJar` and
 | Suite | What it covers | Needs |
 | --- | --- | --- |
 | `acceptance` | gates, permissions, inventories, protection, tribute, buying, crashes | |
-| `cave` | the cave, its trails, who sees whom, arrival, growth, and that the Wayport gate stays off | `WAYCAVE_TEST_POSSE_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` |
+| `cave` | the cave, its trails, who sees whom, arrival, growth, and the Wayport gate: hidden without Wayport's API or its yes, open only to a player Wayport allows | `WAYCAVE_TEST_POSSE_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` (0.5.0 or newer), `WAYCAVE_TEST_WAYPORT_OLD_JAR` (0.4.0), `./gradlew hookJar`, and a Vault jar in `WAYCAVE_TEST_JARS/plugins` when making the small copy |
 | `fargate` | who sees a fargate, and coming back | |
 | `defaults` | the default config and `example-worlds` | |
 | `hop` | two servers, there and back through fargates | |
@@ -306,8 +328,10 @@ If your copy's differ, `WAYCAVE_TEST_NAMES` points at a file mapping them, kept 
 `test/run.mjs`. `test/hook/` holds a test-only plugin with an event listener and a stand-in economy.
 
 `cave` runs on the small made-up server `test/prepare-small.mjs` makes (no copy of a real one), on 127.0.0.1 only. It
-also needs `WAYCAVE_TEST_POSSE_JAR` and `WAYCAVE_TEST_WAYPORT_JAR`. On 26.2 and 26.3 set `WAYCAVE_TEST_NOWALK=1`: bots
-that move are disconnected there, so those runs keep them still and skip the two checks that need a walk.
+also needs `WAYCAVE_TEST_POSSE_JAR`, `WAYCAVE_TEST_WAYPORT_JAR` and `WAYCAVE_TEST_WAYPORT_OLD_JAR`. On 26.2 and 26.3 set
+`WAYCAVE_TEST_NOWALK=1`: bots that move are disconnected there, so those runs keep them still and skip the two checks
+that need a walk. For the Wayport gate, where a bot can't walk, the test-only hook reports the step into the gate as a
+move event and puts the bot there (`hookstep`); on 26.1.2 the bot walks in.
 
 **A test cave to walk in a real client.** `test/test-cave.mjs` starts a throwaway server from that same small copy, builds the
 cave, and keeps running until you press Ctrl-C, then deletes everything it made. Set `WAYCAVE_TEST_PLAYER` to your

@@ -113,8 +113,8 @@ final class Settings {
     /** Trails: the paths each player sees to their own gates. */
     final boolean trails;
 
-    /** The Wayport gate in the start chamber: Wayport's command, who may use it, and the label. */
-    record Wayport(String command, String permission, String label) {}
+    /** The Wayport gate in the start chamber: its label. Who may use it is Wayport's to say, so nothing here can widen that. */
+    record Wayport(String label) {}
     final Wayport wayport;
 
     /** The Trails board beside the start chamber's monument. */
@@ -209,8 +209,7 @@ final class Settings {
         stationCenterZ = c.isInt("cave.center.z") ? c.getInt("cave.center.z") : null;
         stationY = c.getInt("cave.y", 64);
         trails = c.getBoolean("trails.enabled", true);
-        wayport = new Wayport(commandName(c.getString("wayport.command", "wayport"), "wayport"), c.getString("wayport.permission", "wayport.use"),
-            c.getString("wayport.label", "<gold><bold>To another server</bold>"));
+        wayport = new Wayport(c.getString("wayport.label", "<gold><bold>To another server</bold>"));
 
         travelCooldownTicks = Math.max(0, c.getInt("travel.cooldown-ticks", 40));
 

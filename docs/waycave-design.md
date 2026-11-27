@@ -62,7 +62,7 @@ Today's Departures Board, renamed and reworded: headed **Trails**, one line per 
 
 ## Wayports
 
-The cave's gate to another server is a Wayport (D194). Wayport is its own plugin now. Waycave asks Wayport, when it's installed, to place its gate in the start chamber, and doesn't keep its own copy of the transfer code. Without Wayport, the cave has no server gate. Today's `TransferPass` moves to Wayport, or is removed if Wayport already covers it (to check when Wayport's code is read for this).
+The cave's gate to another server is a Wayport (D194). Wayport is its own plugin now. Waycave places one gate in the start chamber when a Wayport with its API (0.5.0 or newer) is installed, asks that API who may use it, player by player, and hands a player who stops inside it to Wayport (D301, 0.9.0). It doesn't keep its own copy of the transfer code. Without Wayport, the cave has no server gate. Today's `TransferPass` moves to Wayport, or is removed if Wayport already covers it (to check when Wayport's code is read for this).
 
 ## The rename
 

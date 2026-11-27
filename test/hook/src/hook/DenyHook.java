@@ -54,6 +54,19 @@ public final class DenyHook extends JavaPlugin implements Listener {
             if (p != null) p.setHealth(0);
             return true;
         });
+        // hookstep <player> <fromX> <fromY> <fromZ> <toX> <toY> <toZ>: the step a walking player's game would report,
+        // for bots that can't walk (26.2 and 26.3). It announces the move the way the server does, then puts the
+        // player there. Waycave sees a plain PlayerMoveEvent and checks the player exactly as it would a real step.
+        getCommand("hookstep").setExecutor((sender, c, l, a) -> {
+            org.bukkit.entity.Player p = Bukkit.getPlayerExact(a[0]);
+            if (p == null) { getLogger().info("HOOK step " + a[0] + " offline"); return true; }
+            Location from = new Location(p.getWorld(), Double.parseDouble(a[1]), Double.parseDouble(a[2]), Double.parseDouble(a[3]));
+            Location to = new Location(p.getWorld(), Double.parseDouble(a[4]), Double.parseDouble(a[5]), Double.parseDouble(a[6]));
+            Bukkit.getPluginManager().callEvent(new org.bukkit.event.player.PlayerMoveEvent(p, from, to));
+            p.teleport(to);
+            getLogger().info("HOOK step " + a[0] + " done");
+            return true;
+        });
         getCommand("hooklanding").setExecutor((sender, c, l, a) -> {
             LandingService service = Bukkit.getServicesManager().load(LandingService.class);
             if (service == null) { getLogger().info("LANDING " + a[0] + " no-service"); return true; }

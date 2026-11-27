@@ -83,6 +83,7 @@ public final class WaycavePlugin extends JavaPlugin {
         loadStore();
         cave.load();
 
+        walkIn = new WayportWalkIn(this);
         Travel travel = new Travel(this);
         mover = new Mover(this);
         getServer().getPluginManager().registerEvents(mover, this);
@@ -141,6 +142,7 @@ public final class WaycavePlugin extends JavaPlugin {
             Bukkit.getScheduler().runTaskTimer(this, crowd::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, wallMap::pass, 20L, 20L);
             Bukkit.getScheduler().runTaskTimer(this, markers::pass, 20L, 20L);
+            Bukkit.getScheduler().runTaskTimer(this, walkIn::pass, 20L, WayportWalkIn.EVERY_TICKS);
             Bukkit.getScheduler().runTaskTimer(this, () -> station.sync(false), 600L, 600L);
         });
     }
@@ -171,6 +173,11 @@ public final class WaycavePlugin extends JavaPlugin {
     }
 
     private Travel travel;
+    private WayportWalkIn walkIn;
+
+    WayportWalkIn walkIn() {
+        return walkIn;
+    }
     private ArrivalGuard arrivalGuard;
     private volatile TransferPass.Key transferKey = new TransferPass.Key(null, "not loaded");
 
@@ -482,9 +489,12 @@ public final class WaycavePlugin extends JavaPlugin {
 
     /** Why this player can or can't use this gate, in words, for /gate test. */
     String whyNot(Player player, Gate p) {
-        if (!isActive(p)) return isDead(p) ? "the world it leads to is gone" : p.isWayport() ? "Wayport isn't installed" : "the gate is closed";
+        if (!isActive(p)) {
+            return isDead(p) ? "the world it leads to is gone"
+                : p.isWayport() ? "Wayport isn't installed and running, or is older than 0.5.0 and has no API for this gate" : "the gate is closed";
+        }
         if (p.isWayport()) {
-            if (!player.hasPermission(settings.wayport.permission())) return "lacks " + settings.wayport.permission();
+            if (!wayport.mayUse(player)) return "Wayport says no: it isn't set up, or the player lacks wayport.use";
         } else if (p.isFargate()) {
             Settings.FargateTarget target = settings.fargates.get(p.fargateName());
             if (!player.hasPermission(target.permission())) return "lacks " + target.permission();
@@ -496,12 +506,18 @@ public final class WaycavePlugin extends JavaPlugin {
     }
 
     /**
-     * The start chamber's gate to another server is off in 0.8.0 (owner, D301): Wayport 0.4.0 made its command
-     * admin-only, and Waycave never runs it with borrowed rights. The gate comes back when Wayport has an API. While
-     * this says no, the gate is never placed, an old one is removed, nobody is sent it, and nobody can walk into it.
+     * The start chamber's gate to another server exists only while a Wayport with its API (0.5.0 or newer) is installed
+     * and running (owner, D301). While this says no, the gate is never placed, an old one is removed, nobody is sent
+     * it, and nobody can walk into it. Who may use it once it stands is Wayport's answer for each player.
      */
     boolean wayportReady() {
-        return false;
+        return wayport.ready();
+    }
+
+    private final WayportLink wayport = new WayportLink();
+
+    WayportLink wayport() {
+        return wayport;
     }
 
     /** A dead gate leads to a world that's been deleted or unloaded. It stays until an admin removes it. */
@@ -533,7 +549,8 @@ public final class WaycavePlugin extends JavaPlugin {
 
     /** The one rule for both seeing and using a gate. */
     boolean canEnter(Player player, Gate p) {
-        if (p.isWayport()) return isActive(p) && player.hasPermission(settings.wayport.permission()) && allowedByHooks(player, p);
+        // Wayport's own answer for this player, from their own rights. Waycave adds no rule of its own that could say yes.
+        if (p.isWayport()) return isActive(p) && wayport.mayUse(player) && allowedByHooks(player, p);
         if (p.isFargate()) {
             if (!isActive(p)) return false;
             Settings.FargateTarget target = settings.fargates.get(p.fargateName());

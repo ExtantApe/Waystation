@@ -7,13 +7,17 @@
 //   - nobody can change a block in the cave,
 //   - arrival is at the end of the last trail, or the start chamber once that gate is gone,
 //   - a group added later grows a new chamber and moves nothing,
-//   - the Wayport gate is off (D301): with Wayport installed, nobody is sent it and nothing runs Wayport's command.
-// Needs WAYCAVE_TEST_BASE (made by test/prepare-small.mjs), the Waycave jar, and WAYCAVE_TEST_POSSE_JAR and
-// WAYCAVE_TEST_WAYPORT_JAR for the two optional plugins. Bots can't see crouching or use blocks on 26.3; neither is used.
+//   - the Wayport gate (D301): no gate with no Wayport or one without the API, none shown while Wayport isn't set up,
+//     and once it is, a player holding wayport.use is sent the gate and transferred by Wayport while a player without
+//     it, at the same spot, is sent nothing, told nothing and goes nowhere. No command is run for anyone.
+// Needs WAYCAVE_TEST_BASE (made by test/prepare-small.mjs with a Vault jar, for the test hook), the Waycave jar,
+// ./gradlew hookJar, WAYCAVE_TEST_POSSE_JAR, WAYCAVE_TEST_WAYPORT_JAR (0.5.0 or newer) and WAYCAVE_TEST_WAYPORT_OLD_JAR
+// (0.4.0). Bots can't see crouching or use blocks on 26.3; neither is used. Where bots can't walk, the step into the
+// Wayport gate is reported by the test hook (hookstep) and the bot is put there.
 import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { Vec3 } from 'vec3'
-import { Server, freshCopy, installJar, sleep, bot as joinBot, near, walkTo, check, summary, DIR, RUN } from './harness.mjs'
+import { Server, freshCopy, installJar, sleep, bot as joinBot, near, walkTo, check, summary, DIR, RUN, PORT, HOOK_JAR } from './harness.mjs'
 
 // On 26.2 and 26.3 a 26.1 bot that moves is disconnected (ViaBackwards), so there the bots stand still, with physics off, and
 // the two checks that need a walk (arrival) are skipped. Set WAYCAVE_TEST_NOWALK=1.
@@ -22,7 +26,9 @@ const bot = name => joinBot(name, { physics: !NOWALK })
 
 const POSSE = process.env.WAYCAVE_TEST_POSSE_JAR, WAYPORT = process.env.WAYCAVE_TEST_WAYPORT_JAR
 if (!POSSE || !existsSync(POSSE)) throw new Error('Set WAYCAVE_TEST_POSSE_JAR to a Posse jar')
-if (!WAYPORT || !existsSync(WAYPORT)) throw new Error('Set WAYCAVE_TEST_WAYPORT_JAR to a Wayport jar')
+if (!WAYPORT || !existsSync(WAYPORT)) throw new Error('Set WAYCAVE_TEST_WAYPORT_JAR to a Wayport jar with the API (0.5.0 or newer)')
+const WAYPORT_OLD = process.env.WAYCAVE_TEST_WAYPORT_OLD_JAR
+if (!WAYPORT_OLD || !existsSync(WAYPORT_OLD)) throw new Error('Set WAYCAVE_TEST_WAYPORT_OLD_JAR to the Wayport 0.4.0 jar, which has no API')
 
 const s = new Server()
 const dir = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }
@@ -297,8 +303,37 @@ console.log('\n# Gates from before the cave was in this world are put right')
 }
 
 // ---------- Wayport ----------
-console.log('\n# The Wayport gate stays off (D301)')
-copyFileSync(WAYPORT, path.join(DIR, 'plugins', 'Wayport.jar'))
+// The start chamber's gate to another server (D301). It stands only with a Wayport that has the API, and each player
+// sees and can use it only when Wayport itself would let them through, by their own rights.
+const wayportGate = async () => (await gates()).wayport
+const gateTest = async who => (await s.ask(`gate test wayport ${who}`, 700)).join(' ')
+const serverSays = async who => { const t = await gateTest(who); return { enter: /can enter true/.test(t), sees: /sees it true/.test(t), text: t.slice(0, 220) } }
+const aboutTheGate = b => b.chat_log.filter(m => /another server|stand still|travelling|portal|closed right now|isn't set up/i.test(m))
+/** A bot that also keeps the transfer packets it is sent, without following them. */
+async function traveler(name) {
+  const b = await bot(name)
+  b.transfers = []
+  b._client.on('transfer', d => b.transfers.push(d))
+  await s.ask(`mvtp ${name} w:waycave`, 2500); await sleep(3000)
+  b.chat_log.length = 0
+  return b
+}
+/**
+ * One step from two blocks in front of the gate into it, then standing there. A bot that can walk walks it. Where bots
+ * can't move (26.2 and 26.3) the test-only hook reports the same step as a move event and puts the bot in the gate.
+ */
+async function stepIntoGate(b, g, { walk = !NOWALK } = {}) {
+  const [dx, dz] = dir[g.facing], fx = g.x + 0.5 + dx * 2, fz = g.z + 0.5 + dz * 2
+  await s.ask(`execute in waycave run tp ${b.username} ${fx} ${g.y} ${fz}`, 900)
+  if (walk) return walkTo(b, g.x + 0.5, g.z + 0.5, 5000)
+  await s.ask(`hookstep ${b.username} ${fx} ${g.y} ${fz} ${g.x + 0.5} ${g.y} ${g.z + 0.5}`, 600)
+}
+const WAIT = 3000 + 3500 + 2500 // standing still, Wayport's 3 second countdown, its check of the other server, and slack
+const wayportConfig = `destination:\n  name: "<green>Test Destination</green>"\n  host: "127.0.0.1"\n  port: ${PORT}\ncountdown-seconds: 3\nsounds: false\n`
+
+console.log('\n# A Wayport without the API (0.4.0): no gate for anyone')
+copyFileSync(WAYPORT_OLD, path.join(DIR, 'plugins', 'Wayport.jar'))
+copyFileSync(HOOK_JAR, path.join(DIR, 'plugins', 'DenyHook.jar'))
 await s.start(); await sleep(14000)
 G = await caveGates()
 {
@@ -306,23 +341,91 @@ G = await caveGates()
   check('the return gate that led to the old cave now leads to this one', all['return-meadow']?.dest === 'waycave', all['return-meadow']?.dest)
   check('and the cave gate that stood in the old world is placed again in this one', all['station-meadow']?.world === 'waycave', all['station-meadow']?.world)
 }
-// The gate to another server is off in 0.8.0 (D301): with Wayport installed and a player holding wayport.use and
-// wayport.admin, there is still no gate, none is sent to anyone, and nothing runs Wayport's command.
-check('with Wayport installed there is still no gate to another server', !G.some(g => g.id === 'wayport') && !(await gates()).wayport)
+check('the old Wayport is running', s.log.some(l => /Enabling Wayport v0\.4\.0/.test(l)))
+check('with a Wayport that has no API there is no gate to another server', !G.some(g => g.id === 'wayport') && !(await wayportGate()))
 check('and none is written to gates.yml', !/wayport/.test(readFileSync(path.join(DIR, 'plugins/Waycave/gates.yml'), 'utf8')))
 {
   await s.ask('lp user alice permission set wayport.use true', 300)
   await s.ask('lp user alice permission set wayport.admin true', 300)
-  const a3 = await bot('alice')
-  a3.chat_log.length = 0
-  await s.ask('mvtp alice w:waycave', 2500); await sleep(4000)
+  const a3 = await traveler('alice')
   const sees = JSON.stringify(Object.values(a3.entities).map(e => e.metadata ?? null))
   check('a player allowed to use Wayport, even an admin of it, is sent no gate to another server', !/another server/i.test(sees))
-  const test = (await s.ask('gate test wayport alice', 700)).join(' ')
-  check('gate test finds no such gate', !/can enter true/.test(test), test.slice(0, 100))
+  check('gate test finds no such gate', !/can enter true/.test(await gateTest('alice')))
   check('nothing ran Wayport\'s command for her', !a3.chat_log.some(m => /Wayport|isn't set up|Going to/i.test(m)), a3.chat_log.join(' | ').slice(0, 120))
+  await s.ask('lp user alice permission unset wayport.admin', 300)
   a3.end()
 }
+await s.stop()
+
+console.log('\n# Wayport with the API, but no destination set up: the gate stands and nobody is shown it')
+copyFileSync(WAYPORT, path.join(DIR, 'plugins', 'Wayport.jar'))
+await s.start(); await sleep(14000)
+let wg = await wayportGate()
+for (let i = 0; i < 8 && !wg; i++) { await sleep(5000); wg = await wayportGate() } // placed on the next sync
+check('with a Wayport that has the API the start chamber gets its gate', !!wg && wg.world === 'waycave', JSON.stringify(wg ?? null))
+{
+  const a4 = await traveler('alice')
+  const says = await serverSays('alice')
+  check('but Wayport isn\'t set up, so even a player holding wayport.use may not enter and is sent no gate', !says.enter && !says.sees, says.text)
+  if (wg) {
+    await stepIntoGate(a4, wg); await sleep(WAIT)
+    check('stepping where it stands does nothing and says nothing', a4.transfers.length === 0 && aboutTheGate(a4).length === 0, aboutTheGate(a4).join(' | '))
+  }
+  a4.end()
+}
+await s.stop()
+
+console.log('\n# Wayport set up: only players Wayport itself allows see the gate or go through it')
+writeFileSync(path.join(DIR, 'plugins/Wayport/config.yml'), wayportConfig)
+await s.start(); await sleep(14000)
+wg = await wayportGate()
+check('the gate is still in its place after a restart', !!wg && wg.world === 'waycave')
+if (wg) {
+  // bob is a kid with no wayport.use. alice holds wayport.use and nothing more: not wayport.admin, not op.
+  const a5 = await traveler('alice'), b5 = await traveler('bob')
+  const aSays = await serverSays('alice'), bSays = await serverSays('bob')
+  check('alice, who holds wayport.use, may enter and is sent the gate', aSays.enter && aSays.sees, aSays.text)
+  check('bob, who doesn\'t, may not enter and is not sent it', !bSays.enter && !bSays.sees, bSays.text)
+  check('bob isn\'t an op and holds neither Wayport permission (the control is honest)',
+    /lacks wayport\.use|Wayport says no/.test(bSays.text) && !(await s.ask('lp user bob permission check wayport.use', 600)).join(' ').includes('true'))
+  // Close to the gate only, so the Trails board and other gates in the chamber don't count.
+  const hasGate = async b => { const [fx, fy, fz] = frontOf(wg); await tpTo(b.username, fx, fy, fz); await sleep(2600); return near(b, wg.x + 0.5, wg.z + 0.5, 1.6).length > 0 }
+  const aSeen = await hasGate(a5), bSeen = await hasGate(b5)
+  check('standing at the same spot, alice\'s game has the gate and bob\'s has nothing', aSeen && !bSeen, `alice ${aSeen}, bob ${bSeen}`)
+  check('alice doesn\'t see Wayport\'s admin command: she has no admin rights to lend', !(await s.ask('lp user alice permission check wayport.admin', 600)).join(' ').includes('true'))
+
+  b5.chat_log.length = 0
+  await stepIntoGate(b5, wg); await sleep(WAIT)
+  check('bob steps into where the gate stands and stays there: no transfer', b5.transfers.length === 0)
+  check('and not a word about it, so nothing tells him a gate is there', aboutTheGate(b5).length === 0, aboutTheGate(b5).join(' | '))
+  if (!NOWALK) {
+    await stepIntoGate(b5, wg, { walk: false }); await sleep(WAIT)
+    check('the same by the test hook\'s step, the way the 26.2 and 26.3 runs do it', b5.transfers.length === 0 && aboutTheGate(b5).length === 0)
+  }
+
+  a5.chat_log.length = 0
+  await stepIntoGate(a5, wg)
+  const end = Date.now() + WAIT + 3000
+  while (Date.now() < end && a5.transfers.length === 0) await sleep(200)
+  check('alice steps in and is told to stand still', a5.chat_log.some(m => /Stand still here to go/.test(m)), a5.chat_log.join(' | ').slice(0, 200))
+  check('Wayport counts down for her in its own words', a5.chat_log.some(m => /Travelling to Test Destination in 3 seconds/.test(m)), a5.chat_log.join(' | ').slice(0, 300))
+  check('and transfers her, once, to Wayport\'s destination', a5.transfers.length === 1 && a5.transfers[0].host === '127.0.0.1' && a5.transfers[0].port === PORT, JSON.stringify(a5.transfers))
+  check('no message taught her a command or named another player', !a5.chat_log.some(m => /\/wayport|\bbob\b|\bcarol\b/.test(m)), a5.chat_log.join(' | ').slice(0, 200))
+  check('Wayport sent her itself; Waycave ran no command for her', s.log.some(l => /\[Wayport\] Sending a player to the destination/.test(l)) && !s.log.some(l => /alice issued server command: \/wayport/.test(l)))
+  a5.end(); await sleep(1500)
+
+  // Taking the permission away closes it for her, the same way.
+  await s.ask('lp user alice permission unset wayport.use', 300)
+  const a6 = await traveler('alice')
+  await sleep(3500)
+  const after = await serverSays('alice')
+  check('without wayport.use alice may no longer enter, and the gate is hidden from her', !after.enter && !after.sees, after.text)
+  await stepIntoGate(a6, wg, { walk: false }); await sleep(WAIT)
+  check('and stepping in does nothing and says nothing', a6.transfers.length === 0 && aboutTheGate(a6).length === 0, aboutTheGate(a6).join(' | '))
+  a6.end(); b5.end()
+}
+check('Wayport\'s log names neither player and gives no address', !s.log.some(l => /\[Wayport\]/.test(l) && (/\b(alice|bob|carol)\b/.test(l) || l.includes('127.0.0.1'))))
+check('Waycave never ran Wayport\'s command for anyone', !s.log.some(l => /issued server command: \/wayport/.test(l)))
 check('no errors from Waycave in the log (Wayport run)', s.errors().length === 0, s.errors().slice(0, 3).join(' | '))
 await s.stop()
 rmSync(RUN, { recursive: true, force: true })
