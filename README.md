@@ -65,10 +65,10 @@ whom in the cave).
 - **Players walk and click; they don't type.** Everything a player does in the cave is walking to a gate, reading the
   Trails board (which is also where a player buys a trail, below). The few player commands left are a hidden fallback that no text in the
   game teaches.
-- **Deleted world:** the gate goes dark and stays until `/gate remove <id>`: a cracked grey frame with nothing inside,
-  labelled "(trail closed)". If the world is only unloaded, the gate lights up again when it's back.
+- **Deleted world:** the gate goes dark and stays until `/gate remove <id>`: a cracked gray frame with nothing inside,
+  labeled "(trail closed)". If the world is only unloaded, the gate lights up again when it's back.
 - **Labels read over anything.** Floating labels have a text shadow and a dark plate behind them. A gate's state is always
-  in words as well as colour: "Locked", "(trail closed)", "Leaving this server".
+  in words as well as color: "Locked", "(trail closed)", "Leaving this server".
 - **Nobody can edit** the cave or the ground at a world's gate: no permission and no operator gets past this. To change
   it, set `protection.enabled: false` and `/gate reload`.
 
@@ -156,7 +156,7 @@ player or a group, with contexts if you like. Nothing changes until someone sets
 | `waycave.find`, `.move`, `.escape`, `.buy` | true | `/waygate`, `/move`, `/cave`, `/buygate` |
 | `waycave.return` | false | The return command. Name in config |
 
-Other plugins can veto a gate by cancelling `com.extantape.waycave.WaycaveAccessEvent`.
+Other plugins can veto a gate by canceling `com.extantape.waycave.WaycaveAccessEvent`.
 
 ## Build
 
@@ -252,7 +252,7 @@ for creative worlds and explosions also apply on top of everything here.
 
 ### Fargates (optional)
 
-Fargates lead to another server, look different (a yellow and black striped frame around red glass, labelled "Leaving this server"), and
+Fargates lead to another server, look different (a yellow and black striped frame around red glass, labeled "Leaving this server"), and
 sit on no platform. Define the server under `fargate-destinations` in `config.yml`, then
 `/gate fargate <id> <destination>` where you want it. Grant `waycave.fargate.<name>` in LuckPerms.
 A player without it, or on a client version not in `protocols`, can't see the gate, and walking into it does
