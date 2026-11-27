@@ -18,9 +18,23 @@ What Waycave (called Waystation before 0.8.0) promises, and the tests that prove
 | Wayport's service is looked up for every answer: a replaced provider, a withdrawn one and an older one are each noticed on the next call, and a lookup that fails is a no | `WayportLinkTest` (`theServiceIsLookedUpEveryTimeAndNeverKept` failed against the first version, which kept the provider per plugin instance) |
 | Only `STARTED` or `ALREADY_COUNTING` from Wayport counts as sent, and an answer added later is a refusal | `WayportLinkTest` |
 
+Run on the 0.9.0 build, 2026-11-26: `cave` 69/69 on 26.1.2, 63/63 on 26.2 and 26.3; `buymenu`, `economy`, `defaults`,
+`return`, `arrival`, `arrival-guard` and `handover` all pass on 26.3; `fargate` 22/22 and `hop` 12/12 on 26.1.2;
+`acceptance` 166/169 on 26.1.2 with the same three misses as before.
+
+Flaky checks found, to fix on their own (neither is about the Wayport gate):
+
+- "and so is its gate" on 26.1.2: the server says the gate is hidden and the bot still lists its entities. It also misses
+  on `main` at 0.8.0 (46/47 in one run on 26.1.2), so it is older than this change.
+- "bob, on the same spot, sees none of it where her trail ends": missed once on 26.3 and once on 26.2 in ten runs. Each
+  run builds a different cave, and the check counts trail blocks within two blocks of the end of alice's trail, where a
+  kids' trail in a shared tunnel can pass. It didn't miss in the 0.8.0 logs kept from before, so whether it is the same
+  on 0.8.0 is not shown. The per-gate trail checks (the end of each trail is carpet for its own player and plain floor
+  for the other, 26 checks a run) passed every time.
+
 Gaps skipped, and why: a real client at the gate (batched with the other real-client checks); logging in inside the gate
 (the visit starts only on a move event that crosses into it, the same edge every other gate uses and `acceptance`
-covers); the other suites, which this change doesn't touch, were not rerun.
+covers).
 
 ## 2026-11-25: the older suites brought to the cave, Posse, and the Wayport gate off (K649)
 

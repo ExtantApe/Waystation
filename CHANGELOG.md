@@ -17,17 +17,40 @@
 - Removed `wayport.command` and `wayport.permission` from `config.yml`: who may use the gate is Wayport's to say. Only
   `wayport.label` is left. `/gate test wayport <player>` says when Wayport is missing, too old or says no.
 
-Tested: 107 unit tests pass (`./gradlew build`), 15 of them new in `WayportLinkTest`. The `cave` bot suite, on throwaway
-servers on 127.0.0.1 with made-up worlds, Posse 0.11.0, Wayport 0.4.0 (no API) and Wayport 0.5.0: 62/62 on Paper 26.2,
-62/62 on 26.3, 67/68 on 26.1.2. Every Wayport gate check passes on all three: no gate with no Wayport or with
-0.4.0, none shown while Wayport isn't set up, a player holding only `wayport.use` is sent the gate and transferred by
-Wayport, a player without it at the same spot is sent nothing, told nothing and goes nowhere, and no command is run. The
-bot walks in on 26.1.2; on 26.2 and 26.3 a test-only hook reports the step, since bots can't walk there. The miss on
-26.1.2 is the older check "and so is its gate" (a lost world's gate: the server says hidden, the bot still lists the
-entities). It failed in two of three runs and passed in one, so it is a flaky check to fix separately.
-Not tested: a real game client at the gate; every other bot suite (`acceptance`, `buymenu`, `economy`, `defaults`,
-`return`, `arrival`, `arrival-guard`, `fargate`, `hop`, `handover`) was not rerun for 0.9.0; a full trip to a second
-server from this gate (the bots record the transfer packet; Wayport's own suites cover the arrival).
+Tested, on the 0.9.0 build, on throwaway servers on 127.0.0.1 with made-up worlds, Posse 0.11.0, WelcomeWagon 0.7.0,
+EssentialsX 2.22.0, Wayport 0.4.0 (no API) and Wayport 0.5.0: 107 unit tests pass (`./gradlew build`), 15 of them new in
+`WayportLinkTest`.
+
+| Suite | 26.1.2 | 26.2 | 26.3 |
+| --- | --- | --- | --- |
+| `cave` | 69/69 | 63/63 | 63/63 |
+| `buymenu` | not run | not run | 33/33 |
+| `economy` | not run | not run | 10/10 |
+| `defaults` | not run | not run | 17/17 |
+| `return` | not run | not run | 50/50 |
+| `arrival` | not run | not run | 30/30 |
+| `arrival-guard` | not run | not run | 18/18 |
+| `handover` | not run | not run | 19/19 |
+| `fargate` | 22/22 | can't run | can't run |
+| `hop` | 12/12 | can't run | can't run |
+| `acceptance` | 166/169 | can't run | can't run |
+
+`fargate`, `hop` and `acceptance` need bots that walk, which Paper 26.2 and 26.3 disconnect. The three `acceptance`
+misses are the same as on 0.8.0: they need a real server's creative permissions, portals and BlueMap's first render.
+
+Every Wayport gate check passes on all three versions: no gate with no Wayport or with 0.4.0, none shown while Wayport
+isn't set up, a player holding only `wayport.use` is sent the gate and transferred by Wayport, a player without it at
+the same spot is sent nothing, told nothing and goes nowhere, and no command is run. The bot walks in on 26.1.2; on 26.2
+and 26.3 a test-only hook reports the step.
+
+Two older `cave` checks are flaky, and neither is about this gate. "and so is its gate" (a lost world's gate: the server
+says hidden, the bot still lists the entities) missed in two of four runs on 26.1.2 during this work, and misses on
+0.8.0 as well (one run of `main` on 26.1.2, 46/47). "bob, on the same spot, sees none of it where her trail ends" missed
+once on 26.3 and once on 26.2 in ten runs and passed on the rerun; each run builds a different cave, and the check counts
+trail blocks within two blocks of a spot the kids' own trail can pass. Both need their own fix.
+
+Not tested: a real game client at the gate; a full trip to a second server from this gate (the bots record the transfer
+packet; Wayport's own suites cover the arrival).
 
 ## 0.8.0, the buying menu
 

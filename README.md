@@ -11,12 +11,15 @@ and read is unchecked, and so is how the Trails board reads. It is not on any li
 Paper 26.3 can't be tested with bots (Paper 26.3 disconnects older clients that move behind ViaVersion), so the 26.3 run
 covers what a bot can do without walking. The older suites were not rerun for 0.8.0 (see `docs/test-audit.md`).
 
-0.9.0 brings back the start chamber's gate to another server, through Wayport 0.5.0's API. The `cave`
-bot suite passed 62 of 62 on Paper 26.2 and 26.3 and 67 of 68 on 26.1.2 (2026-11-26), with every Wayport gate check
-passing on all three. The one miss on 26.1.2 is an older check, not about this gate: after a player loses a world the
-server hides its gate from her, and the bot sometimes still lists the display entities it was sent earlier. A bot walks
-into the Wayport gate on 26.1.2; on 26.2 and 26.3, where bots can't walk, a test-only hook reports the step. No real game
-client has walked into it, and only the `cave` suite and the unit tests were run for 0.9.0.
+0.9.0 brings back the start chamber's gate to another server, through Wayport 0.5.0's API. On the 0.9.0 build
+(2026-11-26) the `cave` bot suite passed 69 of 69 on Paper 26.1.2 and 63 of 63 on 26.2 and 26.3, with every Wayport gate
+check passing on all three. A bot walks into the Wayport gate on 26.1.2; on 26.2 and 26.3, where bots can't walk, a
+test-only hook reports the step. The other suites passed too: `buymenu`, `economy`, `defaults`, `return`, `arrival`,
+`arrival-guard` and `handover` on 26.3, and `fargate` and `hop` on 26.1.2, where their bots can walk. `acceptance` on
+26.1.2 passed 166 of 169, missing the same three checks as before, which need a real server's creative permissions,
+portals and BlueMap's first render. Two older `cave` checks are flaky and missed in some runs: "and so is
+its gate" on 26.1.2, which also misses on 0.8.0, and "bob, on the same spot, sees none of it where her trail ends",
+which depends on how that run's cave is laid out. No real game client has walked into the gate.
 
 Needs a real client, still untested:
 
