@@ -12,8 +12,10 @@ What Waycave (called Waystation before 0.8.0) promises, and the tests that prove
 | A player Wayport allows (her own `wayport.use`, no op, no `wayport.admin`) is sent the gate, told to stand still, counted down by Wayport and transferred once to Wayport's destination | `cave` bots, "Wayport set up" (walked on 26.1.2; by the test hook's step on 26.2 and 26.3) |
 | A player Wayport doesn't allow, at the same spot, is sent nothing, told nothing and goes nowhere | `cave` bots: bob next to alice, by the server's answer, by what his game holds, and by stepping in |
 | Taking `wayport.use` away hides the gate again and closes it | `cave` bots, last Wayport checks |
+| Wayport's log names no player and gives no address during the gate checks | `cave` bots |
 | Waycave runs no command for anyone and lends no rights | `cave` bots: no `/wayport` command issued in the server log, Wayport logs the transfer itself; the code path is gone (`performCommand` removed) |
 | Walking through never counts as stopping; stopping is noticed once per visit, so a canceled trip doesn't restart | `WayportLinkTest` (the `Still` cases) |
+| Wayport's service is looked up for every answer: a replaced provider, a withdrawn one and an older one are each noticed on the next call, and a lookup that fails is a no | `WayportLinkTest` (`theServiceIsLookedUpEveryTimeAndNeverKept` failed against the first version, which kept the provider per plugin instance) |
 | Only `STARTED` or `ALREADY_COUNTING` from Wayport counts as sent, and an answer added later is a refusal | `WayportLinkTest` |
 
 Gaps skipped, and why: a real client at the gate (batched with the other real-client checks); logging in inside the gate

@@ -411,7 +411,7 @@ if (wg) {
   check('Wayport counts down for her in its own words', a5.chat_log.some(m => /Travelling to Test Destination in 3 seconds/.test(m)), a5.chat_log.join(' | ').slice(0, 300))
   check('and transfers her, once, to Wayport\'s destination', a5.transfers.length === 1 && a5.transfers[0].host === '127.0.0.1' && a5.transfers[0].port === PORT, JSON.stringify(a5.transfers))
   check('no message taught her a command or named another player', !a5.chat_log.some(m => /\/wayport|\bbob\b|\bcarol\b/.test(m)), a5.chat_log.join(' | ').slice(0, 200))
-  check('Wayport sent her itself; Waycave ran no command for her', s.log.some(l => /\[Wayport\] Transferring alice/.test(l)) && !s.log.some(l => /alice issued server command: \/wayport/.test(l)))
+  check('Wayport sent her itself; Waycave ran no command for her', s.log.some(l => /\[Wayport\] Sending a player to the destination/.test(l)) && !s.log.some(l => /alice issued server command: \/wayport/.test(l)))
   a5.end(); await sleep(1500)
 
   // Taking the permission away closes it for her, the same way.
@@ -424,6 +424,7 @@ if (wg) {
   check('and stepping in does nothing and says nothing', a6.transfers.length === 0 && aboutTheGate(a6).length === 0, aboutTheGate(a6).join(' | '))
   a6.end(); b5.end()
 }
+check('Wayport\'s log names neither player and gives no address', !s.log.some(l => /\[Wayport\]/.test(l) && (/\b(alice|bob|carol)\b/.test(l) || l.includes('127.0.0.1'))))
 check('Waycave never ran Wayport\'s command for anyone', !s.log.some(l => /issued server command: \/wayport/.test(l)))
 check('no errors from Waycave in the log (Wayport run)', s.errors().length === 0, s.errors().slice(0, 3).join(' | '))
 await s.stop()

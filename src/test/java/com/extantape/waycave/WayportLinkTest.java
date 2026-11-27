@@ -123,6 +123,45 @@ class WayportLinkTest {
     }
 
     @Test
+    void theServiceIsLookedUpEveryTimeAndNeverKept() {
+        // What the services manager holds, as it changes under the link: a yes, then a provider that says no in its
+        // place, then nothing (Wayport disabled), then a new yes. Each answer must come from what is there now.
+        WayportLink.Registered[] now = {new WayportLink.Registered(Good.class, good(1, true, Result.STARTED))};
+        int[] lookups = {0};
+        WayportLink link = new WayportLink(() -> {
+            lookups[0]++;
+            return now[0];
+        });
+        assertTrue(link.ready());
+        assertTrue(link.mayUse(null));
+
+        now[0] = new WayportLink.Registered(Good.class, good(1, false, Result.NO_PERMISSION));
+        assertFalse(link.mayUse(null), "a provider registered in its place is the one asked");
+        assertFalse(link.send(null));
+
+        now[0] = null;
+        assertFalse(link.ready(), "the service was taken away: the gate goes with it");
+        assertFalse(link.mayUse(null), "and the last yes is not reused");
+        assertFalse(link.send(null));
+
+        now[0] = new WayportLink.Registered(Good.class, good(0, true, Result.STARTED));
+        assertFalse(link.ready(), "an older API in its place is no API");
+
+        now[0] = new WayportLink.Registered(Good.class, good(1, true, Result.STARTED));
+        assertTrue(link.mayUse(null));
+        assertTrue(link.send(null));
+        assertEquals(10, lookups[0], "one lookup for each of the ten calls above");
+    }
+
+    @Test
+    void aLookupThatFailsIsNoWayport() {
+        WayportLink link = new WayportLink(() -> { throw new IllegalStateException("services manager unavailable"); });
+        assertFalse(link.ready());
+        assertFalse(link.mayUse(null));
+        assertFalse(link.send(null));
+    }
+
+    @Test
     void onlyACountdownThatIsRunningCountsAsSent() {
         assertTrue(WayportLink.started(Result.STARTED));
         assertTrue(WayportLink.started(Result.ALREADY_COUNTING));

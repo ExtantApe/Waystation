@@ -1,6 +1,7 @@
 package com.extantape.waycave;
 
 import java.lang.reflect.Method;
+import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -63,30 +64,41 @@ final class WayportLink {
         return result instanceof Enum<?> e && (e.name().equals("STARTED") || e.name().equals("ALREADY_COUNTING"));
     }
 
-    /** The Wayport the answer below was worked out for, so the lookup runs once per Wayport and not once per call. */
-    private Plugin boundTo;
-    private Api api;
+    /** What Bukkit's services manager holds for Wayport at this moment: the service's type and its provider. */
+    record Registered(Class<?> type, Object provider) {}
 
-    private Api current() {
+    private final Supplier<Registered> lookup;
+
+    WayportLink() {
+        this(WayportLink::registeredNow);
+    }
+
+    /** With another way to look the service up, for tests. */
+    WayportLink(Supplier<Registered> lookup) {
+        this.lookup = lookup;
+    }
+
+    /** Wayport's API as the services manager has it now, or null. Only a service Wayport itself registered counts. */
+    static Registered registeredNow() {
         Plugin wayport = Bukkit.getPluginManager().getPlugin(PLUGIN);
-        if (wayport == null || !wayport.isEnabled()) {
-            boundTo = null;
-            api = null;
+        if (wayport == null || !wayport.isEnabled()) return null;
+        for (RegisteredServiceProvider<?> r : Bukkit.getServicesManager().getRegistrations(wayport)) {
+            if (r.getService().getName().equals(SERVICE)) return new Registered(r.getService(), r.getProvider());
+        }
+        return null;
+    }
+
+    /**
+     * Looked up from the services manager every time, as Wayport's API asks, and never kept: a Wayport that was
+     * disabled, replaced or took its service away a moment ago is not called, and its last answer is not reused.
+     */
+    private Api current() {
+        try {
+            Registered now = lookup.get();
+            return now == null ? null : Api.bind(now.type(), now.provider());
+        } catch (RuntimeException | LinkageError e) {
             return null;
         }
-        if (boundTo == wayport) return api;
-        Api found = null;
-        try {
-            // Only a service Wayport itself registered counts, whatever another plugin may register under the name.
-            for (RegisteredServiceProvider<?> r : Bukkit.getServicesManager().getRegistrations(wayport)) {
-                if (r.getService().getName().equals(SERVICE)) found = Api.bind(r.getService(), r.getProvider());
-            }
-        } catch (RuntimeException | LinkageError e) {
-            found = null;
-        }
-        boundTo = wayport;
-        api = found;
-        return found;
     }
 
     /** Is there a Wayport here with the API this gate needs? Without one the gate isn't placed at all. */

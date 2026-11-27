@@ -10,12 +10,14 @@
 - **Fails closed.** No Wayport, a Wayport that is off, one older than 0.5.0, an API older than version 1, a Wayport that
   isn't set up, or any answer other than a plain yes: the gate is shown to nobody and sends nobody. A player Wayport
   doesn't allow is sent no gate and gets no message at the place it stands.
+- Wayport's API is looked up from the server's services manager for every answer and never kept, so a Wayport that was
+  disabled or replaced a moment ago is not called and its last yes is not reused.
 - A visit starts only by walking in, and Wayport is asked once per visit, so a canceled trip doesn't restart until the
   player steps out and back in, and a player who logs in inside the gate isn't sent anywhere.
 - Removed `wayport.command` and `wayport.permission` from `config.yml`: who may use the gate is Wayport's to say. Only
   `wayport.label` is left. `/gate test wayport <player>` says when Wayport is missing, too old or says no.
 
-Tested: 105 unit tests pass (`./gradlew build`), 13 of them new in `WayportLinkTest`. The `cave` bot suite, on throwaway
+Tested: 107 unit tests pass (`./gradlew build`), 15 of them new in `WayportLinkTest`. The `cave` bot suite, on throwaway
 servers on 127.0.0.1 with made-up worlds, Posse 0.11.0, Wayport 0.4.0 (no API) and Wayport 0.5.0: 62/62 on Paper 26.2,
 62/62 on 26.3, 67/68 on 26.1.2. Every Wayport gate check passes on all three: no gate with no Wayport or with
 0.4.0, none shown while Wayport isn't set up, a player holding only `wayport.use` is sent the gate and transferred by

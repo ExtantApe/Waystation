@@ -104,7 +104,8 @@ blocks and is never left behind when OneBlock reuses an island.
   gets a way to anything Wayport wouldn't give them directly. Waycave runs no command for anyone and lends no rights,
   and it has no setting that could open the gate wider. It fails closed: with no Wayport, a Wayport that is off or older
   than 0.5.0, one that isn't set up, or any answer that isn't a plain yes, the gate is hidden from everyone. Stepping
-  out and back in starts a new try after a canceled one, and logging in inside the gate sends nobody.
+  out and back in starts a new try after a canceled one, and logging in inside the gate sends nobody. Wayport is looked
+  up afresh for every answer, so one that was just disabled or replaced is never asked and its last yes is never reused.
 - **No wall map.** The old wall of maps needs a flat wall. It's off in a cave (`wall-map.enabled: false`).
 
 ## Moving a waygate
@@ -178,6 +179,11 @@ With the server stopped:
    paste it into the console. It takes `/mvtp` away from everyone but admins. The console keeps it.
 5. If you use Posse, add `waycave` to `circle-only-worlds` in its `config.yml` and run `/posse reload`. That is what makes
    players in the cave see only the people their circles allow.
+6. For the gate to another server, install Wayport 0.5.0 or newer in the same step as Waycave 0.9.0: the two go
+   together, and an older Wayport leaves the gate hidden. Then give `wayport.use` only to the groups meant to travel.
+   That one permission is the only guard on the gate. Wayport doesn't consult Posse, and Waycave adds no rule of its own,
+   so a kids' group that holds `wayport.use` can leave for the other server, and one that doesn't never sees the gate.
+   `wayport.use` defaults to ops only. Check it with `/gate test wayport <player>`.
 
 ### Upgrading from Waystation
 
