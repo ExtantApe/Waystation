@@ -2,6 +2,29 @@
 
 What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
 
+## 2026-11-28: review fixes to surface gates (0.9.1)
+
+All in the `surface` bot suite, on made-up terrain, with real GriefPrevention claims made by a bot, unless said otherwise.
+
+| Promise | Proved by |
+| --- | --- |
+| A return gate Waycave places never goes on anyone's claim | claimed (gate outside a 20-block claim, with 0.9.0 inside it as the control and the flat world near spawn as a second); fenced (all claimed: no gate) |
+| Away from builds: a spot with chests close by is passed over when there's another | yard (gate past chests up to 10 from spawn, with 0.9.0 among them as the control) |
+| `/gate resurface` takes a gate out of a claim | "Moving one to the surface", claimed |
+| A built roof of bare logs or placed leaves is cover; a tree that grew isn't | pergola (gate outside the roof, with 0.9.0 under it as the control); canopy (decaying leaves and branches, gate under them) |
+| The roof over a roofed spawn is never used, even as the only open ground | roof (a building in a lake: no gate), with the no-spot message |
+| Only the ground is used for a buried or roofed spawn | hill, house, pergola place on the ground; roof and fenced get none |
+| The fallback is bounded and measured | fenced, the worst case here: every spot passes but the claim. At most 6 searches and under 2 seconds, with the time printed |
+| `/gate resurface` moves only when there's a spot, and keeps the gate and both links when there isn't | hill (moved to the surface), sealed (stays, still linked) |
+| `/gate resurface` only takes return gates | station-hill refused, unmoved |
+| The covered-gate warning never advises removing the gate | the warning checks for hill, strip, sealed and pergola; unit test `theCoveredGateAdviceNeverSaysToRemoveIt` |
+| `/gate addworld` never opens a world switched off, and keeps a listed world's entry | shut (refused, still `enabled: false`), under (label kept) |
+| Every `/gate` node is declared off by default | unit test `everySubcommandNodeIsDeclaredOffByDefault`, which found `waycave.admin.station` missing |
+
+Gaps, and why: settling for a spot near a build when there's no other has no world of its own; doors in the walk are covered only by house, whose doorway is open; giant mushrooms,
+bee nests and mangrove roots as cover share the one rule the log and leaf roofs test; a ravine floor and a pillar top
+aren't built (they fall under the same "most of the surface" rule as the roof); no real client has looked at a placement.
+
 ## 2026-11-27: surface gates (0.9.1)
 
 All in the `surface` bot suite, on made-up terrain, unless said otherwise.

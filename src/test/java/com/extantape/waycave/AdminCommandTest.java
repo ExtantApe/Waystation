@@ -65,4 +65,28 @@ class AdminCommandTest {
         out.ok();
         assertTrue(said.isEmpty(), "plain output sends Components, never an answer line");
     }
+
+    @Test void everySubcommandNodeIsDeclaredOffByDefault() throws Exception {
+        String yml;
+        try (var in = getClass().getClassLoader().getResourceAsStream("paper-plugin.yml")) {
+            yml = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        for (String sub : AdminCommand.SUBCOMMANDS) {
+            if (sub.equals("describe")) continue;
+            assertTrue(yml.contains("  waycave.admin." + sub + ": {default: false}"), sub);
+        }
+    }
+
+    @Test void theCoveredGateAdviceNeverSaysToRemoveIt() {
+        var gate = new Gate("return-hill", "hill", 1, -50, 2, org.bukkit.block.BlockFace.NORTH, "waycave");
+        var stone = (org.bukkit.block.Block) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] {org.bukkit.block.Block.class},
+            (proxy, m, args) -> switch (m.getName()) {
+                case "getType" -> org.bukkit.Material.STONE;
+                case "getY" -> -30;
+                default -> null;
+            });
+        String said = Station.underCover(gate, stone);
+        assertTrue(said.contains("/gate resurface return-hill") && said.contains("leaves it if not"), said);
+        assertFalse(said.contains("/gate remove"), said);
+    }
 }

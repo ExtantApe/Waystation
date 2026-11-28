@@ -66,4 +66,17 @@ Dates are when the decision was made. Those marked "by" were made while the firs
   pick a cave under a column with no good surface spot: it now says there's no safe open ground and takes nothing, so a
   gate can't follow a bed underground. A lobby spot with a roof over it counts as an indoor lobby, and its gate is placed
   as before. Worlds with a ceiling are unchanged. Gates that exist are never moved; the console warns about covered
-  return gates, and `/gate remove` then `/gate addworld` places one again. Gates an admin places or moves can go anywhere.
+  return gates (how to move one is in the 2026-11-28 entry). Gates an admin places or moves can go anywhere.
+
+## 2026-11-28
+
+- **Review fixes to the surface rule, chosen while building, for the owner to confirm.** From a code review of 0.9.1
+  before release. A return gate Waycave places never goes on any GriefPrevention claim, and prefers spots with no build
+  within 6 blocks; it settles for one near a build only when walking from a spawn people stand at. A tree counts as
+  open sky only if it grew: leaves that decay, and the logs and bee nests within two blocks of them. Placed leaves, bare
+  log roofs, giant mushrooms and mangrove roots are cover. In a world with a sky the walk doesn't pass doors. For a
+  buried or roofed spawn, only the biggest ground patch is tried, only if it's most of the surface within 32 blocks and
+  at least 100 columns, and never the roof over spawn. The search is bounded at six searches.
+- **Moving a covered gate: `/gate resurface`.** It finds the new spot before changing anything and keeps the old gate if
+  there's none. The earlier advice, `/gate remove` then `/gate addworld`, could leave a world with no way back.
+  `/gate addworld` no longer writes `enabled: true` over an admin's `enabled: false`: it refuses and changes nothing.

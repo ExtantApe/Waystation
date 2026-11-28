@@ -3,46 +3,67 @@
 ## 0.9.1
 
 - **Return gates go on the surface.** The owner: "Should have surface gates built in in the first place". In a world with
-  a sky, a gate Waycave places by itself only goes where nothing covers its footprint. Leaves, natural logs and other
-  tree blocks don't count as cover. With no surface spot there's no gate, and the console gives the by-hand command.
+  a sky, a gate Waycave places by itself only goes where nothing covers its footprint. A tree that grew doesn't count as
+  cover: leaves the game lets decay, and the logs and bee nests among them. Leaves a player placed, logs with no such
+  leaves nearby, giant mushrooms and mangrove roots do. With no surface spot there's no gate, and the console gives the
+  by-hand command.
+- **Never on a claim.** A return gate Waycave places never goes on anyone's GriefPrevention claim. Before, nothing asked.
+  If GriefPrevention can't be asked, every spot counts as claimed, and the console says so once a minute at most.
+- **Away from builds.** A spot with chests, beds, doors, planks, slabs and the like within 6 blocks is only taken when
+  there's no other, and never when the walk started away from spawn.
 - **Why one ended up underground.** From a spawn nobody could stand on (powder snow), the walk went straight down
   through solid ground to the first place a person could stand, which was a cave. Nothing checked for sky. Two more
   holes are closed: the walk could pass through a floor into a cave on its way to a neighbor, and the gate could be set
   up to 12 blocks above or below the ground that was walked.
-- The walk now starts where a player lands at spawn. If that's buried or under a roof, it starts on surface ground
-  within 32 blocks. Such a gate may have no walking path from spawn itself.
+- The walk now starts where a player lands at spawn, and in a world with a sky it doesn't go through doors or fence
+  gates. If spawn is buried or under a roof, it starts on the ground within 32 blocks. Only the biggest patch is tried,
+  and only if it's most of the surface there and at least 100 columns, so a roof, a pillar top or a ravine floor is never
+  used. The roof over spawn is never part of it. Such a gate may have no walking path from spawn itself.
+- **The search is bounded.** At most three walks from spawn and three over the ground, each followed by one search of
+  the spots within 64 blocks, and a search is skipped when its walk is the same as the last. The no-spot message gives
+  how many searches ran and how long they took.
 - **A tribute's move follows the same rule.** It could pick a cave under a spot with no room on top. Now it looks for
   open sky, and with none it says there's no safe open ground near the bed and takes nothing.
 - Worlds with a ceiling, indoor lobbies, the cave's own gates and gates admins place or move work as before.
 - **Upgrading moves nothing.** The console warns once per start about each return gate that has something over it, and
-  `/gate test` says the same. To place one again: `/gate remove return-<world>`, then `/gate addworld <world>`.
+  `/gate test` says the same.
+- **New: `/gate resurface return-<world>`** moves a return gate to where a new one would go. It looks for the spot first
+  and leaves the gate where it is, still linked, if there's none, so a world never loses its way back. Permission
+  `waycave.admin.resurface`.
+- **Fixed: `/gate addworld` no longer opens a closed world.** It wrote `enabled: true` even over an admin's
+  `enabled: false`. Now it refuses a closed world and changes nothing, and leaves a listed world's entry alone.
+- Fixed: `waycave.admin.station` wasn't declared, so operators had `/gate station` without being given it. It is now off
+  by default like every other `/gate` node.
 - Fixed: after removing a return gate, the answer told admins to run `/gate addworld` with the cave's name instead of
   the world's. A return gate placed again is also linked back to its cave gate.
 - The `cave` suite accepts Wayport 0.5.1's spelling of its countdown line.
 
-Tested on the 0.9.1 build, on throwaway servers on 127.0.0.1 with made-up worlds, with bots. 107 unit tests pass
-(`./gradlew build`); the new rule reads real blocks, so its tests are in the new `surface` bot suite. That suite also
-runs the 0.9.0 jar first, to reproduce the cause, then upgrades the same server. Cave runs used Posse 0.11.2,
-Wayport 0.5.1 and 0.4.0; `arrival` used WelcomeWagon 0.7.0.
+Tested on the 0.9.1 build after the review fixes, on throwaway servers on 127.0.0.1 with made-up worlds, with bots.
+109 unit tests pass (`./gradlew build`); the placement rules read real blocks, so their tests are in the `surface` bot
+suite. That suite runs the 0.9.0 jar first, to reproduce each cause, then upgrades the same server. Claims are real
+GriefPrevention claims made by a bot. Cave runs used Posse 0.11.2, Wayport 0.5.1 and 0.4.0; `arrival` used
+WelcomeWagon 0.7.0.
 
 | Suite | 26.1.2 | 26.2 | 26.3 |
 | --- | --- | --- | --- |
-| `surface` | 52/52 | 52/52 | 52/52 |
-| `cave` | 67/69 | 62/63 | 63/63 |
+| `surface` | 76/76 | 76/76 | 76/76 |
+| `cave` | 69/69 | 63/63 | 63/63 |
 | `defaults` | 17/17 | 17/17 | 17/17 |
 | `arrival` | 30/30 | 30/30 | 30/30 |
 | `handover` | 28/28 | 28/28 | 19/19 |
 | `return` | 53/53 | 53/53 | 50/50 |
 | `acceptance` | 166/169 | not run | not run |
 
-The `cave` misses: on 26.1.2 and 26.2, the Wayport countdown line, which the test expected in the older spelling (fixed
-before the 26.3 run, not rerun on the other two); on 26.1.2 also "and so is its gate", which fails on 0.8.0 too. The
-three `acceptance` misses are the same as before: creative permissions, portals and BlueMap's first render, which need a
-real server.
+Fewer checks run on 26.2 and 26.3 because a bot that moves behind ViaVersion is disconnected there, so walking checks
+are skipped, and bots can't use blocks on 26.3. The worst case for the search, every spot within 64 blocks passing
+everything but a claim, took one search and 400 to 426 ms in one tick; it runs only when a gate is placed or
+resurfaced. The three `acceptance` misses are the same as before:
+creative permissions, portals and BlueMap's first render, which need a real server.
 
-Not tested: any real game client; where the rule puts a gate on real terrain; walking through gates on 26.2 and 26.3
+Not tested: any real game client; where the rules put a gate on real terrain; walking through gates on 26.2 and 26.3
 (`acceptance` needs it, so it stays on 26.1.2); `buymenu`, `economy`, `fargate`, `hop` and `arrival-guard`, which this
-change doesn't touch; cover made of water, lava, glass or stripped logs.
+change doesn't touch; settling for a spot near a build when there's no other; a ravine floor or pillar top built as a
+world; giant mushrooms, bee nests and mangrove roots as cover; cover made of water, lava or glass.
 
 ## 0.9.0
 

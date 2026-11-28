@@ -62,16 +62,21 @@ whom in the cave).
   anything missing or moved.
 - **Return gates go on the surface (0.9.1).** In a world with a sky, a gate Waycave places by itself, whether it's a new
   return gate or one moved by a tribute, only goes where nothing covers any of its 5 by 3 footprint (wider for a wider
-  look). Leaves, natural logs, mangrove roots, bamboo and giant mushrooms don't count as cover, and neither do plants,
-  vines, torches or a single layer of snow. Solid blocks (glass, barriers, planks and stripped logs included), water,
-  lava and powder snow do. The walk to a return gate starts where a player lands at spawn, never passes through a floor,
-  and ends level with the gate. If spawn is buried, in powder snow or under a roof, the walk starts on surface ground
-  within 32 blocks, taking the largest patch first; a gate found that way may not have a walking path from spawn itself,
-  and on terrain where the largest open patch is a roof or a ravine floor it can go there. With no surface spot there's
-  no gate, and the console gives the `/gate create` command for placing one by hand. A ravine or pit floor with open
-  sky above counts as surface. A world with a ceiling (the Nether and dimensions like it) works as before. So does a
-  lobby built indoors: if the lobby spot has a roof over it, its gate is placed by walking from there. Gates you place
-  or move yourself can go anywhere.
+  look). A tree that grew doesn't count as cover: its leaves, which the game lets decay, and the logs and bee nests
+  among them. Plants, vines, torches and a single layer of snow don't either. Everything else solid does, including
+  leaves a player placed, logs with no such leaves within two blocks, giant mushrooms, glass, barriers and planks, and
+  so do water, lava and powder snow. The walk to a return gate starts where a player lands at spawn, never passes
+  through a floor or a door, and ends level with the gate.
+- **Never on a claim, and away from builds.** A return gate Waycave places never goes where any of its footprint is in
+  a GriefPrevention claim, anyone's. It prefers a spot with no chests, beds, doors, planks, slabs and the like within
+  6 blocks. Near a spawn people can stand at, it settles for a spot near a build only when there's no other.
+- **A buried or roofed spawn.** If spawn is buried, in powder snow or under a roof, the walk starts on the ground within
+  32 blocks instead. That ground must be most of the surface there, at least 100 columns of it: a roof, a pillar top or
+  a ravine floor is never used, and neither is the roof over spawn. Such a gate may have no walking path from spawn
+  itself. With no spot there's no gate, and the console gives the `/gate create` command for placing one by hand. A
+  ravine or pit floor with open sky above counts as surface when it's walked from spawn. A world with a ceiling (the
+  Nether and dimensions like it) works as before. So does a lobby built indoors: if the lobby spot has a roof over it,
+  its gate is placed by walking from there. Gates you place or move yourself can go anywhere.
 - **Travel goes through Multiverse's teleporter**, so Multiverse-Inventories swaps inventories normally. In survival
   worlds you arrive at the world's gate, with 5 seconds of protection. Elsewhere you land where you last were.
 - **You arrive at the end of your last trail.** Coming back to the cave puts you two blocks in front of the gate you last
@@ -143,28 +148,29 @@ can't lose anything. Each tribute is written to the server log.
 | `/cave`, `/hub` | everyone | Hidden fallback: straight to the start chamber. Name and on/off in config |
 | `/buygate [world]` | everyone | Hidden fallback: buy access to a priced world. Players buy from the Trails board menu, and no text teaches this command |
 | `/return` | with `waycave.return` | To the other server after a countdown, if it's turned on. Name in config |
-| `/gate list, station, create, fargate, move, link, remove, test, addworld, relayout, reseed, reload, describe` | admins | Admin |
+| `/gate list, station, create, fargate, move, link, remove, resurface, test, addworld, relayout, reseed, reload, describe` | admins | Admin |
 
 Every `/gate` command also takes `--json <id>` at the end, for scripts and the Leaf Juice app, and then answers with one
 `ea-result <id> {...}` line in the shared [Signalbox](https://github.com/ExtantApe/Signalbox) format. `/gate describe`
 lists the commands and their arguments. `/gate list` answers in pages of 25 (up to 100 with a limit) with a cursor
 for the next page, and `/gate station` gives the gate seed and the cave. The slow ones (`addworld`, `relayout`,
-`reseed`) answer once the cave is built, with any problems in a list.
+`reseed`) answer once the cave is built, with any problems in a list. `/gate addworld` adds a world to `worlds:` in
+`config.yml` if it isn't listed, and leaves an entry that's there alone. It refuses a world set to `enabled: false` and
+changes nothing, so it never opens a world you closed.
 
 ### Finding and replacing an underground return gate
 
 An upgrade never moves a gate. Within about 30 seconds of a start, the console warns once about each return gate in a
 world with a sky that has something over it, giving where it stands and what's on top. It also warns about one you put
 there on purpose, or one someone has since built over, so check before changing it. `/gate test return-<world>` says
-the same while the gate's chunk is loaded. To have Waycave place one again:
+the same while the gate's chunk is loaded.
 
-1. `/gate remove return-<world>`. It prints where the gate stood, so you can put it back with `/gate create`. Removing
-   alone leaves it gone: the regular resync doesn't bring it back.
-2. `/gate addworld <world>`. This also adds the world to `worlds:` in `config.yml`. The new gate follows the surface
-   rule. If there's no surface spot, the answer says so, and the world has no return gate until you place one by hand.
+`/gate resurface return-<world>` moves it to where Waycave would put a new return gate, by the rules above. It looks for
+the new spot first. If there's none, the gate stays exactly where it is, still linked, and the answer says why, so the
+world never loses its way back. The cave's own gate to that world doesn't move, and neither does any other.
 
-The cave's own gate to that world doesn't move. If the world wasn't listed in `config.yml` before, the order of the
-chambers can change, and with it their numbers and designs, because listed worlds come first.
+Avoid `/gate remove` followed by `/gate addworld` for this: if there's no new spot, the world is left with no return gate
+until you place one by hand.
 
 ## Permissions
 
