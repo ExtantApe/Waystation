@@ -2,6 +2,39 @@
 
 What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
 
+## 2026-11-27: surface gates (0.9.1)
+
+All in the `surface` bot suite, on made-up terrain, unless said otherwise.
+
+| Promise | Proved by |
+| --- | --- |
+| The cause: 0.9.0 walks down through solid ground from a powder snow spawn into a cave | "0.9.0 walks down through solid ground", run with the 0.9.0 jar |
+| Two more ways 0.9.0 went underground: the search 12 up or down, and a spawn with no surface spot | the next two 0.9.0 checks |
+| A buried or powder snow spawn still gets a gate on the ground above | hill, by height and by the floor under it |
+| A cave within 12 blocks under the walk gets no gate | strip |
+| No surface spot: no gate, and the by-hand message, on a first start and when placing again | strip, sealed |
+| Trees and branches overhead are still the surface | canopy, with a check that the leaves really are over the gate |
+| Spawn indoors: the gate is outside | house |
+| A platform in the air and a flat world still work | island, world |
+| A world with a ceiling works as before | under (a Nether world with a netherrack roof) |
+| An indoor lobby keeps its gate indoors | hall |
+| An upgrade moves and removes nothing | every gate from 0.9.0 compared after the upgrade |
+| The log names each covered return gate and how to place it again, once, and no open one | warnings for hill, strip and sealed; none for world, canopy, island, under or hall |
+| `/gate remove` alone doesn't bring a gate back; `/gate addworld` places it on the surface, linked both ways, moving nothing else | "Placing one again" |
+| An admin may put a gate underground and it stays; the log says it is covered | "A gate an admin puts underground" |
+| A tribute never takes a gate under cover; it takes nothing when there is no open spot | sealed tribute: no menu, the message, the gate unmoved |
+| A bed in a cave still gets a tribute offer, and the gate lands on the surface above | hill tribute, paid in hearts |
+
+Gaps, and why: water, lava, glass and stripped logs as cover have no world of their own (they share the one rule that
+powder snow and stone are tested through); a claim covering the surface is covered for tributes by `acceptance`; the
+fallback on real terrain, where it can pick a roof or a ravine floor, isn't built into a world here; no real client has
+looked at a placement. The suite has no unit tests behind it, since the rule reads real blocks and tags.
+
+Run on the 0.9.1 build, 2026-11-27: `surface` 52/52 on 26.1.2, 26.2 and 26.3; `defaults`, `arrival`, `handover` and
+`return` all pass on all three; `cave` 67/69, 62/63 and 63/63; `acceptance` 166/169 on 26.1.2. Counts and the reason for
+each miss are in the CHANGELOG. Found while running: the `cave` suite expected Wayport 0.5.0's spelling of the countdown
+line and now accepts both.
+
 ## 2026-11-26: the Wayport gate through Wayport's API (0.9.0, D301, K771)
 
 | Promise | Proved by |

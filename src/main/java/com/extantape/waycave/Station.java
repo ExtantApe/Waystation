@@ -227,6 +227,8 @@ final class Station implements Listener {
             plugin.afterGateChange();
         }
 
+        checkReturnSky();
+
         boolean missing = false;
         for (String world : liveWorlds()) {
             if (!plugin.store().generated(world) && !gaveUp.contains(world)) missing = true;
@@ -614,51 +616,144 @@ final class Station implements Listener {
         }, next);
     }
 
+    /** One try at finding a return gate's place: how far to walk, whether swimming counts, and the longest drop. */
+    private record Pass(int radius, boolean swim, int maxDrop) {}
+    // First on foot, then allowing a swim, then down a longer drop for spawns on peaks. The first pass that finds a spot wins.
+    private static final List<Pass> PASSES = List.of(new Pass(64, false, 3), new Pass(64, true, 3), new Pass(64, true, 12));
+
     /**
-     * The nearest good spot a person can actually walk to from spawn, with the gate facing back
-     * towards spawn. "Good" means firm ground on both sides, so no gate hangs off a cliff, and "walk
-     * to" is tested on the real terrain, so no gate ends up behind a wall or across water.
+     * The nearest good spot a person can actually walk to from spawn, with the gate facing back towards spawn. "Good"
+     * means firm ground on both sides, so no gate hangs off a cliff, and "walk to" is tested on the real terrain, so no
+     * gate ends up behind a wall or across water. In a world with a sky the gate and the ground in front of it are on the
+     * surface, or there's no gate and an admin is told: see {@link SafeSpots#covers}.
      */
     private void placeReturn(World world, Location spawn, List<String> problems) {
         Settings s = plugin.settings();
         String name = world.getName();
-        Settings.Look look = lookOf(name);
-        // First on foot, then allowing a swim, then down a longer drop for spawns on peaks. The first pass that finds a spot wins.
-        record Pass(int radius, boolean swim, int maxDrop) {}
-        int[] walked = new int[3];
-        int pass = 0;
-        for (Pass attempt : List.of(new Pass(64, false, 3), new Pass(64, true, 3), new Pass(64, true, 12))) {
-            Map<Long, Integer> walkable = plugin.safeSpots().walkableFrom(world, spawn, attempt.radius(), attempt.swim(), attempt.maxDrop());
-            walked[pass++] = walkable.size();
-            List<int[]> offsets = new ArrayList<>();
-            int r = attempt.radius();
-            for (int dx = -r; dx <= r; dx++) {
-                for (int dz = -r; dz <= r; dz++) if (dx * dx + dz * dz >= 36 && dx * dx + dz * dz <= r * r) offsets.add(new int[] {dx, dz});
+        SafeSpots spots = plugin.safeSpots();
+        boolean needsSky = needsSky(world, spawn);
+        int[] walked = new int[PASSES.size()];
+        boolean stoodAtSpawn = false;
+        for (int i = 0; i < PASSES.size(); i++) {
+            Pass pass = PASSES.get(i);
+            Map<Long, Integer> walkable;
+            if (needsSky) {
+                Integer y = SafeSpots.landing(world, spawn, pass.swim());
+                if (y == null || SafeSpots.coverAbove(world, spawn.getBlockX(), y, spawn.getBlockZ()) != null) continue;
+                stoodAtSpawn = true;
+                walkable = spots.walk(world, spawn, spawn.getBlockX(), y, spawn.getBlockZ(), pass.radius(), pass.swim(), pass.maxDrop(), true);
+            } else {
+                walkable = spots.walkableFrom(world, spawn, pass.radius(), pass.swim(), pass.maxDrop());
             }
-            offsets.sort(Comparator.comparingInt(o -> o[0] * o[0] + o[1] * o[1]));
-            for (int[] o : offsets) {
-                BlockFace facing = Math.abs(o[0]) > Math.abs(o[1])
-                    ? (o[0] > 0 ? BlockFace.WEST : BlockFace.EAST)
-                    : (o[1] > 0 ? BlockFace.NORTH : BlockFace.SOUTH);
-                int x = spawn.getBlockX() + o[0], z = spawn.getBlockZ() + o[1];
-                Integer approach = walkable.get(SafeSpots.key(x + facing.getModX() * 3, z + facing.getModZ() * 3));
-                if (approach == null) continue;
-                SafeSpots.Spot spot = plugin.safeSpots().nearLevel(world, x, approach, z, facing, look, plugin.store().inWorld(name));
-                if (spot != null && plugin.safeSpots().firmBothSides(world, spot, facing)) {
-                    Gate gate = new Gate("return-" + name, name, spot.x(), spot.y(), spot.z(), facing, s.stationWorld);
-                    gate.label = plugin.arrival().isLobbyWorld(name) ? s.arrival.lobbyLabel() : s.returnLabel;
-                    gate.link = "station-" + name;
-                    gate.palette = samplePalette(world, spawn);
-                    Gate partner = plugin.store().get(gate.link);
-                    if (partner != null) partner.palette = gate.palette;
-                    plugin.store().put(gate);
-                    return;
+            walked[i] = walkable.size();
+            if (placeAmong(world, spawn, walkable, pass.radius(), needsSky)) return;
+        }
+        // A spawn that's buried, in powder snow or under a roof: start from the surface near it instead.
+        if (needsSky && !stoodAtSpawn) {
+            for (int i = 0; i < PASSES.size(); i++) {
+                Pass pass = PASSES.get(i);
+                for (Map<Long, Integer> walkable : spots.surfaceWalks(world, spawn, pass.radius(), pass.swim(), pass.maxDrop())) {
+                    walked[i] = Math.max(walked[i], walkable.size());
+                    if (placeAmong(world, spawn, walkable, pass.radius(), true)) return;
                 }
             }
         }
         problems.add("No good spot for a " + (plugin.arrival().isLobbyWorld(name) ? "lobby gate near the lobby" : "return gate near spawn") + " in " + name + " (spawn " + spawn.getBlockX() + " " + spawn.getBlockY() + " " + spawn.getBlockZ()
-            + ", reachable columns " + walked[0] + "/" + walked[2] + "). Place one by hand: /gate create return-" + name + " " + s.stationWorld);
+            + ", reachable columns " + walked[0] + "/" + walked[PASSES.size() - 1] + ")."
+            + (needsSky ? " Waycave only puts it on the surface, under open sky or trees." : "")
+            + " Place one by hand: /gate create return-" + name + " " + s.stationWorld);
         gaveUp.add(name);
+    }
+
+    /** Puts the return gate at the nearest good spot whose front is in this walk. Returns whether it found one. */
+    private boolean placeAmong(World world, Location spawn, Map<Long, Integer> walkable, int r, boolean needsSky) {
+        Settings s = plugin.settings();
+        String name = world.getName();
+        Settings.Look look = lookOf(name);
+        List<int[]> offsets = new ArrayList<>();
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) if (dx * dx + dz * dz >= 36 && dx * dx + dz * dz <= r * r) offsets.add(new int[] {dx, dz});
+        }
+        offsets.sort(Comparator.comparingInt(o -> o[0] * o[0] + o[1] * o[1]));
+        for (int[] o : offsets) {
+            BlockFace facing = Math.abs(o[0]) > Math.abs(o[1])
+                ? (o[0] > 0 ? BlockFace.WEST : BlockFace.EAST)
+                : (o[1] > 0 ? BlockFace.NORTH : BlockFace.SOUTH);
+            int x = spawn.getBlockX() + o[0], z = spawn.getBlockZ() + o[1];
+            int frontX = x + facing.getModX() * 3, frontZ = z + facing.getModZ() * 3;
+            Integer approach = walkable.get(SafeSpots.key(frontX, frontZ));
+            if (approach == null) continue;
+            if (needsSky && SafeSpots.coverAbove(world, frontX, approach, frontZ) != null) continue; // walked there under cover
+            // With a sky, the gate is level with the ground that was walked: 12 up or down could be a cave under it.
+            SafeSpots.Spot spot = plugin.safeSpots().nearLevel(world, x, approach, z, facing, look, plugin.store().inWorld(name),
+                needsSky ? 1 : 12, needsSky);
+            if (spot != null && plugin.safeSpots().firmBothSides(world, spot, facing)) {
+                Gate gate = new Gate("return-" + name, name, spot.x(), spot.y(), spot.z(), facing, s.stationWorld);
+                gate.label = plugin.arrival().isLobbyWorld(name) ? s.arrival.lobbyLabel() : s.returnLabel;
+                gate.link = "station-" + name;
+                gate.palette = samplePalette(world, spawn);
+                Gate partner = plugin.store().get(gate.link);
+                if (partner != null) {
+                    partner.palette = gate.palette;
+                    if (partner.link == null) partner.link = gate.id; // removing the old return gate cleared it
+                }
+                plugin.store().put(gate);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a world's return gate has to be on the surface. Worlds with a ceiling have none. A lobby may be built
+     * indoors: when the lobby spot is a floor with a roof over it, its gate is placed by walking from there.
+     */
+    private boolean needsSky(World world, Location anchor) {
+        if (!SafeSpots.hasSky(world)) return false;
+        if (!plugin.arrival().isLobbyWorld(world.getName())) return true;
+        Integer y = SafeSpots.landing(world, anchor, false);
+        return y == null || SafeSpots.coverAbove(world, anchor.getBlockX(), y, anchor.getBlockZ()) == null;
+    }
+
+    /** Return gates already looked at since the server started, by id and place. */
+    private final Set<String> skyChecked = new java.util.HashSet<>();
+
+    /**
+     * Looks for return gates with something over them in worlds with a sky, and says so in the log, once each per server
+     * start and place. It never moves or removes one. Only chunks that already exist are read.
+     */
+    private void checkReturnSky() {
+        for (Gate gate : plugin.store().all()) {
+            World world = Bukkit.getWorld(gate.world);
+            if (!gate.id.startsWith("return-") || world == null || !SafeSpots.hasSky(world)) continue;
+            if (!skyChecked.add(gate.id + " " + gate.world + " " + gate.x + " " + gate.y + " " + gate.z)) continue;
+            // An indoor lobby's gate belongs indoors. Asked after the line above, so the lobby spot is read once.
+            if (plugin.arrival().isLobbyWorld(gate.world) && !needsSky(world, plugin.arrival().anchorFor(world))) continue;
+            Settings.Look look = plugin.settings().look(plugin.lookName(gate));
+            List<CompletableFuture<Chunk>> loads = new ArrayList<>();
+            for (long chunk : SafeSpots.footprintChunks(gate.x, gate.z, look)) {
+                loads.add(world.getChunkAtAsync((int) (chunk >> 32), (int) chunk, false));
+            }
+            CompletableFuture.allOf(loads.toArray(new CompletableFuture[0])).whenComplete((v, error) ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (error != null || loads.stream().anyMatch(load -> load.getNow(null) == null)) return;
+                    List<Chunk> held = loads.stream().map(load -> load.getNow(null)).filter(c -> c.addPluginChunkTicket(plugin)).toList();
+                    try {
+                        org.bukkit.block.Block over = plugin.safeSpots().coverOver(world, gate.x, gate.y, gate.z, gate.facing, look);
+                        if (over != null) plugin.getLogger().warning(underCover(gate, over));
+                    } finally {
+                        held.forEach(c -> c.removePluginChunkTicket(plugin));
+                    }
+                }));
+        }
+    }
+
+    /** What an admin is told about a return gate that has something over it. */
+    static String underCover(Gate gate, org.bukkit.block.Block over) {
+        return gate.id + " at " + gate.world + " " + gate.x + " " + gate.y + " " + gate.z + " is under cover (highest block over it: "
+            + over.getType().getKey().getKey() + " at y " + over.getY() + "), so it may be underground. Waycave hasn't moved it. "
+            + "If it should be on the surface: /gate remove " + gate.id + ", then /gate addworld " + gate.world + ". "
+            + "If it's where you want it, nothing needs doing.";
     }
 
     /**

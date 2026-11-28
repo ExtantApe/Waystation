@@ -344,7 +344,10 @@ final class AdminCommand implements BasicCommand {
             plugin.store().clearGenerated(p.destination); // the world is gone: if it ever returns, it gets a new pair
             commit(o, "Removed " + p.id + ".", null);
         } else {
-            commit(o, "Removed " + p.id + ". It stays gone until /gate addworld " + p.destination + " brings it back.", null);
+            // A return gate's world is the one it stands in; a cave gate's is the one it leads to.
+            String world = p.id.startsWith("return-") ? p.world : p.destination;
+            commit(o, "Removed " + p.id + " (it stood at " + p.world + " " + p.x + " " + p.y + " " + p.z + " facing "
+                + p.facing.name().toLowerCase(Locale.ROOT) + "). It stays gone until /gate addworld " + world + " places it again.", null);
         }
         plugin.station().sync(false);
     }
@@ -385,6 +388,12 @@ final class AdminCommand implements BasicCommand {
         if (loaded) o.put("groundSafe", plugin.safeSpots().terrainOk(world, p.x, p.y, p.z, p.facing, look));
         o.info("chunk " + (loaded ? "loaded" : "not loaded") + ", entities " + plugin.renderer().liveCount(p.id)
             + (loaded ? ", ground " + (plugin.safeSpots().terrainOk(world, p.x, p.y, p.z, p.facing, look) ? "safe" : "NOT SAFE") : ""));
+        if (loaded && p.id.startsWith("return-") && SafeSpots.hasSky(world)) {
+            var over = plugin.safeSpots().coverOver(world, p.x, p.y, p.z, p.facing, look);
+            o.put("openSky", over == null);
+            o.info(over == null ? "sky open" : "under cover: " + over.getType().getKey().getKey() + " at y " + over.getY()
+                + " is over it");
+        }
         List<Map<String, Object>> who = new ArrayList<>();
         for (Player player : players) {
             boolean sameWorld = player.getWorld().equals(world);

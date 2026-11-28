@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.9.1
+
+- **Return gates go on the surface.** The owner: "Should have surface gates built in in the first place". In a world with
+  a sky, a gate Waycave places by itself only goes where nothing covers its footprint. Leaves, natural logs and other
+  tree blocks don't count as cover. With no surface spot there's no gate, and the console gives the by-hand command.
+- **Why one ended up underground.** From a spawn nobody could stand on (powder snow), the walk went straight down
+  through solid ground to the first place a person could stand, which was a cave. Nothing checked for sky. Two more
+  holes are closed: the walk could pass through a floor into a cave on its way to a neighbor, and the gate could be set
+  up to 12 blocks above or below the ground that was walked.
+- The walk now starts where a player lands at spawn. If that's buried or under a roof, it starts on surface ground
+  within 32 blocks. Such a gate may have no walking path from spawn itself.
+- **A tribute's move follows the same rule.** It could pick a cave under a spot with no room on top. Now it looks for
+  open sky, and with none it says there's no safe open ground near the bed and takes nothing.
+- Worlds with a ceiling, indoor lobbies, the cave's own gates and gates admins place or move work as before.
+- **Upgrading moves nothing.** The console warns once per start about each return gate that has something over it, and
+  `/gate test` says the same. To place one again: `/gate remove return-<world>`, then `/gate addworld <world>`.
+- Fixed: after removing a return gate, the answer told admins to run `/gate addworld` with the cave's name instead of
+  the world's. A return gate placed again is also linked back to its cave gate.
+- The `cave` suite accepts Wayport 0.5.1's spelling of its countdown line.
+
+Tested on the 0.9.1 build, on throwaway servers on 127.0.0.1 with made-up worlds, with bots. 107 unit tests pass
+(`./gradlew build`); the new rule reads real blocks, so its tests are in the new `surface` bot suite. That suite also
+runs the 0.9.0 jar first, to reproduce the cause, then upgrades the same server. Cave runs used Posse 0.11.2,
+Wayport 0.5.1 and 0.4.0; `arrival` used WelcomeWagon 0.7.0.
+
+| Suite | 26.1.2 | 26.2 | 26.3 |
+| --- | --- | --- | --- |
+| `surface` | 52/52 | 52/52 | 52/52 |
+| `cave` | 67/69 | 62/63 | 63/63 |
+| `defaults` | 17/17 | 17/17 | 17/17 |
+| `arrival` | 30/30 | 30/30 | 30/30 |
+| `handover` | 28/28 | 28/28 | 19/19 |
+| `return` | 53/53 | 53/53 | 50/50 |
+| `acceptance` | 166/169 | not run | not run |
+
+The `cave` misses: on 26.1.2 and 26.2, the Wayport countdown line, which the test expected in the older spelling (fixed
+before the 26.3 run, not rerun on the other two); on 26.1.2 also "and so is its gate", which fails on 0.8.0 too. The
+three `acceptance` misses are the same as before: creative permissions, portals and BlueMap's first render, which need a
+real server.
+
+Not tested: any real game client; where the rule puts a gate on real terrain; walking through gates on 26.2 and 26.3
+(`acceptance` needs it, so it stays on 26.1.2); `buymenu`, `economy`, `fargate`, `hop` and `arrival-guard`, which this
+change doesn't touch; cover made of water, lava, glass or stripped logs.
+
 ## 0.9.0
 
 - **The gate to another server is back, through Wayport's API (D301).** With Wayport 0.5.0 or newer installed and

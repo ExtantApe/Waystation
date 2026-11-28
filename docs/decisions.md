@@ -54,3 +54,16 @@ Dates are when the decision was made. Those marked "by" were made while the firs
   a player must stop inside the gate before Wayport is asked to send them, because Wayport's countdown cancels on the
   first step; a Wayport that isn't set up leaves the gate in its place but shown to nobody.
 - **Wayport gate off in 0.8.0 (owner, D301, 2026-11-25):** "Wayport API, gate off till then (Recommended)". Wayport 0.4.0 made `/wayport` admin-only, so the start chamber's gate to another server can't work for players. It is hidden from everyone: never placed, an old one removed, nobody sent it, nobody can walk into it. Waycave never runs `/wayport` with borrowed rights. It returns when Wayport has an API, in its own release. The `cave` suite checks that nobody sees or can use it, even a player holding `wayport.use` and `wayport.admin`.
+
+## 2026-11-27
+
+- **Surface gates (owner, 2026-11-27):** "Should have surface gates built in in the first place". Said after a return gate was
+  placed underground in a world with a sky. Built in 0.9.1. Cause: the walk from spawn went straight down through solid
+  ground until someone could stand, which from a powder snow spawn ended in a cave, and nothing asked about the sky.
+- **The rule, chosen while building, for the owner to confirm.** In a world with a sky, a gate Waycave places goes only
+  where nothing covers its footprint. Trees and anything a player walks through aren't cover; solid blocks, water, lava
+  and powder snow are. No surface spot means no gate and the by-hand message. It also covers a tribute's move, which could
+  pick a cave under a column with no good surface spot: it now says there's no safe open ground and takes nothing, so a
+  gate can't follow a bed underground. A lobby spot with a roof over it counts as an indoor lobby, and its gate is placed
+  as before. Worlds with a ceiling are unchanged. Gates that exist are never moved; the console warns about covered
+  return gates, and `/gate remove` then `/gate addworld` places one again. Gates an admin places or moves can go anywhere.
