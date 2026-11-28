@@ -21,6 +21,9 @@ portals and BlueMap's first render. Two older `cave` checks are flaky and missed
 its gate" on 26.1.2, which also misses on 0.8.0, and "bob, on the same spot, sees none of it where her trail ends",
 which depends on how that run's cave is laid out. No real game client has walked into the gate.
 
+0.9.1 puts return gates on the surface (see [below](#how-it-behaves)). It is tested by the new `surface` bot suite on
+made-up terrain; no real client has looked at where it puts a gate on real terrain.
+
 Needs a real client, still untested:
 
 - How the cave looks: its shape, light, moss, plants and vines, and the glow of the fake lichen along a trail.
@@ -57,6 +60,23 @@ whom in the cave).
   Access is `multiverse.access.<world>`, read through Bukkit so LuckPerms contexts apply, and checked again on entry.
 - **Gates are display entities**, not blocks. They place no blocks and aren't saved. A once-a-second pass redraws
   anything missing or moved.
+- **Return gates go on the surface (0.9.1).** In a world with a sky, a gate Waycave places by itself, whether it's a new
+  return gate or one moved by a tribute, only goes where nothing covers any of its 5 by 3 footprint (wider for a wider
+  look). A tree that grew doesn't count as cover: its leaves, which the game lets decay, and the logs and bee nests
+  among them. Plants, vines, torches and a single layer of snow don't either. Everything else solid does, including
+  leaves a player placed, logs with no such leaves within two blocks, giant mushrooms, glass, barriers and planks, and
+  so do water, lava and powder snow. The walk to a return gate starts where a player lands at spawn, never passes
+  through a floor or a door, and ends level with the gate.
+- **Never on a claim, and away from builds.** A return gate Waycave places never goes where any of its footprint is in
+  a GriefPrevention claim, anyone's. It prefers a spot with no chests, beds, doors, planks, slabs and the like within
+  6 blocks. Near a spawn people can stand at, it settles for a spot near a build only when there's no other.
+- **A buried or roofed spawn.** If spawn is buried, in powder snow or under a roof, the walk starts on the ground within
+  32 blocks instead. That ground must be most of the surface there, at least 100 columns of it: a roof, a pillar top or
+  a ravine floor is never used, and neither is the roof over spawn. Such a gate may have no walking path from spawn
+  itself. With no spot there's no gate, and the console gives the `/gate create` command for placing one by hand. A
+  ravine or pit floor with open sky above counts as surface when it's walked from spawn. A world with a ceiling (the
+  Nether and dimensions like it) works as before. So does a lobby built indoors: if the lobby spot has a roof over it,
+  its gate is placed by walking from there. Gates you place or move yourself can go anywhere.
 - **Travel goes through Multiverse's teleporter**, so Multiverse-Inventories swaps inventories normally. In survival
   worlds you arrive at the world's gate, with 5 seconds of protection. Elsewhere you land where you last were.
 - **You arrive at the end of your last trail.** Coming back to the cave puts you two blocks in front of the gate you last
@@ -128,13 +148,29 @@ can't lose anything. Each tribute is written to the server log.
 | `/cave`, `/hub` | everyone | Hidden fallback: straight to the start chamber. Name and on/off in config |
 | `/buygate [world]` | everyone | Hidden fallback: buy access to a priced world. Players buy from the Trails board menu, and no text teaches this command |
 | `/return` | with `waycave.return` | To the other server after a countdown, if it's turned on. Name in config |
-| `/gate list, station, create, fargate, move, link, remove, test, addworld, relayout, reseed, reload, describe` | admins | Admin |
+| `/gate list, station, create, fargate, move, link, remove, resurface, test, addworld, relayout, reseed, reload, describe` | admins | Admin |
 
 Every `/gate` command also takes `--json <id>` at the end, for scripts and the Leaf Juice app, and then answers with one
 `ea-result <id> {...}` line in the shared [Signalbox](https://github.com/ExtantApe/Signalbox) format. `/gate describe`
 lists the commands and their arguments. `/gate list` answers in pages of 25 (up to 100 with a limit) with a cursor
 for the next page, and `/gate station` gives the gate seed and the cave. The slow ones (`addworld`, `relayout`,
-`reseed`) answer once the cave is built, with any problems in a list.
+`reseed`) answer once the cave is built, with any problems in a list. `/gate addworld` adds a world to `worlds:` in
+`config.yml` if it isn't listed, and leaves an entry that's there alone. It refuses a world set to `enabled: false` and
+changes nothing, so it never opens a world you closed.
+
+### Finding and replacing an underground return gate
+
+An upgrade never moves a gate. Within about 30 seconds of a start, the console warns once about each return gate in a
+world with a sky that has something over it, giving where it stands and what's on top. It also warns about one you put
+there on purpose, or one someone has since built over, so check before changing it. `/gate test return-<world>` says
+the same while the gate's chunk is loaded.
+
+`/gate resurface return-<world>` moves it to where Waycave would put a new return gate, by the rules above. It looks for
+the new spot first. If there's none, the gate stays exactly where it is, still linked, and the answer says why, so the
+world never loses its way back. The cave's own gate to that world doesn't move, and neither does any other.
+
+Avoid `/gate remove` followed by `/gate addworld` for this: if there's no new spot, the world is left with no return gate
+until you place one by hand.
 
 ## Permissions
 
@@ -164,7 +200,7 @@ Other plugins can veto a gate by canceling `com.extantape.waycave.WaycaveAccessE
 ./gradlew build
 ```
 
-The jar is `build/libs/Waycave-0.8.0.jar`. Java 25.
+The jar is `build/libs/Waycave-0.9.1.jar`. Java 25.
 
 ## Install
 
@@ -182,7 +218,7 @@ With the server stopped:
    paste it into the console. It takes `/mvtp` away from everyone but admins. The console keeps it.
 5. If you use Posse, add `waycave` to `circle-only-worlds` in its `config.yml` and run `/posse reload`. That is what makes
    players in the cave see only the people their circles allow.
-6. For the gate to another server, install Wayport 0.5.0 or newer in the same step as Waycave 0.9.0: the two go
+6. For the gate to another server, install Wayport 0.5.0 or newer in the same step as Waycave 0.9.0 or newer: they go
    together, and an older Wayport leaves the gate hidden. Then give `wayport.use` only to the groups meant to travel.
    That one permission is the only guard on the gate. Wayport doesn't consult Posse, and Waycave adds no rule of its own,
    so a kids' group that holds `wayport.use` can leave for the other server, and one that doesn't never sees the gate.
@@ -194,7 +230,7 @@ Waycave keeps no old names, commands, permissions or folders (D196), so a server
 server **stopped**, before the first start. Each is a one-time step. A step missed shows as a clear warning in the console
 and nothing half-works.
 
-1. Remove `Waystation-*.jar` from `plugins/` and add `Waycave-0.8.0.jar`.
+1. Remove `Waystation-*.jar` from `plugins/` and add the current `Waycave-*.jar`.
 2. Rename the data folder: `plugins/Waystation` becomes `plugins/Waycave`. `config.yml`, `gates.yml` and `players.yml`
    come along. Then in `plugins/Waycave/config.yml`:
    - Rename the `station:` section to `cave:`. Set `cave.world: waycave`. Delete `cave.spacing`, `cave.aisle`,
@@ -318,9 +354,10 @@ Bots on throwaway servers, 127.0.0.1 only. Run `./gradlew shadowJar hookJar` and
 | `economy` | buying with a real economy plugin | `WAYCAVE_TEST_ECONOMY_JAR` |
 | `buymenu` | the buying menu: choose, confirm, who is offered what, no Vault, nobody else's board | a Vault jar in `WAYCAVE_TEST_JARS/plugins` when making the small copy |
 | `return` | the return command, and running without Multiverse-Core, on a fresh empty server | see below |
+| `surface` | return gates on the surface: buried and powder snow spawns, a cave just under the ground, no surface at all, trees, an indoor spawn, a platform in the air, a Nether world, an indoor lobby, tributes, and (with the 0.9.0 jar) upgrading and placing a gate again | see below |
 | `handover` | `hand-over`, `LandingService`, and a death that respawns at the landing spot, on a small made-up server | see below |
 
-All but `return` and `handover` need `WAYCAVE_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
+All but `return`, `handover` and `surface` need `WAYCAVE_TEST_BASE`, a folder holding a copy made by `test/prepare-copy.sh` from a 26.x server that
 isn't running. `WAYCAVE_TEST_JAVA` is the Java 25 to run it with, if `java` isn't. The bots are 26.1 clients;
 `WAYCAVE_TEST_CLIENT` changes that. A server newer than 26.1 needs ViaVersion and ViaBackwards to let them in.
 `WAYCAVE_TEST_PORT` changes the port from 25599, and must match the copy. The suites use generic world names.
@@ -348,6 +385,11 @@ ViaVersion, ViaBackwards and LuckPerms jars. Starting a server accepts the Minec
 adds a real second server to hop to, on another version. Without that, a stand-in answers the destination's ping.
 `handover` also needs Multiverse-Core, Multiverse-Inventories and Vault jars in `plugins/`, and
 `WAYCAVE_HANDOVER_VERSION` picks 26.1.2, 26.2 or 26.3. It runs on 127.0.0.1:25651.
+
+`surface` also makes its own server, with Multiverse-Core, LuckPerms and ViaVersion jars in `WAYCAVE_TEST_JARS/plugins`,
+and builds its terrain from the console. `WAYCAVE_SURFACE_VERSION` picks 26.1.2, 26.2 or 26.3, `WAYCAVE_SURFACE_PORT`
+a free port, and `WAYCAVE_SURFACE_OLD_JAR` (a 0.9.0 jar) adds the checks that show 0.9.0's underground gates and the
+upgrade from it.
 
 ## For other plugins
 

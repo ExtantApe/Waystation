@@ -408,7 +408,7 @@ if (wg) {
   const end = Date.now() + WAIT + 3000
   while (Date.now() < end && a5.transfers.length === 0) await sleep(200)
   check('alice steps in and is told to stand still', a5.chat_log.some(m => /Stand still here to go/.test(m)), a5.chat_log.join(' | ').slice(0, 200))
-  check('Wayport counts down for her in its own words', a5.chat_log.some(m => /Travelling to Test Destination in 3 seconds/.test(m)), a5.chat_log.join(' | ').slice(0, 300))
+  check('Wayport counts down for her in its own words', a5.chat_log.some(m => /Travell?ing to Test Destination in 3 seconds/.test(m)), a5.chat_log.join(' | ').slice(0, 300))
   check('and transfers her, once, to Wayport\'s destination', a5.transfers.length === 1 && a5.transfers[0].host === '127.0.0.1' && a5.transfers[0].port === PORT, JSON.stringify(a5.transfers))
   check('no message taught her a command or named another player', !a5.chat_log.some(m => /\/wayport|\bbob\b|\bcarol\b/.test(m)), a5.chat_log.join(' | ').slice(0, 200))
   check('Wayport sent her itself; Waycave ran no command for her', s.log.some(l => /\[Wayport\] Sending a player to the destination/.test(l)) && !s.log.some(l => /alice issued server command: \/wayport/.test(l)))

@@ -54,3 +54,29 @@ Dates are when the decision was made. Those marked "by" were made while the firs
   a player must stop inside the gate before Wayport is asked to send them, because Wayport's countdown cancels on the
   first step; a Wayport that isn't set up leaves the gate in its place but shown to nobody.
 - **Wayport gate off in 0.8.0 (owner, D301, 2026-11-25):** "Wayport API, gate off till then (Recommended)". Wayport 0.4.0 made `/wayport` admin-only, so the start chamber's gate to another server can't work for players. It is hidden from everyone: never placed, an old one removed, nobody sent it, nobody can walk into it. Waycave never runs `/wayport` with borrowed rights. It returns when Wayport has an API, in its own release. The `cave` suite checks that nobody sees or can use it, even a player holding `wayport.use` and `wayport.admin`.
+
+## 2026-11-27
+
+- **Surface gates (owner, 2026-11-27):** "Should have surface gates built in in the first place". Said after a return gate was
+  placed underground in a world with a sky. Built in 0.9.1. Cause: the walk from spawn went straight down through solid
+  ground until someone could stand, which from a powder snow spawn ended in a cave, and nothing asked about the sky.
+- **The rule, chosen while building, for the owner to confirm.** In a world with a sky, a gate Waycave places goes only
+  where nothing covers its footprint. Trees and anything a player walks through aren't cover; solid blocks, water, lava
+  and powder snow are. No surface spot means no gate and the by-hand message. It also covers a tribute's move, which could
+  pick a cave under a column with no good surface spot: it now says there's no safe open ground and takes nothing, so a
+  gate can't follow a bed underground. A lobby spot with a roof over it counts as an indoor lobby, and its gate is placed
+  as before. Worlds with a ceiling are unchanged. Gates that exist are never moved; the console warns about covered
+  return gates (how to move one is in the 2026-11-28 entry). Gates an admin places or moves can go anywhere.
+
+## 2026-11-28
+
+- **Review fixes to the surface rule, chosen while building, for the owner to confirm.** From a code review of 0.9.1
+  before release. A return gate Waycave places never goes on any GriefPrevention claim, and prefers spots with no build
+  within 6 blocks; it settles for one near a build only when walking from a spawn people stand at. A tree counts as
+  open sky only if it grew: leaves that decay, and the logs and bee nests within two blocks of them. Placed leaves, bare
+  log roofs, giant mushrooms and mangrove roots are cover. In a world with a sky the walk doesn't pass doors. For a
+  buried or roofed spawn, only the biggest ground patch is tried, only if it's most of the surface within 32 blocks and
+  at least 100 columns, and never the roof over spawn. The search is bounded at six searches.
+- **Moving a covered gate: `/gate resurface`.** It finds the new spot before changing anything and keeps the old gate if
+  there's none. The earlier advice, `/gate remove` then `/gate addworld`, could leave a world with no way back.
+  `/gate addworld` no longer writes `enabled: true` over an admin's `enabled: false`: it refuses and changes nothing.

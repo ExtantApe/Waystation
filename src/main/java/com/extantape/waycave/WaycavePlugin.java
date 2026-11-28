@@ -453,12 +453,20 @@ public final class WaycavePlugin extends JavaPlugin {
         if (problem != null) getLogger().warning("The return command isn't ready: " + problem + ".");
     }
 
-    /** Adds a world to config.yml, keeping the rest of the file and its comments. */
-    void addWorldEntry(String world, String label) throws IOException {
-        getConfig().set("worlds." + world + ".enabled", true);
-        if (label != null) getConfig().set("worlds." + world + ".label", label);
+    /**
+     * Adds a world to config.yml, keeping the rest of the file and its comments. A world already listed keeps its
+     * entry, label included unless a new one is given. Returns false, changing nothing, if an admin switched it off.
+     */
+    boolean addWorldEntry(String world, String label) throws IOException {
+        String at = "worlds." + world;
+        if (getConfig().isConfigurationSection(at) && !getConfig().getBoolean(at + ".enabled", true)) return false;
+        boolean listed = getConfig().contains(at);
+        if (listed && label == null) return true;
+        if (!listed) getConfig().set(at + ".enabled", true);
+        if (label != null) getConfig().set(at + ".label", label);
         getConfig().save(new File(getDataFolder(), "config.yml"));
         settings = new Settings(getConfig());
+        return true;
     }
 
     /** Call after anything changes which gates exist or where they are. */
@@ -648,6 +656,10 @@ public final class WaycavePlugin extends JavaPlugin {
     Settings settings() { return settings; }
     GateStore store() { return store; }
     PlayerData data() { return data; }
+    Claims claims() {
+        return claims;
+    }
+
     SafeSpots safeSpots() { return safeSpots; }
     Payments payments() { return payments; }
     BuyMenu buyMenu() { return buyMenu; }

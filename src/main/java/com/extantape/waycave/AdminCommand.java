@@ -23,13 +23,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 /**
- * /gate: create, move, link, list, remove, test, addworld, relayout, reload and more. Works from the console. Every
+ * /gate: create, move, link, list, remove, resurface, test, addworld, relayout, reload and more. Works from the console. Every
  * subcommand also takes {@code --json <id>} and then answers with exactly one {@code ea-result} line in the shared
- * Signalbox format; the slow ones (addworld, relayout, reseed) answer when the cave is done.
+ * Signalbox format; the slow ones (addworld, relayout, reseed, resurface) answer when they're done.
  */
 final class AdminCommand implements BasicCommand {
     static final List<String> SUBCOMMANDS =
-        List.of("help", "list", "station", "create", "fargate", "move", "link", "remove", "test", "addworld", "relayout", "reseed", "reload", "describe");
+        List.of("help", "list", "station", "create", "fargate", "move", "link", "remove", "resurface", "test", "addworld", "relayout", "reseed", "reload", "describe");
     static final List<String> FACINGS = List.of("north", "south", "east", "west");
     static final int PAGE = 25, MAX_PAGE = 100;
 
@@ -58,6 +58,7 @@ final class AdminCommand implements BasicCommand {
             new Describe.Command("move", node("move"), move, List.of(), false),
             cmd("link", gate, Describe.Arg.of("other", "string")),
             cmd("remove", gate),
+            cmd("resurface", gate),
             cmd("test", gate, Describe.Arg.of("player", "player").asOptional()),
             cmd("addworld", Describe.Arg.of("world", "string")),
             cmd("relayout"),
@@ -106,6 +107,7 @@ final class AdminCommand implements BasicCommand {
             case "move" -> move(o, a);
             case "link" -> link(o, a);
             case "remove" -> remove(o, a);
+            case "resurface" -> resurface(o, a);
             case "test" -> test(o, a);
             case "addworld" -> addWorld(o, a);
             case "relayout" -> { if (none(o, a)) relayout(o); }
@@ -141,6 +143,7 @@ final class AdminCommand implements BasicCommand {
             "/gate move <id> [<world> <x> <y> <z> [facing]]",
             "/gate link <id> <id>   (each then leads to the other's world)",
             "/gate remove <id>",
+            "/gate resurface return-<world>   (moves a return gate to where a new one would go; stays put if there's no spot)",
             "/gate test <id> [player]",
             "/gate addworld <world> [label...]",
             "/gate relayout   (checks the cave and places the gates again)",
@@ -344,9 +347,39 @@ final class AdminCommand implements BasicCommand {
             plugin.store().clearGenerated(p.destination); // the world is gone: if it ever returns, it gets a new pair
             commit(o, "Removed " + p.id + ".", null);
         } else {
-            commit(o, "Removed " + p.id + ". It stays gone until /gate addworld " + p.destination + " brings it back.", null);
+            // A return gate's world is the one it stands in; a cave gate's is the one it leads to.
+            String world = p.id.startsWith("return-") ? p.world : p.destination;
+            commit(o, "Removed " + p.id + " (it stood at " + p.world + " " + p.x + " " + p.y + " " + p.z + " facing "
+                + p.facing.name().toLowerCase(Locale.ROOT) + "). It stays gone until /gate addworld " + world + " places it again.", null);
         }
         plugin.station().sync(false);
+    }
+
+    /** Moves a return gate to where a new one would go, only if there's such a spot. Answers once that's known. */
+    private void resurface(Out o, String[] args) {
+        Gate p = gate(o, args, 1);
+        if (p == null) return;
+        if (args.length > 2) {
+            o.fail(Errors.BAD_ARGUMENT, "Usage: /gate resurface return-<world>");
+            return;
+        }
+        if (!p.id.startsWith("return-") || p.leavesServer()) {
+            o.fail(Errors.BAD_ARGUMENT, "Only a return gate (return-<world>) can be resurfaced. Move other gates with /gate move.");
+            return;
+        }
+        String id = p.id, before = p.world + " " + p.x + " " + p.y + " " + p.z;
+        plugin.station().resurface(p).thenAccept(said -> Bukkit.getScheduler().runTask(plugin, () -> {
+            Gate now = plugin.store().get(id);
+            boolean moved = now != null && !before.equals(now.world + " " + now.x + " " + now.y + " " + now.z);
+            o.put("moved", moved);
+            if (now != null) o.put("gate", asMap(now));
+            if (moved || said.endsWith("Nothing changed.")) {
+                o.info(said);
+                o.ok();
+            } else {
+                o.fail("no-spot", said);
+            }
+        }));
     }
 
     /** Reports what a gate is doing, and what it means for one player or for everyone online. */
@@ -385,6 +418,12 @@ final class AdminCommand implements BasicCommand {
         if (loaded) o.put("groundSafe", plugin.safeSpots().terrainOk(world, p.x, p.y, p.z, p.facing, look));
         o.info("chunk " + (loaded ? "loaded" : "not loaded") + ", entities " + plugin.renderer().liveCount(p.id)
             + (loaded ? ", ground " + (plugin.safeSpots().terrainOk(world, p.x, p.y, p.z, p.facing, look) ? "safe" : "NOT SAFE") : ""));
+        if (loaded && p.id.startsWith("return-") && SafeSpots.hasSky(world)) {
+            var over = plugin.safeSpots().coverOver(world, p.x, p.y, p.z, p.facing, look);
+            o.put("openSky", over == null);
+            o.info(over == null ? "sky open" : "under cover: " + over.getType().getKey().getKey() + " at y " + over.getY()
+                + " is over it");
+        }
         List<Map<String, Object>> who = new ArrayList<>();
         for (Player player : players) {
             boolean sameWorld = player.getWorld().equals(world);
@@ -416,7 +455,11 @@ final class AdminCommand implements BasicCommand {
         }
         String label = args.length > 2 ? String.join(" ", List.of(args).subList(2, args.length)) : null;
         try {
-            plugin.addWorldEntry(world, label);
+            if (!plugin.addWorldEntry(world, label)) {
+                o.fail(Errors.BAD_ARGUMENT, world + " is switched off in config.yml (enabled: false), so it gets no new gates. "
+                    + "Nothing was changed. To open it, set enabled: true under worlds: " + world + " and run /gate reload.");
+                return;
+            }
         } catch (IOException | RuntimeException e) {
             o.fail(Errors.INTERNAL, "Couldn't add it to config.yml: " + e.getMessage());
             return;
@@ -586,7 +629,7 @@ final class AdminCommand implements BasicCommand {
         Stream<String> options = Stream.of();
         if (args.length == 1) {
             options = SUBCOMMANDS.stream().filter(sub -> allowed(sender, sub));
-        } else if (args.length == 2 && Stream.of("move", "link", "remove", "test").anyMatch(args[0]::equalsIgnoreCase)) {
+        } else if (args.length == 2 && Stream.of("move", "link", "remove", "resurface", "test").anyMatch(args[0]::equalsIgnoreCase)) {
             options = plugin.store().all().stream().map(p -> p.id);
         } else if (args.length == 3 && args[0].equalsIgnoreCase("link")) {
             options = plugin.store().all().stream().map(p -> p.id);

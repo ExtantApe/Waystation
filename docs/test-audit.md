@@ -2,6 +2,62 @@
 
 What Waycave (called Waystation before 0.8.0) promises, and the tests that prove it. Newest first.
 
+## 2026-11-28: review fixes to surface gates (0.9.1)
+
+All in the `surface` bot suite, on made-up terrain, with real GriefPrevention claims made by a bot, unless said otherwise.
+
+| Promise | Proved by |
+| --- | --- |
+| A return gate Waycave places never goes on anyone's claim | claimed (gate outside a 20-block claim, with 0.9.0 inside it as the control and the flat world near spawn as a second); fenced (all claimed: no gate) |
+| Away from builds: a spot with chests close by is passed over when there's another | yard (gate past chests up to 10 from spawn, with 0.9.0 among them as the control) |
+| `/gate resurface` takes a gate out of a claim | "Moving one to the surface", claimed |
+| A built roof of bare logs or placed leaves is cover; a tree that grew isn't | pergola (gate outside the roof, with 0.9.0 under it as the control); canopy (decaying leaves and branches, gate under them) |
+| The roof over a roofed spawn is never used, even as the only open ground | roof (a building in a lake: no gate), with the no-spot message |
+| Only the ground is used for a buried or roofed spawn | hill, house, pergola place on the ground; roof and fenced get none |
+| The fallback is bounded and measured | fenced, the worst case here: every spot passes but the claim. At most 6 searches and under 2 seconds, with the time printed |
+| `/gate resurface` moves only when there's a spot, and keeps the gate and both links when there isn't | hill (moved to the surface), sealed (stays, still linked) |
+| `/gate resurface` only takes return gates | station-hill refused, unmoved |
+| The covered-gate warning never advises removing the gate | the warning checks for hill, strip, sealed and pergola; unit test `theCoveredGateAdviceNeverSaysToRemoveIt` |
+| `/gate addworld` never opens a world switched off, and keeps a listed world's entry | shut (refused, still `enabled: false`), under (label kept) |
+| Every `/gate` node is declared off by default | unit test `everySubcommandNodeIsDeclaredOffByDefault`, which found `waycave.admin.station` missing |
+
+Gaps, and why: settling for a spot near a build when there's no other has no world of its own; doors in the walk are covered only by house, whose doorway is open; giant mushrooms,
+bee nests and mangrove roots as cover share the one rule the log and leaf roofs test; a ravine floor and a pillar top
+aren't built (they fall under the same "most of the surface" rule as the roof); no real client has looked at a placement.
+
+## 2026-11-27: surface gates (0.9.1)
+
+All in the `surface` bot suite, on made-up terrain, unless said otherwise.
+
+| Promise | Proved by |
+| --- | --- |
+| The cause: 0.9.0 walks down through solid ground from a powder snow spawn into a cave | "0.9.0 walks down through solid ground", run with the 0.9.0 jar |
+| Two more ways 0.9.0 went underground: the search 12 up or down, and a spawn with no surface spot | the next two 0.9.0 checks |
+| A buried or powder snow spawn still gets a gate on the ground above | hill, by height and by the floor under it |
+| A cave within 12 blocks under the walk gets no gate | strip |
+| No surface spot: no gate, and the by-hand message, on a first start and when placing again | strip, sealed |
+| Trees and branches overhead are still the surface | canopy, with a check that the leaves really are over the gate |
+| Spawn indoors: the gate is outside | house |
+| A platform in the air and a flat world still work | island, world |
+| A world with a ceiling works as before | under (a Nether world with a netherrack roof) |
+| An indoor lobby keeps its gate indoors | hall |
+| An upgrade moves and removes nothing | every gate from 0.9.0 compared after the upgrade |
+| The log names each covered return gate and how to place it again, once, and no open one | warnings for hill, strip and sealed; none for world, canopy, island, under or hall |
+| `/gate remove` alone doesn't bring a gate back; `/gate addworld` places it on the surface, linked both ways, moving nothing else | "Placing one again" |
+| An admin may put a gate underground and it stays; the log says it is covered | "A gate an admin puts underground" |
+| A tribute never takes a gate under cover; it takes nothing when there is no open spot | sealed tribute: no menu, the message, the gate unmoved |
+| A bed in a cave still gets a tribute offer, and the gate lands on the surface above | hill tribute, paid in hearts |
+
+Gaps, and why: water, lava, glass and stripped logs as cover have no world of their own (they share the one rule that
+powder snow and stone are tested through); a claim covering the surface is covered for tributes by `acceptance`; the
+fallback on real terrain, where it can pick a roof or a ravine floor, isn't built into a world here; no real client has
+looked at a placement. The suite has no unit tests behind it, since the rule reads real blocks and tags.
+
+Run on the 0.9.1 build, 2026-11-27: `surface` 52/52 on 26.1.2, 26.2 and 26.3; `defaults`, `arrival`, `handover` and
+`return` all pass on all three; `cave` 67/69, 62/63 and 63/63; `acceptance` 166/169 on 26.1.2. Counts and the reason for
+each miss are in the CHANGELOG. Found while running: the `cave` suite expected Wayport 0.5.0's spelling of the countdown
+line and now accepts both.
+
 ## 2026-11-26: the Wayport gate through Wayport's API (0.9.0, D301, K771)
 
 | Promise | Proved by |

@@ -31,11 +31,13 @@ permissions:
     default: false
   waycave.admin.help: {default: false}
   waycave.admin.list: {default: false}
+  waycave.admin.station: {default: false}
   waycave.admin.create: {default: false}
   waycave.admin.fargate: {default: false}
   waycave.admin.move: {default: false}
   waycave.admin.link: {default: false}
   waycave.admin.remove: {default: false}
+  waycave.admin.resurface: {default: false}
   waycave.admin.test: {default: false}
   waycave.admin.addworld: {default: false}
   waycave.admin.relayout: {default: false}

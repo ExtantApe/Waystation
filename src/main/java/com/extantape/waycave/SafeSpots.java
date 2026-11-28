@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -18,9 +19,11 @@ import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Waterlogged;
+import org.bukkit.block.data.type.Leaves;
 
 /**
- * Finds places a gate can stand. Read-only: nothing here, or anywhere in this plugin, sets a block.
+ * Finds places a gate can stand. In a world with a sky, a gate the plugin places by itself (a return gate, or one moved
+ * by a tribute) only goes where its footprint is open to the sky; see {@link #covers}. Read-only: nothing here, or anywhere in this plugin, sets a block.
  *
  * Callers must have loaded the chunks first. A candidate's checked area always stays inside the
  * candidate's own chunk, so a search can't trigger a surprise synchronous chunk load.
@@ -32,6 +35,10 @@ final class SafeSpots {
 
     /** Footprint margins around the gate's centre block, for walking room and the frame. */
     private static final int ALONG = 2, ACROSS = 1;
+    /** How far from a spawn nobody can stand at to look for surface ground to start walking from, and how many patches. */
+    private static final int SURFACE_SEARCH = 32, SURFACE_STARTS = 8;
+    /** The fewest surface columns within {@code SURFACE_SEARCH} that count as the ground and not a roof or a pillar top. */
+    private static final int MIN_GROUND = 100;
     /** Liquid must be further than this from the footprint. */
     private static final int LIQUID_MARGIN = 1;
 
@@ -76,7 +83,8 @@ final class SafeSpots {
                 continue;
             }
             for (int y = top; y > world.getMinHeight(); y--) {
-                if (terrainOk(world, x, y, z, facing, look) && !nearOther(world, x, y, z, others)) {
+                if (terrainOk(world, x, y, z, facing, look) && (!hasSky(world) || openSky(world, x, y, z, facing, look))
+                    && !nearOther(world, x, y, z, others)) {
                     // Near a build, try another column. Digging down this one would only find a cave beneath it.
                     if (avoidBuilds && nearBuild(world, x, y, z, chunkX, chunkZ)) break;
                     return new Result(new Spot(x, y, z), null);
@@ -91,7 +99,9 @@ final class SafeSpots {
     /** Is a spot found earlier still good? Time passes while a tribute is being offered. */
     boolean stillGood(World world, Spot spot, BlockFace facing, Settings.Look look, UUID claimant, Collection<Gate> others) {
         return insideBorder(world, spot.x(), spot.z(), look) && !claimed(world, spot.x(), spot.z(), facing, look, claimant)
-            && terrainOk(world, spot.x(), spot.y(), spot.z(), facing, look) && !nearOther(world, spot.x(), spot.y(), spot.z(), others);
+            && terrainOk(world, spot.x(), spot.y(), spot.z(), facing, look)
+            && (!hasSky(world) || openSky(world, spot.x(), spot.y(), spot.z(), facing, look))
+            && !nearOther(world, spot.x(), spot.y(), spot.z(), others);
     }
 
     /** Signs of someone's work close by, within this chunk. Rough on purpose: it only decides what to try first. */
@@ -107,14 +117,45 @@ final class SafeSpots {
         return false;
     }
 
+    /**
+     * Signs of someone's work within 6 blocks of a return gate's spot, from 2 below to 6 above it. A column in a chunk
+     * that isn't loaded counts as built, so a doubt never puts a gate by someone's house. The memo is per search: the
+     * same columns come up for many neighboring spots.
+     */
+    static boolean builtNear(World world, int x, int y, int z, Map<String, Boolean> memo) {
+        int r = 6;
+        for (int bx = x - r; bx <= x + r; bx++) {
+            for (int bz = z - r; bz <= z + r; bz++) {
+                int cx = bx, cz = bz;
+                if (memo.computeIfAbsent(cx + " " + y + " " + cz, k -> builtColumn(world, cx, y, cz))) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean builtColumn(World world, int x, int y, int z) {
+        if (!world.isChunkLoaded(x >> 4, z >> 4)) return true;
+        for (int by = y - 2; by <= y + 6; by++) if (built(world.getBlockAt(x, by, z).getType())) return true;
+        return false;
+    }
+
     private static boolean built(Material type) {
         return BUILT.contains(type) || Tag.BEDS.isTagged(type) || Tag.ALL_SIGNS.isTagged(type) || Tag.BANNERS.isTagged(type)
             || Tag.PLANKS.isTagged(type) || Tag.DOORS.isTagged(type) || Tag.WOOL.isTagged(type) || Tag.FENCES.isTagged(type)
             || Tag.STAIRS.isTagged(type) || Tag.SLABS.isTagged(type) || Tag.SHULKER_BOXES.isTagged(type);
     }
 
-    /** Gate generation: the safe floor closest to the wanted level in this one column, or null. */
+    /** The cave's gates: the safe floor closest to the wanted level in this one column, up to 12 away, or null. */
     Spot nearLevel(World world, int x, int wantedY, int z, BlockFace facing, Settings.Look look, Collection<Gate> others) {
+        return nearLevel(world, x, wantedY, z, facing, look, others, 12, false);
+    }
+
+    /**
+     * The safe floor closest to the wanted level in this one column, no further than {@code within} from it, or null.
+     * With {@code needsSky}, only a floor whose whole footprint is open to the sky counts.
+     */
+    Spot nearLevel(World world, int x, int wantedY, int z, BlockFace facing, Settings.Look look, Collection<Gate> others,
+                   int within, boolean needsSky) {
         // Reading a block in an unloaded chunk would load it, and generate it if it's new. Never do that.
         int r = reach(look) + LIQUID_MARGIN;
         for (int dx : new int[] {-r, r}) {
@@ -123,10 +164,11 @@ final class SafeSpots {
             }
         }
         int low = world.getMinHeight() + 1, high = world.getMinHeight() + world.getLogicalHeight() - look.height() - 2;
-        for (int offset = 0; offset <= 12; offset++) {
+        for (int offset = 0; offset <= within; offset++) {
             for (int y : new int[] {wantedY + offset, wantedY - offset}) {
                 if (y >= low && y <= high && insideBorder(world, x, z, look)
-                    && terrainOk(world, x, y, z, facing, look) && !nearOther(world, x, y, z, others)) {
+                    && terrainOk(world, x, y, z, facing, look) && (!needsSky || openSky(world, x, y, z, facing, look))
+                    && !nearOther(world, x, y, z, others)) {
                     return new Spot(x, y, z);
                 }
             }
@@ -167,13 +209,168 @@ final class SafeSpots {
         return true;
     }
 
+    // --- the sky ---
+
+    /** Whether this world has a sky to be under. The Nether and any other dimension with a ceiling don't. */
+    static boolean hasSky(World world) {
+        return !world.hasCeiling() && world.getEnvironment() != World.Environment.NETHER;
+    }
+
+    /**
+     * Whether a block overhead means "under cover". Anything solid does, and so do water, lava and powder snow. A tree
+     * that grew doesn't: see {@link #grownTree}. Neither does anything a player walks through, such as plants, vines,
+     * torches and a thin layer of snow.
+     */
+    static boolean covers(Block block) {
+        Material type = block.getType();
+        if (type.isAir() || grownTree(block)) return false;
+        if (type == Material.POWDER_SNOW || wet(block)) return true;
+        return type.isSolid() && !block.isPassable();
+    }
+
+    /**
+     * Part of a tree that grew: leaves the game would let decay, and the logs, wood and bee nests among them. Leaves a
+     * player places never decay, so a roof of leaves is cover, and so is a roof of logs with no such leaves within two
+     * blocks. Giant mushrooms, mangrove roots and stripped logs are cover too: there's no telling one a player built.
+     */
+    static boolean grownTree(Block block) {
+        Material type = block.getType();
+        if (Tag.LEAVES.isTagged(type)) return block.getBlockData() instanceof Leaves leaves && !leaves.isPersistent();
+        boolean wood = (Tag.LOGS.isTagged(type) && !type.name().startsWith("STRIPPED_")) || type == Material.BEE_NEST;
+        return wood && nearGrownLeaves(block);
+    }
+
+    /** Leaves that decay within two blocks of this one. Only loaded chunks are read. */
+    private static boolean nearGrownLeaves(Block block) {
+        World world = block.getWorld();
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int x = block.getX() + dx, z = block.getZ() + dz;
+                if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
+                for (int dy = -2; dy <= 2; dy++) {
+                    Block near = world.getBlockAt(x, block.getY() + dy, z);
+                    if (Tag.LEAVES.isTagged(near.getType()) && near.getBlockData() instanceof Leaves leaves && !leaves.isPersistent()) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** The highest covering block in this column at height y or above, or null if it's open to the sky. */
+    static Block coverAbove(World world, int x, int y, int z) {
+        for (int at = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE); at >= y; at--) {
+            Block block = world.getBlockAt(x, at, z);
+            if (covers(block)) return block;
+        }
+        return null;
+    }
+
+    /** The highest block over any part of a gate's footprint that stands at this spot, or null if it's all open. */
+    Block coverOver(World world, int x, int y, int z, BlockFace facing, Settings.Look look) {
+        boolean alongX = facing == BlockFace.NORTH || facing == BlockFace.SOUTH;
+        int along = reach(look);
+        Block highest = null;
+        for (int a = -along; a <= along; a++) {
+            for (int b = -ACROSS; b <= ACROSS; b++) {
+                Block over = coverAbove(world, x + (alongX ? a : b), y, z + (alongX ? b : a));
+                if (over != null && (highest == null || over.getY() > highest.getY())) highest = over;
+            }
+        }
+        return highest;
+    }
+
+    boolean openSky(World world, int x, int y, int z, BlockFace facing, Settings.Look look) {
+        return coverOver(world, x, y, z, facing, look) == null;
+    }
+
+    /** The chunks a gate's footprint, and the margin around it, reach into. */
+    static Set<Long> footprintChunks(int x, int z, Settings.Look look) {
+        int r = reach(look) + LIQUID_MARGIN;
+        Set<Long> chunks = new java.util.LinkedHashSet<>();
+        for (int dx : new int[] {-r, r}) {
+            for (int dz : new int[] {-r, r}) chunks.add(key((x + dx) >> 4, (z + dz) >> 4));
+        }
+        return chunks;
+    }
+
+    /**
+     * Where a player who appears at this spot comes to rest: straight down through whatever they'd fall through, never
+     * through solid ground. Null when they'd end up nowhere a person can stand, such as buried or in powder snow.
+     */
+    static Integer landing(World world, Location from, boolean swim) {
+        int x = from.getBlockX(), z = from.getBlockZ();
+        for (int y = from.getBlockY(); y > world.getMinHeight() + 1; y--) {
+            if (walkable(world, x, y, z, swim)) return y;
+            if (!world.getBlockAt(x, y - 1, z).isPassable()) return null;
+        }
+        return null;
+    }
+
+    /** Where a person stands on the ground in this column, under the open sky or under trees only. Null if they can't. */
+    private static Integer surfaceLevel(World world, int x, int z, boolean swim) {
+        for (int y = world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE); y > world.getMinHeight() + 1; y--) {
+            if (!covers(world.getBlockAt(x, y, z))) continue;
+            if (swim && world.getBlockAt(x, y, z).getType() == Material.WATER) return walkable(world, x, y, z, true) ? y : null;
+            return walkable(world, x, y + 1, z, swim) ? y + 1 : null;
+        }
+        return null;
+    }
+
+    /**
+     * For a spawn nobody can stand at in the open: the walk over the real ground near it, or null if there's none. The
+     * real ground is the biggest patch of surface within {@code SURFACE_SEARCH} of spawn, and only counts if it's most
+     * of the surface there: a roof, a pillar top or a ravine floor is a small part, and is never used. With a roofed
+     * spawn (somewhere to stand, under cover, at {@code roofedAt}), the roof over it is taken out of every walk, and a
+     * walk that still reaches over spawn isn't used. At most {@code SURFACE_STARTS} walks are tried, nearest first.
+     */
+    Map<Long, Integer> groundWalk(World world, Location spawn, int radius, boolean swim, int maxDrop, Integer roofedAt) {
+        int sx = spawn.getBlockX(), sz = spawn.getBlockZ();
+        List<int[]> surface = new ArrayList<>();
+        for (int dx = -SURFACE_SEARCH; dx <= SURFACE_SEARCH; dx++) {
+            for (int dz = -SURFACE_SEARCH; dz <= SURFACE_SEARCH; dz++) {
+                if (dx * dx + dz * dz > SURFACE_SEARCH * SURFACE_SEARCH || !world.isChunkLoaded((sx + dx) >> 4, (sz + dz) >> 4)) continue;
+                Integer y = surfaceLevel(world, sx + dx, sz + dz, swim);
+                if (y != null) surface.add(new int[] {sx + dx, y, sz + dz, dx * dx + dz * dz});
+            }
+        }
+        surface.sort(Comparator.comparingInt(c -> c[3]));
+        // Under a roof: the roof is the flat patch on top of spawn, walked without drops. It's never part of the ground,
+        // even where a longer drop joins it to the ground. The ground under it, at its own level, stays.
+        Map<Long, Integer> roof = Map.of();
+        Integer top = roofedAt == null ? null : surfaceLevel(world, sx, sz, swim);
+        if (top != null && top > roofedAt) roof = walk(world, spawn, sx, top, sz, radius, swim, 1, true);
+        List<Map<Long, Integer>> walks = new ArrayList<>();
+        for (int[] c : surface) {
+            if (walks.size() >= SURFACE_STARTS) break;
+            Integer onRoof = roof.get(key(c[0], c[2]));
+            if ((onRoof != null && onRoof == c[1]) || walks.stream().anyMatch(w -> w.containsKey(key(c[0], c[2])))) continue;
+            Map<Long, Integer> w = walk(world, spawn, c[0], c[1], c[2], radius, swim, maxDrop, true);
+            for (var column : roof.entrySet()) w.remove(column.getKey(), column.getValue());
+            walks.add(w);
+        }
+        Map<Long, Integer> best = null;
+        int bestCount = 0;
+        for (Map<Long, Integer> w : walks) {
+            Integer over = w.get(key(sx, sz));
+            if (roofedAt != null && over != null && over > roofedAt) continue; // standing on what covers spawn
+            int count = 0;
+            for (int[] c : surface) if (w.containsKey(key(c[0], c[2]))) count++;
+            if (count > bestCount) {
+                best = w;
+                bestCount = count;
+            }
+        }
+        return best != null && bestCount >= MIN_GROUND && bestCount * 2 >= surface.size() ? best : null;
+    }
+
     static long key(int x, int z) {
         return ((long) x << 32) ^ (z & 0xffffffffL);
     }
 
     /**
      * Every column a person can walk to from this spot by stepping up at most one block and dropping
-     * at most maxDrop, through two-block-high space. Doors count as open. Water counts only if swimming
+     * at most maxDrop, through two-block-high space. Doors and fence gates count as open here, but not in a surface
+     * walk ({@link #walk} with {@code outdoors}). Water counts only if swimming
      * is allowed, for spawns on islands; a gate itself is never placed in water. Loaded chunks only.
      */
     Map<Long, Integer> walkableFrom(World world, Location from, int radius, boolean swim, int maxDrop) {
@@ -181,9 +378,20 @@ final class SafeSpots {
         int startY = from.getBlockY();
         while (startY > world.getMinHeight() + 1 && !walkable(world, from.getBlockX(), startY, from.getBlockZ(), swim)) startY--;
         if (startY <= world.getMinHeight() + 1) return seen;
+        return walk(world, from, from.getBlockX(), startY, from.getBlockZ(), radius, swim, maxDrop, false);
+    }
+
+    /**
+     * The walk itself, from a column that can be stood in, staying within {@code radius} of {@code center}. With
+     * {@code outdoors} a drop has to be through open space, so the walk never passes through a floor into a cave, and
+     * doors and fence gates are walls, so it stays out of builds.
+     */
+    Map<Long, Integer> walk(World world, Location from, int startX, int startY, int startZ, int radius, boolean swim, int maxDrop,
+                            boolean outdoors) {
+        Map<Long, Integer> seen = new HashMap<>();
         Deque<int[]> queue = new ArrayDeque<>();
-        queue.add(new int[] {from.getBlockX(), startY, from.getBlockZ()});
-        seen.put(key(from.getBlockX(), from.getBlockZ()), startY);
+        queue.add(new int[] {startX, startY, startZ});
+        seen.put(key(startX, startZ), startY);
         int[][] steps = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
         while (!queue.isEmpty() && seen.size() < 40000) {
             int[] at = queue.poll();
@@ -192,11 +400,12 @@ final class SafeSpots {
                 if (Math.abs(x - from.getBlockX()) > radius || Math.abs(z - from.getBlockZ()) > radius) continue;
                 if (seen.containsKey(key(x, z)) || !world.isChunkLoaded(x >> 4, z >> 4)) continue;
                 for (int y = at[1] + 1; y >= at[1] - maxDrop; y--) {
-                    if (walkable(world, x, y, z, swim)) {
+                    if (walkable(world, x, y, z, swim, !outdoors)) {
                         seen.put(key(x, z), y);
                         queue.add(new int[] {x, y, z});
                         break;
                     }
+                    if (outdoors && y <= at[1] && !world.getBlockAt(x, y, z).isPassable()) break;
                 }
             }
         }
@@ -204,9 +413,13 @@ final class SafeSpots {
     }
 
     private static boolean walkable(World world, int x, int y, int z, boolean swim) {
+        return walkable(world, x, y, z, swim, true);
+    }
+
+    private static boolean walkable(World world, int x, int y, int z, boolean swim, boolean doors) {
         Block feet = world.getBlockAt(x, y, z), head = world.getBlockAt(x, y + 1, z);
         if (swim && feet.getType() == Material.WATER) return head.isPassable() && head.getType() != Material.LAVA;
-        if (!Tag.DOORS.isTagged(feet.getType()) && !Tag.FENCE_GATES.isTagged(feet.getType())) return standable(world, x, y, z);
+        if (!doors || (!Tag.DOORS.isTagged(feet.getType()) && !Tag.FENCE_GATES.isTagged(feet.getType()))) return standable(world, x, y, z);
         return world.getBlockAt(x, y - 1, z).getType().isSolid();
     }
 
@@ -252,7 +465,7 @@ final class SafeSpots {
             && border.isInside(new Location(world, x - r, 64, z + r)) && border.isInside(new Location(world, x + r, 64, z + r));
     }
 
-    private boolean claimed(World world, int x, int z, BlockFace facing, Settings.Look look, UUID claimant) {
+    boolean claimed(World world, int x, int z, BlockFace facing, Settings.Look look, UUID claimant) {
         boolean alongX = facing == BlockFace.NORTH || facing == BlockFace.SOUTH;
         int along = reach(look);
         for (int a = -along; a <= along; a++) {

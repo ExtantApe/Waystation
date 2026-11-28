@@ -25,23 +25,37 @@ final class Claims {
         return gp != null && gp.isEnabled();
     }
 
-    /** True if the spot is in a claim the player neither owns nor is trusted to build in. Admin claims count. */
+    /** GriefPrevention's lookup, found once per class: a gate search asks about thousands of columns. */
+    private Class<?> lookupClass;
+    private Method lookup;
+    private long lastWarned;
+
+    private Method claimAt(Class<?> dataStore) throws NoSuchMethodException {
+        if (dataStore == lookupClass) return lookup;
+        for (Method m : dataStore.getMethods()) {
+            if (m.getName().equals("getClaimAt") && m.getParameterCount() == 3
+                && m.getParameterTypes()[0] == Location.class && m.getParameterTypes()[1] == boolean.class) {
+                lookupClass = dataStore;
+                lookup = m;
+                return m;
+            }
+        }
+        throw new NoSuchMethodException("DataStore.getClaimAt(Location, boolean, Claim)");
+    }
+
+    /**
+     * True if the spot is in a claim the player neither owns nor is trusted to build in. Admin claims count. With no
+     * player (a gate Waycave places by itself, for nobody in particular), every claim counts.
+     */
     boolean foreignClaim(Location at, UUID player) {
         Plugin gp = Bukkit.getPluginManager().getPlugin("GriefPrevention");
         if (gp == null) return false;
         try {
             Object dataStore = gp.getClass().getField("dataStore").get(gp);
-            Method getClaimAt = null;
-            for (Method m : dataStore.getClass().getMethods()) {
-                if (m.getName().equals("getClaimAt") && m.getParameterCount() == 3
-                    && m.getParameterTypes()[0] == Location.class && m.getParameterTypes()[1] == boolean.class) {
-                    getClaimAt = m;
-                    break;
-                }
-            }
-            if (getClaimAt == null) throw new NoSuchMethodException("DataStore.getClaimAt(Location, boolean, Claim)");
+            Method getClaimAt = claimAt(dataStore.getClass());
             Object claim = getClaimAt.invoke(dataStore, at, true, null);
             if (claim == null) return false;
+            if (player == null) return true;
             Object owner = claim.getClass().getMethod("getOwnerID").invoke(claim);
             if (player.equals(owner)) return false;
             // The owner may have trusted this player. Building trust is what a gate on their land amounts to.
@@ -54,7 +68,12 @@ final class Claims {
             }
             return true;
         } catch (ReflectiveOperationException | RuntimeException e) {
-            log.log(Level.SEVERE, "Couldn't ask GriefPrevention about a claim; treating the spot as claimed", e);
+            // A gate search asks thousands of times in one go: say it once a minute, not once a column.
+            long now = System.currentTimeMillis();
+            if (now - lastWarned > 60_000) {
+                lastWarned = now;
+                log.log(Level.SEVERE, "Couldn't ask GriefPrevention about a claim; treating the spot as claimed", e);
+            }
             return true;
         }
     }
